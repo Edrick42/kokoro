@@ -2,14 +2,14 @@ use bevy::prelude::Resource;
 use serde::{Serialize, Deserialize};
 
 #[derive(Resource, Debug, Serialize, Deserialize)]
-pub struct Pet {
+pub struct Creature {
     pub hunger: f32,
     pub happiness: f32,
     pub energy: f32,
     pub discipline: f32,
 }
 
-impl Pet {
+impl Creature {
     pub fn new() -> Self {
         Self {
             hunger: 50.0,

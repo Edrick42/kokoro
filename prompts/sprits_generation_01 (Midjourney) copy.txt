@@ -1,0 +1,179 @@
+# Kokoro — Sprite Generation Prompts
+
+All prompts follow the same **base formula**:
+```
+[subject] + [style] + [technical specs] + [negative prompt]
+```
+
+Use the **Base DNA** block in every prompt. Then append the mood-specific block.
+
+---
+
+## Base DNA (always include this)
+
+```
+a small round virtual pet creature called Kobara, chubby chibi body,
+oversized round eyes, tiny stubby limbs, soft smooth fur,
+clean flat colors, no shading gradients, crisp outlines,
+tamagotchi-inspired design, centered on white background,
+transparent background PNG, game sprite ready
+```
+
+---
+
+## Style Variants
+
+Pick ONE style and keep it consistent across all moods.
+
+### Style A — Modern Pixel Art (recommended for mobile)
+```
+16-bit pixel art style, 64x64 pixels, limited color palette,
+no anti-aliasing, chunky pixels, retro game aesthetic
+```
+
+### Style B — Flat Vector / Cartoon
+```
+flat 2D vector illustration, bold clean outlines 3px,
+kawaii cartoon style, no texture, solid color fills,
+sticker art style
+```
+
+### Style C — Soft Hand-drawn
+```
+hand-drawn illustration, soft colored pencil texture,
+gentle outlines, pastel colors, children's book aesthetic,
+watercolor-light feel
+```
+
+---
+
+## Mood Prompts
+
+### 1. Idle / Neutral
+```
+[BASE DNA] [STYLE]
+Kobara standing still, eyes half-open and relaxed, small gentle smile,
+one foot slightly raised as if swaying, calm and content expression,
+soft warm body color
+-- negative: angry, sad, open mouth, action pose, accessories
+```
+
+### 2. Happy
+```
+[BASE DNA] [STYLE]
+Kobara jumping with joy, arms raised up, wide crescent-moon eyes (^_^),
+big open smile showing small round teeth, rosy cheeks,
+small sparkle stars around the body, full of energy
+-- negative: sad, tired, neutral, symmetrical static pose
+```
+
+### 3. Hungry
+```
+[BASE DNA] [STYLE]
+Kobara looking up with big pleading teardrop eyes, mouth in a small pout,
+one hand on belly, belly slightly rumbling indicated by small swirl lines,
+droopy ears if applicable, slightly smaller and deflated look
+-- negative: happy, energetic, angry, food in frame
+```
+
+### 4. Tired / Low energy
+```
+[BASE DNA] [STYLE]
+Kobara sitting down with droopy half-closed eyes, small dark circles under eyes,
+yawning mouth with tiny tongue, hunched posture, arms hanging loose,
+slow zzz bubbles floating slightly above head
+-- negative: alert, happy, standing straight, energetic
+```
+
+### 5. Sleeping
+```
+[BASE DNA] [STYLE]
+Kobara curled up in a ball, eyes fully closed as curved lines (- -),
+slow breathing implied by slightly puffed belly,
+three floating Z letters in ascending size above head,
+peaceful serene expression, lying on side
+-- negative: awake, standing, alert, open eyes
+```
+
+### 6. Lonely / Sad
+```
+[BASE DNA] [STYLE]
+Kobara sitting alone with knees hugged to chest, looking down,
+single teardrop falling from one eye, small rain cloud above head,
+muted desaturated color tone on body, small dejected expression,
+curled tail or ears if applicable
+-- negative: happy, energetic, other characters nearby
+```
+
+### 7. Playful / Excited
+```
+[BASE DNA] [STYLE]
+Kobara mid-bounce with one leg up, sparkling wide eyes with star pupils,
+huge grin, small action lines around body suggesting fast movement,
+confetti or tiny hearts bursting around it,
+tail wagging blur if applicable, peak energy expression
+-- negative: calm, sad, sitting, neutral
+```
+
+### 8. Sick
+```
+[BASE DNA] [STYLE]
+Kobara standing weakly with bandage on head, green swirl on cheek,
+half-lidded watery eyes, small thermometer in mouth,
+body color slightly desaturated and greenish tint,
+small dizzy stars circling above head
+-- negative: energetic, happy, clean, healthy-looking
+```
+
+---
+
+## Color Variants
+
+Since every Kobara has a unique `hue` gene, generate the same sprite in multiple palette swaps.
+Add this block to any prompt to specify the color:
+
+| Gene hue range | Color to specify |
+|---|---|
+| 0–30 / 330–360 | `coral pink fur, warm rose tones` |
+| 30–60 | `golden yellow fur, sunny amber tones` |
+| 60–150 | `mint green fur, soft sage tones` |
+| 150–210 | `sky blue fur, cool aqua tones` |
+| 210–270 | `lavender purple fur, soft violet tones` |
+| 270–330 | `lilac pink fur, warm magenta tones` |
+
+---
+
+## Recommended Workflow
+
+```
+1. Generate Idle frame first — this is your character bible
+2. Lock the style (A, B, or C) — never mix styles
+3. Use img2img or reference image in your tool to keep the character consistent across moods
+4. Export all frames as PNG with transparent background
+5. Name files: idle_0.png, happy_0.png, hungry_0.png, etc.
+6. Place in: assets/sprites/kobara/
+```
+
+---
+
+## Tool-specific tips
+
+### Midjourney
+- Append `--ar 1:1 --v 6` to every prompt
+- Use `--cref [idle image URL]` after generating idle to keep character consistent across moods
+- Use `--style raw` for Style B (flat vector) to avoid over-rendering
+
+### DALL·E 3 (ChatGPT)
+- Paste the prompt and add: *"Keep the exact same character design across all variations, only change the pose and expression."*
+- Generate idle first, then reference it explicitly in follow-up prompts
+
+### Stable Diffusion (local)
+- Use ControlNet Pose for consistent body proportions across frames
+- Recommended checkpoint: `DreamShaper` or `ToonYou`
+- Add to negative prompt: `realistic, 3D render, photograph, complex background, text, watermark`
+
+### Aseprite (manual pixel art)
+- Start at 32×32 or 64×64 canvas
+- Use the AI-generated image as a reference layer at low opacity
+- Redraw pixel by pixel for full control over animation frames
+- Export sprite sheet: File → Export Sprite Sheet → horizontal strip

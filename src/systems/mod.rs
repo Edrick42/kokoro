@@ -1,3 +1,3 @@
-pub mod creature;
 pub mod creature_form;
-pub mod world;
+pub mod stats;
+pub mod time_tick;

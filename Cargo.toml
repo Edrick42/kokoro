@@ -2,17 +2,21 @@
 name = "kokoro"
 version = "0.1.0"
 edition = "2024"
+description = "A virtual creature game where every Kobara is truly unique"
+authors = ["Edrick Alves Manoel"]
 
 [dependencies]
-bevy = "0.16.1"
-bincode = "2.0.1"
-rand = "0.9.2"
-serde = { version = "1.0.219", features = ["derive"] }
+bevy    = "0.16.1"
+serde   = { version = "1.0", features = ["derive"] }
+bincode = "2.0"
+rand    = "0.9"
+# Persistence — local SQLite for creature memory
+rusqlite = { version = "0.31", features = ["bundled"] }
 
-# Enable a small amount of optimization in the dev profile.
+# Small optimization in dev builds for your own code
 [profile.dev]
 opt-level = 1
 
-# Enable a large amount of optimization in the dev profile for dependencies.
+# Heavy optimization in dev builds for dependencies (speeds up Bevy compilation)
 [profile.dev.package."*"]
 opt-level = 3

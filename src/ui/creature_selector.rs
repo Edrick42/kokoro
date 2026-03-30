@@ -1,11 +1,10 @@
 //! Creature selector UI — lets the player switch between their Kobaras.
 //!
-//! Displays a row of small numbered buttons in the top-right corner.
-//! The active creature's button is highlighted. Only appears when
-//! the player has more than one creature.
+//! Displays a row of small named buttons in the top-right corner.
+//! The active creature's button is highlighted.
 
 use bevy::prelude::*;
-use crate::creature::collection::{CreatureCollection, SwitchCreatureEvent};
+use crate::creature::collection::{CreatureCollection, SelectSpeciesEvent};
 
 pub struct CreatureSelectorPlugin;
 
@@ -29,25 +28,21 @@ fn update_selector(
     mut commands: Commands,
     existing: Query<Entity, With<SelectorRoot>>,
     button_q: Query<(&Interaction, &SelectorButton), Changed<Interaction>>,
-    mut switch_events: EventWriter<SwitchCreatureEvent>,
+    mut select_events: EventWriter<SelectSpeciesEvent>,
 ) {
-    // Handle button clicks
+    // Handle button clicks — look up the species at that index
     for (interaction, btn) in button_q.iter() {
         if *interaction == Interaction::Pressed {
-            switch_events.write(SwitchCreatureEvent { index: btn.0 });
+            if let Some(creature) = collection.creatures.get(btn.0) {
+                select_events.write(SelectSpeciesEvent {
+                    species: creature.genome.species.clone(),
+                });
+            }
         }
     }
 
     // Only rebuild UI when collection changes
     if !collection.is_changed() {
-        return;
-    }
-
-    // Don't show selector for single creature
-    if collection.count() <= 1 {
-        for entity in existing.iter() {
-            commands.entity(entity).despawn();
-        }
         return;
     }
 
@@ -71,7 +66,7 @@ fn update_selector(
         BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.5)),
         BorderRadius::all(Val::Px(6.0)),
     )).with_children(|parent| {
-        for i in 0..collection.count() {
+        for (i, creature) in collection.creatures.iter().enumerate() {
             let is_active = i == collection.active_index;
             let bg_color = if is_active {
                 Color::srgb(0.3, 0.7, 0.4)
@@ -79,11 +74,13 @@ fn update_selector(
                 Color::srgb(0.3, 0.3, 0.3)
             };
 
+            let label = &creature.name;
+
             parent.spawn((
                 Button,
                 Node {
-                    width: Val::Px(32.0),
-                    height: Val::Px(32.0),
+                    height: Val::Px(28.0),
+                    padding: UiRect::axes(Val::Px(8.0), Val::Px(4.0)),
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
                     ..default()
@@ -92,8 +89,8 @@ fn update_selector(
                 BackgroundColor(bg_color),
                 SelectorButton(i),
             )).with_child((
-                Text::new(format!("{}", i + 1)),
-                TextFont { font_size: 14.0, ..default() },
+                Text::new(label.clone()),
+                TextFont { font_size: 12.0, ..default() },
                 TextColor(Color::WHITE),
             ));
         }

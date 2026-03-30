@@ -8,6 +8,9 @@
 //! Parts can be either sprite-based (if PNGs exist) or procedural mesh-based
 //! (as a fallback). The two can coexist.
 //!
+//! When the player switches creatures, the old visual entity is despawned
+//! and a new one is spawned from the new species' template.
+//!
 //! ## Asset path convention
 //!
 //! ```text
@@ -19,6 +22,7 @@ use std::collections::HashMap;
 
 use crate::genome::Genome;
 use crate::mind::Mind;
+use crate::creature::collection::CreatureCollection;
 use super::species::*;
 use super::rig::ResolvedAnchor;
 
@@ -55,22 +59,58 @@ impl Plugin for CreatureVisualsPlugin {
         let registry = SpeciesRegistry::new();
         app.insert_resource(registry)
            .add_systems(Startup, spawn_creature)
-           .add_systems(Update, check_sprite_fallback);
+           .add_systems(Update, (respawn_on_switch, check_sprite_fallback));
     }
 }
 
 /// Spawns the creature as a root entity with child body parts.
-///
-/// Positions are resolved from the species rig using the creature's genome,
-/// so each individual creature has slightly different proportions.
 fn spawn_creature(
-    mut commands: Commands,
+    commands: Commands,
     asset_server: Res<AssetServer>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    meshes: ResMut<Assets<Mesh>>,
+    materials: ResMut<Assets<ColorMaterial>>,
     genome: Res<Genome>,
     mind: Res<Mind>,
     registry: Res<SpeciesRegistry>,
+) {
+    do_spawn_creature(commands, &asset_server, meshes, materials, &genome, &mind, &registry);
+}
+
+/// Checks if creature visuals need respawning (after a switch) and rebuilds them.
+fn respawn_on_switch(
+    mut collection: ResMut<CreatureCollection>,
+    root_q: Query<Entity, With<CreatureRoot>>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    meshes: ResMut<Assets<Mesh>>,
+    materials: ResMut<Assets<ColorMaterial>>,
+    genome: Res<Genome>,
+    mind: Res<Mind>,
+    registry: Res<SpeciesRegistry>,
+) {
+    if !collection.visuals_dirty {
+        return;
+    }
+    collection.visuals_dirty = false;
+
+    // Despawn old creature entity and all children
+    for entity in root_q.iter() {
+        commands.entity(entity).despawn();
+    }
+
+    // Spawn new creature with updated genome/mind
+    do_spawn_creature(commands, &asset_server, meshes, materials, &genome, &mind, &registry);
+}
+
+/// Shared spawn logic used by both startup and respawn.
+fn do_spawn_creature(
+    mut commands: Commands,
+    asset_server: &AssetServer,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    genome: &Genome,
+    mind: &Mind,
+    registry: &SpeciesRegistry,
 ) {
     let template = registry.get(&genome.species);
     let mood_key = mind.mood.mood_key();
@@ -78,7 +118,7 @@ fn spawn_creature(
     let tint = genome.tint_color();
 
     // Resolve the rig: convert normalized landmarks → pixel positions
-    let resolved = template.rig.resolve(&genome);
+    let resolved = template.rig.resolve(genome);
 
     // Build a lookup: slot name → resolved position + z_depth
     let anchor_map: HashMap<String, &ResolvedAnchor> = resolved

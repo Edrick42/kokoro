@@ -10,7 +10,6 @@ use bevy::prelude::*;
 
 use creature::{
     collection::MultiCreaturePlugin,
-    reproduction::ReproductionPlugin,
     spawn::CreatureVisualsPlugin,
 };
 use mind::plugin::NeuralMindPlugin;
@@ -57,8 +56,8 @@ fn main() {
         .add_plugins(NeuralMindPlugin)
         // UI plugins
         .add_plugins((StatsPlugin, ActionsPlugin, CreatureSelectorPlugin))
-        // Creature lifecycle — reproduction, collection
-        .add_plugins((ReproductionPlugin, MultiCreaturePlugin))
+        // Creature lifecycle — collection management
+        .add_plugins(MultiCreaturePlugin)
         // Visual plugins — effects, animation, evolution, accessories
         .add_plugins((EffectsPlugin, AnimationPlugin, EvolutionPlugin, AccessoriesPlugin))
         // Visual update systems

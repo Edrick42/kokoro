@@ -1,5 +1,7 @@
 //! World setup — spawns the camera and any static scene elements.
 
+pub mod daycycle;
+
 use bevy::prelude::*;
 
 pub fn setup_world(mut commands: Commands) {

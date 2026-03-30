@@ -12,6 +12,8 @@ bincode = "2.0"
 rand    = "0.9"
 # Persistence — local SQLite for creature memory
 rusqlite = { version = "0.31", features = ["bundled"] }
+# Local time offset for day/night cycle (Unix only, safe no-op on other platforms)
+libc     = "0.2"
 
 # Small optimization in dev builds for your own code
 [profile.dev]

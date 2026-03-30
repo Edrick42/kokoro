@@ -40,6 +40,22 @@ impl MoodState {
             MoodState::Sleeping => "Sleeping",
         }
     }
+
+    /// Returns the sprite filename for the current mood.
+    ///
+    /// These map to PNGs inside `assets/sprites/kobara/`.
+    /// Happy maps to `idle.png` because the idle sprite is the default pose.
+    pub fn sprite_name(&self) -> &str {
+        match self {
+            MoodState::Happy    => "idle.png",
+            MoodState::Hungry   => "hungry.png",
+            MoodState::Tired    => "tired.png",
+            MoodState::Lonely   => "lonely.png",
+            MoodState::Playful  => "playful.png",
+            MoodState::Sick     => "sick.png",
+            MoodState::Sleeping => "sleeping.png",
+        }
+    }
 }
 
 /// Core vital stats of the creature (all values are 0.0–100.0).
@@ -95,6 +111,12 @@ impl Mind {
         self.stats.happiness = (self.stats.happiness + 15.0).min(100.0);
         self.stats.energy    = (self.stats.energy - 10.0).max(0.0);
         self.stats.hunger    = (self.stats.hunger + 5.0).min(100.0);
+    }
+
+    /// Put the creature to sleep: restores energy, sets mood to Sleeping.
+    pub fn sleep(&mut self) {
+        self.stats.energy = (self.stats.energy + 30.0).min(100.0);
+        self.mood = MoodState::Sleeping;
     }
 
     /// Updates the mood state based on vital stats and the creature's genome.

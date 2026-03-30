@@ -1,0 +1,319 @@
+# Kokoro — DALL·E 3 Sprite Prompts (Pixel Art Version)
+# 64x64 pixel art — optimized for in-game color tinting via genome hue gene
+
+## HOW TO USE
+
+1. Start a NEW ChatGPT conversation
+2. Send Prompt 0 (Idle) first — no image attached
+3. From Prompt 1 onwards: ATTACH the approved Idle image before sending
+4. If the character drifts, start a new conversation attaching the Idle image first
+5. After all moods are approved, generate size variants (section at the end)
+
+## CRITICAL DESIGN RULES (read before generating)
+
+- True pixel art style — hard pixel edges, NO anti-aliasing whatsoever
+- Limited color palette — maximum 6 colors total:
+  flat blue body, black outline, white eye whites, black pupils,
+  light blue for inner ear, one blush pink for cheeks (optional)
+- FLAT body color only — NO shading, NO gradients, NO dithering on the body
+  Reason: the game applies color tinting in code from the genome hue gene.
+  Any baked-in shading will break when tinted.
+- Bold 1-pixel black outline everywhere, fully connected, no gaps
+- Canvas: 64x64 pixels, pure white or transparent background
+- Style reference: classic Tamagotchi LCD art, Neopets pixel pets,
+  early Game Boy Color sprites — chunky, readable, expressive at tiny size
+
+---
+
+## PROMPT 0 — Idle (generate this first, no image attached)
+
+```
+True pixel art sprite, 64x64 pixel canvas, hard pixel edges,
+zero anti-aliasing, zero sub-pixel blending.
+
+Character: Kobara, a small round virtual pet creature.
+- Body: round chubby blob shape, tiny stubby pixel arms and legs,
+  small rounded pixel tail on the right side
+- Ears: two small rounded pixel ears on top of the head
+- Eyes: large round pixel eyes, black pupils with one white pixel
+  highlight each, taking up a big portion of the face
+- Nose: two small pixel dots
+- Outline: solid 1-pixel black border, fully connected, no gaps
+- Colors: flat solid pastel blue body (#A8D8EA), black outline (#000000),
+  white eye whites (#FFFFFF), black pupils, NO gradients, NO shading,
+  NO dithering on the body fill
+- Background: transparent or pure white (#FFFFFF)
+
+Mood: IDLE — calm and neutral.
+Expression: eyes half-open and relaxed, small closed pixel smile,
+arms at sides, weight slightly on one foot. Peaceful resting state.
+The sprite must be readable and expressive at exactly 64x64 pixels.
+
+Upscale the final result to 512x512 using nearest-neighbor scaling
+(pixel-perfect, no smoothing, no blurriness — each pixel becomes
+an 8x8 block).
+
+Negative: no anti-aliasing, no smooth edges, no gradients, no shading,
+no dithering, no blur, no watermark, no text, no background elements.
+```
+
+---
+
+## PROMPT 1 — Happy (attach Idle image before sending)
+
+```
+Using the EXACT same Kobara pixel art character from the attached image —
+same pixel body shape, same ear pixels, same outline style, same flat
+pastel blue color palette — generate a new 64x64 pixel art sprite,
+upscaled to 512x512 nearest-neighbor. Only pose and expression change.
+
+Mood: HAPPY — jumping with joy.
+Expression: eyes as wide open pixel circles with shine highlights,
+big open pixel smile showing two square teeth pixels, rosy pixel blush
+squares on each cheek, both pixel arms raised up, feet off the ground
+mid-jump, tail pixel curved upward, three small pixel star shapes
+scattered around the body.
+
+Negative: no anti-aliasing, no smooth edges, no gradients, no shading,
+no dithering, no blur, no watermark, no background.
+```
+
+---
+
+## PROMPT 2 — Hungry (attach Idle image before sending)
+
+```
+Using the EXACT same Kobara pixel art character from the attached image —
+same pixel body shape, same ear pixels, same outline style, same flat
+pastel blue color palette — generate a new 64x64 pixel art sprite,
+upscaled to 512x512 nearest-neighbor. Only pose and expression change.
+
+Mood: HUNGRY — begging and pleading.
+Expression: eyes as large teardrop pixel shapes looking upward,
+small pixel pout mouth, both stubby arms pressed together in a
+begging gesture, ears drooped down by one pixel row,
+a small pixel swirl on the belly area, body looks slightly
+smaller/deflated than idle.
+
+Negative: no food in frame, no anti-aliasing, no smooth edges,
+no gradients, no shading, no dithering, no blur, no watermark,
+no background.
+```
+
+---
+
+## PROMPT 3 — Tired (attach Idle image before sending)
+
+```
+Using the EXACT same Kobara pixel art character from the attached image —
+same pixel body shape, same ear pixels, same outline style, same flat
+pastel blue color palette — generate a new 64x64 pixel art sprite,
+upscaled to 512x512 nearest-neighbor. Only pose and expression change.
+
+Mood: TIRED — exhausted and drained.
+Expression: eyes as heavy half-closed pixel rectangles, two small dark
+pixel squares under each eye as bags, mouth open in a pixel yawn
+showing a small square tongue pixel, arms hanging limp,
+sitting or slumped posture, three pixel Z letters floating above
+in ascending size (z Z Z), ears flopped to the sides.
+
+Negative: no anti-aliasing, no smooth edges, no gradients, no shading,
+no dithering, no blur, no watermark, no background.
+```
+
+---
+
+## PROMPT 4 — Sleeping (attach Idle image before sending)
+
+```
+Using the EXACT same Kobara pixel art character from the attached image —
+same pixel body shape, same ear pixels, same outline style, same flat
+pastel blue color palette — generate a new 64x64 pixel art sprite,
+upscaled to 512x512 nearest-neighbor. Only pose and expression change.
+
+Mood: SLEEPING — deeply asleep.
+Expression: curled into a tight pixel ball lying on its side,
+eyes completely closed as two small curved pixel lines,
+belly slightly rounder suggesting breathing,
+three pixel Z letters above in ascending size (z Z Z),
+tail wrapped around the body, ears folded flat.
+The most compact and peaceful pixel arrangement possible.
+
+Negative: no anti-aliasing, no smooth edges, no gradients, no shading,
+no dithering, no blur, no watermark, no background.
+```
+
+---
+
+## PROMPT 5 — Lonely (attach Idle image before sending)
+
+```
+Using the EXACT same Kobara pixel art character from the attached image —
+same pixel body shape, same ear pixels, same outline style, same flat
+pastel blue color palette — generate a new 64x64 pixel art sprite,
+upscaled to 512x512 nearest-neighbor. Only pose and expression change.
+
+Mood: LONELY — withdrawn and sad.
+Expression: sitting with pixel knees pulled up, arms wrapped around them,
+eyes half-closed with a single pixel teardrop falling from one eye,
+mouth as a small downward pixel curve, ears drooped all the way down,
+a tiny 3x3 pixel rain cloud above the head with two pixel rain drops,
+tail curled inward. Entire posture conveys isolation.
+
+Negative: no other characters, no anti-aliasing, no smooth edges,
+no gradients, no shading, no dithering, no blur, no watermark,
+no background.
+```
+
+---
+
+## PROMPT 6 — Playful (attach Idle image before sending)
+
+```
+Using the EXACT same Kobara pixel art character from the attached image —
+same pixel body shape, same ear pixels, same outline style, same flat
+pastel blue color palette — generate a new 64x64 pixel art sprite,
+upscaled to 512x512 nearest-neighbor. Only pose and expression change.
+
+Mood: PLAYFUL — chaotic excited energy.
+Expression: mid-bounce with one pixel leg kicked high, body tilted
+at a diagonal angle, eyes wide with tiny pixel star pupils,
+huge pixel grin showing square teeth, pixel tongue out to one side,
+four pixel speed lines radiating outward, small pixel confetti shapes
+and pixel hearts around the body, tail straight up like an antenna.
+
+Negative: no anti-aliasing, no smooth edges, no gradients, no shading,
+no dithering, no blur, no watermark, no background.
+```
+
+---
+
+## PROMPT 7 — Sick (attach Idle image before sending)
+
+```
+Using the EXACT same Kobara pixel art character from the attached image —
+same pixel body shape, same ear pixels, same outline style, same flat
+pastel blue color palette — generate a new 64x64 pixel art sprite,
+upscaled to 512x512 nearest-neighbor. Only pose and expression change.
+
+Mood: SICK — weak and unwell.
+Expression: standing wobbly with legs slightly apart for balance,
+a small pixel cross bandage on the head (white with red pixel cross),
+a pixel green swirl on one cheek, eyes half-open and unfocused,
+a pixel thermometer sticking out of the closed mouth,
+three small pixel dizzy stars orbiting above, arms hanging weakly,
+tail drooping. Body color may have a very slight greenish pixel tint.
+
+Negative: no anti-aliasing, no smooth edges, no gradients, no heavy
+shading, no dithering on body, no blur, no watermark, no background.
+```
+
+---
+
+## PROMPT 8 — Excited / Level Up (attach Idle image before sending)
+
+```
+Using the EXACT same Kobara pixel art character from the attached image —
+same pixel body shape, same ear pixels, same outline style, same flat
+pastel blue color palette — generate a new 64x64 pixel art sprite,
+upscaled to 512x512 nearest-neighbor. Only pose and expression change.
+
+Mood: EXCITED / LEVEL UP — triumphant achievement.
+Expression: standing tall with chest puffed out, one stubby arm raised
+with a pixel fist pump, other arm on hip, eyes wide and shining with
+pixel sparkle highlights, huge confident pixel grin, tail raised high
+and curled at the tip, four pointed pixel star bursts radiating from
+the body, small twinkling pixel stars around the raised fist.
+
+Negative: no anti-aliasing, no smooth edges, no gradients, no shading,
+no dithering, no blur, no watermark, no background.
+```
+
+---
+
+## COLOR TINT VARIANTS (after all moods are done)
+
+Generate 2 recolor variants of the Idle sprite to verify tinting works:
+
+### Coral pink variant
+```
+Take the Kobara pixel art Idle sprite from the attached image and
+recolor all blue body pixels (#A8D8EA) to flat coral pink (#F0997B),
+keeping everything else pixel-perfect identical — same black outline
+pixels, same white eye pixels, same composition, zero anti-aliasing,
+zero smoothing. Upscale to 512x512 nearest-neighbor.
+```
+
+### Golden yellow variant
+```
+Take the Kobara pixel art Idle sprite from the attached image and
+recolor all blue body pixels (#A8D8EA) to flat golden yellow (#EF9F27),
+keeping everything else pixel-perfect identical — same black outline
+pixels, same white eye pixels, same composition, zero anti-aliasing,
+zero smoothing. Upscale to 512x512 nearest-neighbor.
+```
+
+---
+
+## SIZE VARIANTS
+
+Pixel art must ALWAYS be scaled nearest-neighbor (no smoothing).
+Request each approved sprite at these sizes:
+
+```
+Resize the attached Kobara [MOOD] pixel art sprite to [SIZE]x[SIZE]
+using nearest-neighbor scaling only — no interpolation, no anti-aliasing,
+no smoothing of any kind. Each pixel must remain a hard square block.
+```
+
+Target sizes:
+- 64x64   — original (source of truth, keep this file)
+- 128x128 — low density screens
+- 256x256 — standard mobile
+- 512x512 — high density / retina (this is what DALL·E generates)
+
+---
+
+## FILE NAMING
+
+```
+assets/sprites/kobara/
+├── idle.png
+├── happy.png
+├── hungry.png
+├── tired.png
+├── sleeping.png
+├── lonely.png
+├── playful.png
+├── sick.png
+└── excited.png
+```
+
+---
+
+## IMPORTANT: DALL·E LIMITATION WITH PIXEL ART
+
+DALL·E 3 sometimes struggles with true pixel art and adds smoothing.
+If the result looks smooth/blurry instead of pixelated:
+
+Option A — add this to your prompt:
+"Extremely pixelated, each pixel is a visible hard square, like a
+Game Boy Color game screenshot, no smoothing whatsoever, 8-bit style"
+
+Option B — generate with the flat style prompts instead, then
+convert to pixel art manually using Aseprite or Photopea:
+  Photopea: Image → Image Size → 64x64 → Nearest Neighbor
+  Then scale back up: Image → Image Size → 512x512 → Nearest Neighbor
+
+Option B gives perfect pixel art every time and is worth the
+extra 2 minutes per sprite.
+```
+
+---
+
+## IF THE CHARACTER DRIFTS
+
+Start a fresh ChatGPT conversation, attach the original approved
+Idle pixel art image and say:
+"This is my pixel art character reference. Do not change its design,
+color palette, or pixel style. I will ask for pose variations only."

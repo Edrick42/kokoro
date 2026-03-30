@@ -1,5 +1,8 @@
+pub mod animation;
 pub mod body_parts;
 pub mod creature_spawn;
+pub mod effects;
+pub mod evolution;
 pub mod genome_visuals;
 pub mod mood_sync;
 pub mod stats;

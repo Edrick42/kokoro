@@ -8,7 +8,10 @@ use bevy::prelude::*;
 
 use persistence::plugin::PersistencePlugin;
 use systems::{
+    animation::AnimationPlugin,
     creature_spawn::CreatureVisualsPlugin,
+    effects::EffectsPlugin,
+    evolution::EvolutionPlugin,
     genome_visuals::apply_genome_visuals,
     mood_sync::sync_mood_sprites,
     stats::StatsPlugin,
@@ -38,6 +41,8 @@ fn main() {
         .add_plugins(DayCyclePlugin)
         // Gameplay plugins
         .add_plugins((TimeTickPlugin, StatsPlugin, ActionsPlugin))
+        // Visual plugins — effects, animation, evolution
+        .add_plugins((EffectsPlugin, AnimationPlugin, EvolutionPlugin))
         // Visual update systems
         .add_systems(Update, (sync_mood_sprites, apply_genome_visuals))
         .run();

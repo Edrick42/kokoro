@@ -8,8 +8,9 @@ use bevy::prelude::*;
 
 use persistence::plugin::PersistencePlugin;
 use systems::{
-    creature_form::setup_creature,
-    sprite::SpritePlugin,
+    creature_spawn::CreatureVisualsPlugin,
+    genome_visuals::apply_genome_visuals,
+    mood_sync::sync_mood_sprites,
     stats::StatsPlugin,
     time_tick::TimeTickPlugin,
     ui::actions::ActionsPlugin,
@@ -29,13 +30,15 @@ fn main() {
         }))
         // Persistence runs first — loads (or creates) Genome and Mind resources
         .add_plugins(PersistencePlugin)
-        // Startup systems — camera and procedural mesh fallback
-        .add_systems(Startup, (setup_world, setup_creature))
-        // Sprite system — replaces meshes if PNG assets are found
-        .add_plugins(SpritePlugin)
+        // Camera
+        .add_systems(Startup, setup_world)
+        // Creature visuals — modular body part composition
+        .add_plugins(CreatureVisualsPlugin)
         // World systems
         .add_plugins(DayCyclePlugin)
         // Gameplay plugins
         .add_plugins((TimeTickPlugin, StatsPlugin, ActionsPlugin))
+        // Visual update systems
+        .add_systems(Update, (sync_mood_sprites, apply_genome_visuals))
         .run();
 }

@@ -41,19 +41,20 @@ impl MoodState {
         }
     }
 
-    /// Returns the sprite filename for the current mood.
+    /// Returns the mood key used for building sprite asset paths.
     ///
-    /// These map to PNGs inside `assets/sprites/kobara/`.
-    /// Happy maps to `idle.png` because the idle sprite is the default pose.
-    pub fn sprite_name(&self) -> &str {
+    /// The spawn system combines this with the body part slot to form
+    /// a filename: `{slot}_{mood_key}.png` (e.g. `eye_left_hungry.png`).
+    /// Happy maps to "idle" because the idle pose is the default state.
+    pub fn mood_key(&self) -> &str {
         match self {
-            MoodState::Happy    => "idle.png",
-            MoodState::Hungry   => "hungry.png",
-            MoodState::Tired    => "tired.png",
-            MoodState::Lonely   => "lonely.png",
-            MoodState::Playful  => "playful.png",
-            MoodState::Sick     => "sick.png",
-            MoodState::Sleeping => "sleeping.png",
+            MoodState::Happy    => "idle",
+            MoodState::Hungry   => "hungry",
+            MoodState::Tired    => "tired",
+            MoodState::Lonely   => "lonely",
+            MoodState::Playful  => "playful",
+            MoodState::Sick     => "sick",
+            MoodState::Sleeping => "sleeping",
         }
     }
 }

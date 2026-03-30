@@ -1,5 +1,7 @@
-pub mod creature_form;
-pub mod sprite;
+pub mod body_parts;
+pub mod creature_spawn;
+pub mod genome_visuals;
+pub mod mood_sync;
 pub mod stats;
 pub mod time_tick;
 pub mod ui;

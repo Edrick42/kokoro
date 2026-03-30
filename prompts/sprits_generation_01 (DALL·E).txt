@@ -1,319 +1,464 @@
-# Kokoro — DALL·E 3 Sprite Prompts (Pixel Art Version)
+# Kokoro — DALL·E 3 Modular Sprite Prompts (Pixel Art)
+# Body parts generated separately for modular composition in-engine
 # 64x64 pixel art — optimized for in-game color tinting via genome hue gene
 
-## HOW TO USE
+## ASSET FOLDER STRUCTURE
 
-1. Start a NEW ChatGPT conversation
-2. Send Prompt 0 (Idle) first — no image attached
-3. From Prompt 1 onwards: ATTACH the approved Idle image before sending
-4. If the character drifts, start a new conversation attaching the Idle image first
-5. After all moods are approved, generate size variants (section at the end)
+The game assembles each creature from individual body part sprites.
+Each species has its own folder. Parts are named {slot}_{mood}.png.
 
-## CRITICAL DESIGN RULES (read before generating)
+```
+assets/sprites/
+├── kobara/                         # Species: Kobara (round mammal)
+│   ├── body_idle.png               # Body — same across all moods
+│   ├── ear_left_idle.png           # Left ear — same across all moods
+│   ├── ear_right_idle.png          # Right ear — same across all moods
+│   ├── eye_left_idle.png           # Left eye — changes per mood
+│   ├── eye_left_happy.png
+│   ├── eye_left_hungry.png
+│   ├── eye_left_tired.png
+│   ├── eye_left_sleeping.png
+│   ├── eye_left_lonely.png
+│   ├── eye_left_playful.png
+│   ├── eye_left_sick.png
+│   ├── eye_right_idle.png          # Right eye — mirror of left
+│   ├── eye_right_happy.png
+│   ├── eye_right_hungry.png
+│   ├── eye_right_tired.png
+│   ├── eye_right_sleeping.png
+│   ├── eye_right_lonely.png
+│   ├── eye_right_playful.png
+│   ├── eye_right_sick.png
+│   ├── mouth_idle.png              # Mouth — changes per mood
+│   ├── mouth_happy.png
+│   ├── mouth_hungry.png
+│   ├── mouth_tired.png
+│   ├── mouth_sleeping.png
+│   ├── mouth_lonely.png
+│   ├── mouth_playful.png
+│   ├── mouth_sick.png
+│   └── accessories/                # Overlays earned through life events
+│       ├── scar_01.png
+│       ├── hat_explorer.png
+│       ├── aura_happy.png
+│       └── badge_veteran.png
+│
+├── lumini/                         # Species: Lumini (bird creature) — future
+│   ├── body_idle.png
+│   ├── wing_left_idle.png
+│   ├── wing_right_idle.png
+│   ├── beak_idle.png
+│   ├── beak_hungry.png             # Beak opens when hungry
+│   ├── eye_left_idle.png
+│   ├── eye_right_idle.png
+│   ├── tail_idle.png
+│   └── accessories/
+│
+├── drakel/                         # Species: Drakel (reptile) — future
+│   ├── body_idle.png
+│   ├── tail_idle.png
+│   ├── claw_left_idle.png
+│   ├── claw_right_idle.png
+│   ├── eye_left_idle.png
+│   ├── eye_right_idle.png
+│   ├── mouth_idle.png
+│   └── accessories/
+│
+└── shared/                         # Cross-species assets
+    ├── effects/
+    │   ├── zzz.png                 # Sleep bubbles
+    │   ├── hearts.png              # Love/happiness particles
+    │   ├── sweat_drop.png          # Nervous/tired
+    │   ├── stars_dizzy.png         # Sick dizzy effect
+    │   ├── sparkle.png             # Level up / evolution
+    │   └── rain_cloud.png          # Lonely/sad
+    └── ui/
+        └── shadow.png              # Ground shadow beneath creature
+```
 
-- True pixel art style — hard pixel edges, NO anti-aliasing whatsoever
-- Limited color palette — maximum 6 colors total:
-  flat blue body, black outline, white eye whites, black pupils,
-  light blue for inner ear, one blush pink for cheeks (optional)
-- FLAT body color only — NO shading, NO gradients, NO dithering on the body
-  Reason: the game applies color tinting in code from the genome hue gene.
-  Any baked-in shading will break when tinted.
-- Bold 1-pixel black outline everywhere, fully connected, no gaps
-- Canvas: 64x64 pixels, pure white or transparent background
-- Style reference: classic Tamagotchi LCD art, Neopets pixel pets,
-  early Game Boy Color sprites — chunky, readable, expressive at tiny size
+## HOW THE MODULAR SYSTEM WORKS
+
+The game engine assembles the creature by layering parts:
+
+```
+Z-depth layering (back to front):
+  -0.1  ears (behind body)
+   0.0  body (center)
+   1.0  eyes, mouth (on top of body)
+   2.0  accessories/effects (overlays)
+```
+
+- Body, ears: TINTED by the genome hue gene (must be flat color)
+- Eyes, mouth: NOT tinted (keep original colors)
+- Accessories: NOT tinted (overlays on top)
+
+When mood changes, ONLY eyes and mouth swap sprites.
+Body and ears stay the same across all moods.
 
 ---
 
-## PROMPT 0 — Idle (generate this first, no image attached)
+## HOW TO USE THESE PROMPTS
+
+1. Start a NEW ChatGPT conversation
+2. Generate the BODY first (Prompt 0) — this is the base reference
+3. Then generate ears, eyes, and mouth separately
+4. For mood-reactive parts (eyes, mouth), generate each mood variant
+5. Keep everything in the SAME ChatGPT conversation for consistency
+6. If the style drifts, start fresh and attach the body as reference
+
+---
+
+## CRITICAL DESIGN RULES
+
+- True pixel art style — hard pixel edges, NO anti-aliasing
+- Limited palette — max 6 colors: flat blue body, black outline,
+  white eye whites, black pupils, light blue inner ear, optional blush pink
+- FLAT body color — NO shading, NO gradients, NO dithering on body.
+  Reason: the game applies color tinting from the genome hue gene.
+  Any baked-in shading breaks when tinted to other colors.
+- Bold 1-pixel black outline, fully connected, no gaps
+- Canvas: 64x64 pixels, transparent background
+- Each part must be on its OWN transparent canvas (not the full character)
+- Style reference: classic Tamagotchi LCD art, Neopets pixel pets,
+  early Game Boy Color sprites
+
+---
+
+## PROMPT 0 — Body (generate first, no image attached)
+
+The body is the largest part and sets the style for everything else.
+It should NOT include eyes or mouth — those are separate parts.
 
 ```
 True pixel art sprite, 64x64 pixel canvas, hard pixel edges,
-zero anti-aliasing, zero sub-pixel blending.
+zero anti-aliasing, zero sub-pixel blending, transparent background.
 
-Character: Kobara, a small round virtual pet creature.
-- Body: round chubby blob shape, tiny stubby pixel arms and legs,
+A round chubby blob body for a virtual pet creature called Kobara.
+This is ONLY the body — no eyes, no mouth, no facial features.
+
+- Shape: round chubby blob with tiny stubby pixel arms and legs,
   small rounded pixel tail on the right side
-- Ears: two small rounded pixel ears on top of the head
-- Eyes: large round pixel eyes, black pupils with one white pixel
-  highlight each, taking up a big portion of the face
-- Nose: two small pixel dots
+- NO ears (ears are separate sprites)
+- NO eyes, NO mouth, NO nose (facial features are separate sprites)
+- The face area should be blank/flat — just the body color
 - Outline: solid 1-pixel black border, fully connected, no gaps
-- Colors: flat solid pastel blue body (#A8D8EA), black outline (#000000),
-  white eye whites (#FFFFFF), black pupils, NO gradients, NO shading,
-  NO dithering on the body fill
-- Background: transparent or pure white (#FFFFFF)
+- Fill: flat solid pastel blue (#A8D8EA), completely uniform,
+  NO gradients, NO shading, NO dithering
+- Background: fully transparent
 
-Mood: IDLE — calm and neutral.
-Expression: eyes half-open and relaxed, small closed pixel smile,
-arms at sides, weight slightly on one foot. Peaceful resting state.
-The sprite must be readable and expressive at exactly 64x64 pixels.
+Upscale to 512x512 using nearest-neighbor scaling (pixel-perfect,
+no smoothing — each pixel becomes an 8x8 block).
 
-Upscale the final result to 512x512 using nearest-neighbor scaling
-(pixel-perfect, no smoothing, no blurriness — each pixel becomes
-an 8x8 block).
-
-Negative: no anti-aliasing, no smooth edges, no gradients, no shading,
-no dithering, no blur, no watermark, no text, no background elements.
+Negative: no facial features, no eyes, no mouth, no anti-aliasing,
+no smooth edges, no gradients, no shading, no dithering, no blur,
+no watermark, no text, no background elements.
 ```
+
+Save as: `body_idle.png`
 
 ---
 
-## PROMPT 1 — Happy (attach Idle image before sending)
+## PROMPT 1 — Ears (attach body image as reference)
 
 ```
-Using the EXACT same Kobara pixel art character from the attached image —
-same pixel body shape, same ear pixels, same outline style, same flat
-pastel blue color palette — generate a new 64x64 pixel art sprite,
-upscaled to 512x512 nearest-neighbor. Only pose and expression change.
+Using the same pixel art style as the attached body sprite —
+same outline thickness, same flat pastel blue color (#A8D8EA),
+same pixel art quality — generate TWO small rounded ear sprites.
 
-Mood: HAPPY — jumping with joy.
-Expression: eyes as wide open pixel circles with shine highlights,
-big open pixel smile showing two square teeth pixels, rosy pixel blush
-squares on each cheek, both pixel arms raised up, feet off the ground
-mid-jump, tail pixel curved upward, three small pixel star shapes
-scattered around the body.
+Each ear should be on its own 32x32 transparent canvas:
+- Shape: small rounded pixel ear, like a cat/bear ear
+- Fill: flat solid pastel blue (#A8D8EA), matching the body exactly
+- Inner ear: slightly lighter blue area (2-3 pixels)
+- Outline: 1-pixel black border, connected
 
-Negative: no anti-aliasing, no smooth edges, no gradients, no shading,
-no dithering, no blur, no watermark, no background.
+Generate the LEFT ear facing slightly left, and the RIGHT ear
+as its horizontal mirror. Upscale each to 256x256 nearest-neighbor.
+
+Negative: no anti-aliasing, no gradients, no shading, no blur.
 ```
+
+Save as: `ear_left_idle.png` and `ear_right_idle.png`
 
 ---
 
-## PROMPT 2 — Hungry (attach Idle image before sending)
+## PROMPT 2 — Eyes: Idle (attach body image as reference)
 
 ```
-Using the EXACT same Kobara pixel art character from the attached image —
-same pixel body shape, same ear pixels, same outline style, same flat
-pastel blue color palette — generate a new 64x64 pixel art sprite,
-upscaled to 512x512 nearest-neighbor. Only pose and expression change.
+Using the same pixel art style as the attached body sprite —
+generate a single eye sprite for the Kobara virtual pet.
 
-Mood: HUNGRY — begging and pleading.
-Expression: eyes as large teardrop pixel shapes looking upward,
-small pixel pout mouth, both stubby arms pressed together in a
-begging gesture, ears drooped down by one pixel row,
-a small pixel swirl on the belly area, body looks slightly
-smaller/deflated than idle.
+32x32 transparent canvas:
+- Large round pixel eye
+- Black pupil with one white pixel highlight
+- White eye whites
+- Half-open and relaxed — calm idle expression
+- 1-pixel black outline
 
-Negative: no food in frame, no anti-aliasing, no smooth edges,
-no gradients, no shading, no dithering, no blur, no watermark,
-no background.
+Generate both LEFT and RIGHT eye (right is horizontal mirror).
+Upscale each to 256x256 nearest-neighbor.
+
+Negative: no anti-aliasing, no gradients, no shading, no blur.
 ```
+
+Save as: `eye_left_idle.png` and `eye_right_idle.png`
 
 ---
 
-## PROMPT 3 — Tired (attach Idle image before sending)
+## PROMPT 3 — Mouth: Idle (attach body image as reference)
 
 ```
-Using the EXACT same Kobara pixel art character from the attached image —
-same pixel body shape, same ear pixels, same outline style, same flat
-pastel blue color palette — generate a new 64x64 pixel art sprite,
-upscaled to 512x512 nearest-neighbor. Only pose and expression change.
+Using the same pixel art style as the attached body sprite —
+generate a small mouth sprite for the Kobara virtual pet.
 
-Mood: TIRED — exhausted and drained.
-Expression: eyes as heavy half-closed pixel rectangles, two small dark
-pixel squares under each eye as bags, mouth open in a pixel yawn
-showing a small square tongue pixel, arms hanging limp,
-sitting or slumped posture, three pixel Z letters floating above
-in ascending size (z Z Z), ears flopped to the sides.
+24x16 transparent canvas:
+- Small closed pixel smile — gentle curve
+- Black pixels only, on transparent background
+- 1-pixel line weight
+- Calm, neutral expression
 
-Negative: no anti-aliasing, no smooth edges, no gradients, no shading,
-no dithering, no blur, no watermark, no background.
+Upscale to 192x128 nearest-neighbor.
+
+Negative: no anti-aliasing, no gradients, no blur, no face.
 ```
+
+Save as: `mouth_idle.png`
 
 ---
 
-## PROMPT 4 — Sleeping (attach Idle image before sending)
+## MOOD VARIANTS — Eyes (generate each, attach idle eye as reference)
 
+For each mood below, generate left and right eye variants.
+ONLY the expression changes — same size, same canvas, same style.
+
+### Eyes: Happy
 ```
-Using the EXACT same Kobara pixel art character from the attached image —
-same pixel body shape, same ear pixels, same outline style, same flat
-pastel blue color palette — generate a new 64x64 pixel art sprite,
-upscaled to 512x512 nearest-neighbor. Only pose and expression change.
-
-Mood: SLEEPING — deeply asleep.
-Expression: curled into a tight pixel ball lying on its side,
-eyes completely closed as two small curved pixel lines,
-belly slightly rounder suggesting breathing,
-three pixel Z letters above in ascending size (z Z Z),
-tail wrapped around the body, ears folded flat.
-The most compact and peaceful pixel arrangement possible.
-
-Negative: no anti-aliasing, no smooth edges, no gradients, no shading,
-no dithering, no blur, no watermark, no background.
+Same Kobara pixel eye style. Mood: HAPPY.
+Wide open circles with extra shine highlight pixels, slightly
+upturned shape suggesting joy. Pixel sparkle near the top.
 ```
+Save as: `eye_left_happy.png`, `eye_right_happy.png`
+
+### Eyes: Hungry
+```
+Same Kobara pixel eye style. Mood: HUNGRY.
+Large teardrop shapes looking upward, pleading expression,
+slightly watery with a tiny pixel tear forming at the bottom.
+```
+Save as: `eye_left_hungry.png`, `eye_right_hungry.png`
+
+### Eyes: Tired
+```
+Same Kobara pixel eye style. Mood: TIRED.
+Heavy half-closed pixel rectangles, drooping heavily,
+two small dark pixel squares underneath as eye bags.
+```
+Save as: `eye_left_tired.png`, `eye_right_tired.png`
+
+### Eyes: Sleeping
+```
+Same Kobara pixel eye style. Mood: SLEEPING.
+Completely closed — just a small curved pixel line,
+peaceful and relaxed. Minimal pixels.
+```
+Save as: `eye_left_sleeping.png`, `eye_right_sleeping.png`
+
+### Eyes: Lonely
+```
+Same Kobara pixel eye style. Mood: LONELY.
+Half-closed, looking downward, one pixel teardrop falling
+from the outer corner. Sad and withdrawn.
+```
+Save as: `eye_left_lonely.png`, `eye_right_lonely.png`
+
+### Eyes: Playful
+```
+Same Kobara pixel eye style. Mood: PLAYFUL.
+Wide open with tiny pixel star-shaped pupils instead of round ones.
+Energetic and mischievous. Extra shine highlights.
+```
+Save as: `eye_left_playful.png`, `eye_right_playful.png`
+
+### Eyes: Sick
+```
+Same Kobara pixel eye style. Mood: SICK.
+Half-open and unfocused, with a slight spiral or X shape
+in the pupil. Dizzy and unwell look.
+```
+Save as: `eye_left_sick.png`, `eye_right_sick.png`
 
 ---
 
-## PROMPT 5 — Lonely (attach Idle image before sending)
+## MOOD VARIANTS — Mouth (generate each, attach idle mouth as reference)
 
+### Mouth: Happy
 ```
-Using the EXACT same Kobara pixel art character from the attached image —
-same pixel body shape, same ear pixels, same outline style, same flat
-pastel blue color palette — generate a new 64x64 pixel art sprite,
-upscaled to 512x512 nearest-neighbor. Only pose and expression change.
-
-Mood: LONELY — withdrawn and sad.
-Expression: sitting with pixel knees pulled up, arms wrapped around them,
-eyes half-closed with a single pixel teardrop falling from one eye,
-mouth as a small downward pixel curve, ears drooped all the way down,
-a tiny 3x3 pixel rain cloud above the head with two pixel rain drops,
-tail curled inward. Entire posture conveys isolation.
-
-Negative: no other characters, no anti-aliasing, no smooth edges,
-no gradients, no shading, no dithering, no blur, no watermark,
-no background.
+Same Kobara pixel mouth style. Mood: HAPPY.
+Big open pixel smile showing two square teeth pixels.
+Wide and joyful.
 ```
+Save as: `mouth_happy.png`
+
+### Mouth: Hungry
+```
+Same Kobara pixel mouth style. Mood: HUNGRY.
+Small pixel pout / open circle, begging expression.
+Slightly open as if saying "ahhh".
+```
+Save as: `mouth_hungry.png`
+
+### Mouth: Tired
+```
+Same Kobara pixel mouth style. Mood: TIRED.
+Open in a wide pixel yawn showing a small square tongue pixel.
+```
+Save as: `mouth_tired.png`
+
+### Mouth: Sleeping
+```
+Same Kobara pixel mouth style. Mood: SLEEPING.
+Tiny closed line, very small and peaceful. Almost invisible.
+A small pixel bubble forming on one side (sleep bubble).
+```
+Save as: `mouth_sleeping.png`
+
+### Mouth: Lonely
+```
+Same Kobara pixel mouth style. Mood: LONELY.
+Small downward pixel curve, subtle frown. Understated sadness.
+```
+Save as: `mouth_lonely.png`
+
+### Mouth: Playful
+```
+Same Kobara pixel mouth style. Mood: PLAYFUL.
+Huge pixel grin showing square teeth, tongue sticking out
+to one side. Maximum energy.
+```
+Save as: `mouth_playful.png`
+
+### Mouth: Sick
+```
+Same Kobara pixel mouth style. Mood: SICK.
+Closed with a pixel thermometer sticking out, or a small
+wavy line suggesting nausea. Greenish tint optional.
+```
+Save as: `mouth_sick.png`
 
 ---
 
-## PROMPT 6 — Playful (attach Idle image before sending)
+## ACCESSORIES (generate after all base parts are done)
 
+These are overlay sprites that appear based on life events.
+They sit on top of the assembled creature at z-depth 2.0.
+
+### Scar
 ```
-Using the EXACT same Kobara pixel art character from the attached image —
-same pixel body shape, same ear pixels, same outline style, same flat
-pastel blue color palette — generate a new 64x64 pixel art sprite,
-upscaled to 512x512 nearest-neighbor. Only pose and expression change.
-
-Mood: PLAYFUL — chaotic excited energy.
-Expression: mid-bounce with one pixel leg kicked high, body tilted
-at a diagonal angle, eyes wide with tiny pixel star pupils,
-huge pixel grin showing square teeth, pixel tongue out to one side,
-four pixel speed lines radiating outward, small pixel confetti shapes
-and pixel hearts around the body, tail straight up like an antenna.
-
-Negative: no anti-aliasing, no smooth edges, no gradients, no shading,
-no dithering, no blur, no watermark, no background.
+Pixel art scar mark, 16x16 transparent canvas.
+A small diagonal scratch mark, 2-3 pixels wide,
+slightly darker than surrounding area. Subtle but visible.
 ```
+Save as: `accessories/scar_01.png`
+
+### Explorer Hat
+```
+Pixel art tiny explorer/adventure hat, 32x16 transparent canvas.
+Small round hat with a brim, brown/tan flat color.
+Sits on top of the creature's head.
+```
+Save as: `accessories/hat_explorer.png`
+
+### Happy Aura
+```
+Pixel art sparkle/glow effect, 64x64 transparent canvas.
+Several small pixel stars and hearts scattered in a circle.
+Light pastel colors. Appears around very happy creatures.
+```
+Save as: `accessories/aura_happy.png`
 
 ---
 
-## PROMPT 7 — Sick (attach Idle image before sending)
+## SHARED EFFECTS (cross-species, generate once)
 
+### Sleep ZZZ
 ```
-Using the EXACT same Kobara pixel art character from the attached image —
-same pixel body shape, same ear pixels, same outline style, same flat
-pastel blue color palette — generate a new 64x64 pixel art sprite,
-upscaled to 512x512 nearest-neighbor. Only pose and expression change.
-
-Mood: SICK — weak and unwell.
-Expression: standing wobbly with legs slightly apart for balance,
-a small pixel cross bandage on the head (white with red pixel cross),
-a pixel green swirl on one cheek, eyes half-open and unfocused,
-a pixel thermometer sticking out of the closed mouth,
-three small pixel dizzy stars orbiting above, arms hanging weakly,
-tail drooping. Body color may have a very slight greenish pixel tint.
-
-Negative: no anti-aliasing, no smooth edges, no gradients, no heavy
-shading, no dithering on body, no blur, no watermark, no background.
+Pixel art "zzz" sleep indicator, 32x32 transparent canvas.
+Three Z letters in ascending size (z Z Z) floating upward.
+White or light gray pixels. Classic sleep visual.
 ```
+Save as: `shared/effects/zzz.png`
+
+### Hearts
+```
+Pixel art floating hearts, 32x32 transparent canvas.
+2-3 small pixel hearts in pink/red, floating upward.
+```
+Save as: `shared/effects/hearts.png`
+
+### Rain Cloud
+```
+Pixel art tiny rain cloud, 32x24 transparent canvas.
+Small gray cloud with 2-3 pixel rain drops falling.
+Appears above lonely/sad creatures.
+```
+Save as: `shared/effects/rain_cloud.png`
+
+### Dizzy Stars
+```
+Pixel art orbiting stars, 48x48 transparent canvas.
+3-4 small pixel stars arranged in a circle.
+Appears above sick/dizzy creatures.
+```
+Save as: `shared/effects/stars_dizzy.png`
 
 ---
 
-## PROMPT 8 — Excited / Level Up (attach Idle image before sending)
+## COLOR TINT TESTING
 
-```
-Using the EXACT same Kobara pixel art character from the attached image —
-same pixel body shape, same ear pixels, same outline style, same flat
-pastel blue color palette — generate a new 64x64 pixel art sprite,
-upscaled to 512x512 nearest-neighbor. Only pose and expression change.
-
-Mood: EXCITED / LEVEL UP — triumphant achievement.
-Expression: standing tall with chest puffed out, one stubby arm raised
-with a pixel fist pump, other arm on hip, eyes wide and shining with
-pixel sparkle highlights, huge confident pixel grin, tail raised high
-and curled at the tip, four pointed pixel star bursts radiating from
-the body, small twinkling pixel stars around the raised fist.
-
-Negative: no anti-aliasing, no smooth edges, no gradients, no shading,
-no dithering, no blur, no watermark, no background.
-```
-
----
-
-## COLOR TINT VARIANTS (after all moods are done)
-
-Generate 2 recolor variants of the Idle sprite to verify tinting works:
+After generating the body, test that tinting works by recoloring:
 
 ### Coral pink variant
 ```
-Take the Kobara pixel art Idle sprite from the attached image and
-recolor all blue body pixels (#A8D8EA) to flat coral pink (#F0997B),
-keeping everything else pixel-perfect identical — same black outline
-pixels, same white eye pixels, same composition, zero anti-aliasing,
-zero smoothing. Upscale to 512x512 nearest-neighbor.
+Take the Kobara body pixel art and recolor all blue pixels (#A8D8EA)
+to flat coral pink (#F0997B). Keep everything else pixel-perfect
+identical — same outline, same composition. No smoothing.
 ```
 
 ### Golden yellow variant
 ```
-Take the Kobara pixel art Idle sprite from the attached image and
-recolor all blue body pixels (#A8D8EA) to flat golden yellow (#EF9F27),
-keeping everything else pixel-perfect identical — same black outline
-pixels, same white eye pixels, same composition, zero anti-aliasing,
-zero smoothing. Upscale to 512x512 nearest-neighbor.
+Take the Kobara body pixel art and recolor all blue pixels (#A8D8EA)
+to flat golden yellow (#EF9F27). Keep everything else identical.
 ```
+
+If the body looks good in both colors, the flat fill is correct
+and in-game tinting will work properly.
 
 ---
 
-## SIZE VARIANTS
+## DALL·E PIXEL ART TIPS
 
-Pixel art must ALWAYS be scaled nearest-neighbor (no smoothing).
-Request each approved sprite at these sizes:
+- DALL·E 3 sometimes adds smoothing. If results look blurry:
+  Add "Extremely pixelated, each pixel is a visible hard square,
+  like a Game Boy Color screenshot, 8-bit style" to the prompt.
 
-```
-Resize the attached Kobara [MOOD] pixel art sprite to [SIZE]x[SIZE]
-using nearest-neighbor scaling only — no interpolation, no anti-aliasing,
-no smoothing of any kind. Each pixel must remain a hard square block.
-```
+- Fallback method (guaranteed pixel art):
+  1. Generate with the flat style prompts
+  2. Open in Photopea (free, online)
+  3. Image → Image Size → target size → Nearest Neighbor
+  4. Scale back up → Nearest Neighbor
 
-Target sizes:
-- 64x64   — original (source of truth, keep this file)
-- 128x128 — low density screens
-- 256x256 — standard mobile
-- 512x512 — high density / retina (this is what DALL·E generates)
+- Keep ALL generations in ONE ChatGPT session for style consistency.
+- If character drifts, start fresh and attach the body as reference.
 
 ---
 
-## FILE NAMING
+## FUTURE SPECIES NOTES
 
-```
-assets/sprites/kobara/
-├── idle.png
-├── happy.png
-├── hungry.png
-├── tired.png
-├── sleeping.png
-├── lonely.png
-├── playful.png
-├── sick.png
-└── excited.png
-```
+When adding a new species (e.g. Lumini bird), follow this pattern:
 
----
-
-## IMPORTANT: DALL·E LIMITATION WITH PIXEL ART
-
-DALL·E 3 sometimes struggles with true pixel art and adds smoothing.
-If the result looks smooth/blurry instead of pixelated:
-
-Option A — add this to your prompt:
-"Extremely pixelated, each pixel is a visible hard square, like a
-Game Boy Color game screenshot, no smoothing whatsoever, 8-bit style"
-
-Option B — generate with the flat style prompts instead, then
-convert to pixel art manually using Aseprite or Photopea:
-  Photopea: Image → Image Size → 64x64 → Nearest Neighbor
-  Then scale back up: Image → Image Size → 512x512 → Nearest Neighbor
-
-Option B gives perfect pixel art every time and is worth the
-extra 2 minutes per sprite.
-```
-
----
-
-## IF THE CHARACTER DRIFTS
-
-Start a fresh ChatGPT conversation, attach the original approved
-Idle pixel art image and say:
-"This is my pixel art character reference. Do not change its design,
-color palette, or pixel style. I will ask for pose variations only."
+1. Generate the BODY first (defines the species visual identity)
+2. Generate species-specific parts (wings, beak, tail, etc.)
+3. Generate mood variants ONLY for mood-reactive parts
+4. Static parts (body, wings at rest) only need the idle variant
+5. Use the same color rules: flat fill for tinted parts, detailed for others
+6. Drop files into `assets/sprites/{species_name}/`
+7. Register the species template in `src/systems/body_parts.rs`

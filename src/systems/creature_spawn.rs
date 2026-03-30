@@ -1,23 +1,18 @@
 //! Creature visual spawning and lifecycle.
 //!
-//! Replaces the old `creature_form.rs` (procedural meshes) and `sprite.rs`
-//! (single full-character PNG) with a modular composition system.
-//!
 //! Each creature is spawned as a root entity with child entities for each
-//! body part. Parts can be either sprite-based (if PNGs exist) or procedural
-//! mesh-based (as a fallback). The two can coexist: some parts might have
-//! sprites while others fall back to meshes.
+//! body part. Positions come from the **body rig** — a proportional landmark
+//! system that resolves normalized coordinates into pixel offsets based on
+//! the creature's genome.
+//!
+//! Parts can be either sprite-based (if PNGs exist) or procedural mesh-based
+//! (as a fallback). The two can coexist.
 //!
 //! ## Asset path convention
 //!
 //! ```text
 //! assets/sprites/{species_dir}/{slot}_{mood_key}.png
 //! ```
-//!
-//! For example: `assets/sprites/kobara/eye_left_hungry.png`
-//!
-//! If a mood-specific sprite is missing, the system tries `{slot}_idle.png`.
-//! If that is also missing, the procedural mesh fallback is used.
 
 use bevy::prelude::*;
 use std::collections::HashMap;
@@ -25,6 +20,7 @@ use std::collections::HashMap;
 use crate::genome::Genome;
 use crate::mind::Mind;
 use super::body_parts::*;
+use super::rig::ResolvedAnchor;
 
 /// Preloaded sprite handles for all (slot, mood_key) combinations.
 /// Used by the mood_sync system for fast sprite swaps without disk I/O.
@@ -34,9 +30,14 @@ pub struct PartSpriteHandles {
     pub handles: HashMap<(String, String), Handle<Image>>,
 }
 
+/// Stores the resolved rig positions so other systems (like genome_visuals)
+/// can reference the rig-computed positions without re-resolving.
+#[derive(Resource)]
+pub struct ResolvedRig {
+    pub anchors: Vec<ResolvedAnchor>,
+}
+
 /// Tracks whether we checked if sprites loaded successfully.
-/// After a 2-second grace period, we check which parts got real sprites
-/// and despawn their fallback meshes.
 #[derive(Resource)]
 struct SpriteFallback {
     timer: Timer,
@@ -60,10 +61,8 @@ impl Plugin for CreatureVisualsPlugin {
 
 /// Spawns the creature as a root entity with child body parts.
 ///
-/// For each part defined in the species template, this system:
-/// 1. Tries to load a sprite from disk
-/// 2. Always spawns a procedural mesh fallback alongside it
-/// 3. After 2 seconds, the fallback check will hide whichever is not needed
+/// Positions are resolved from the species rig using the creature's genome,
+/// so each individual creature has slightly different proportions.
 fn spawn_creature(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -78,11 +77,20 @@ fn spawn_creature(
     let body_color = genome.body_color();
     let tint = genome.tint_color();
 
+    // Resolve the rig: convert normalized landmarks → pixel positions
+    let resolved = template.rig.resolve(&genome);
+
+    // Build a lookup: slot name → resolved position + z_depth
+    let anchor_map: HashMap<String, &ResolvedAnchor> = resolved
+        .iter()
+        .map(|a| (a.slot.clone(), a))
+        .collect();
+
     let mut sprite_handles = PartSpriteHandles {
         handles: HashMap::new(),
     };
 
-    // Preload all mood variants for all mood-reactive parts
+    // Preload all mood variants for mood-reactive parts
     let mood_keys = ["idle", "hungry", "tired", "lonely", "playful", "sick", "sleeping"];
     for part_def in &template.parts {
         if part_def.mood_reactive {
@@ -97,7 +105,6 @@ fn spawn_creature(
                 }
             }
         } else {
-            // Non-reactive parts only need the idle variant
             let path = format!("sprites/{}/{}_idle.png", template.species_dir, part_def.slot);
             if std::path::Path::new(&format!("assets/{path}")).exists() {
                 let handle = asset_server.load(&path);
@@ -118,7 +125,13 @@ fn spawn_creature(
         for part_def in &template.parts {
             let slot = BodyPartSlot(part_def.slot.clone());
 
-            // Determine which sprite handle to use (mood-specific or idle)
+            // Get position from the resolved rig (or fall back to origin)
+            let (offset, z_depth) = anchor_map
+                .get(&part_def.slot)
+                .map(|a| (a.position, a.z_depth))
+                .unwrap_or((Vec2::ZERO, 0.0));
+
+            // Determine which sprite handle to use
             let sprite_handle = sprite_handles.handles
                 .get(&(part_def.slot.clone(), mood_key.to_string()))
                 .or_else(|| sprite_handles.handles.get(&(part_def.slot.clone(), "idle".to_string())))
@@ -133,7 +146,7 @@ fn spawn_creature(
                         color,
                         ..default()
                     },
-                    Transform::from_xyz(part_def.offset.x, part_def.offset.y, part_def.z_depth)
+                    Transform::from_xyz(offset.x, offset.y, z_depth)
                         .with_scale(part_def.base_scale.extend(1.0)),
                     Visibility::Hidden,
                     slot.clone(),
@@ -153,7 +166,7 @@ fn spawn_creature(
                     parent.spawn((
                         Mesh2d(meshes.add(Circle::new(*radius))),
                         MeshMaterial2d(materials.add(mesh_color)),
-                        Transform::from_xyz(part_def.offset.x, part_def.offset.y, part_def.z_depth),
+                        Transform::from_xyz(offset.x, offset.y, z_depth),
                         slot,
                         FallbackMesh,
                     ));
@@ -162,7 +175,7 @@ fn spawn_creature(
                     parent.spawn((
                         Mesh2d(meshes.add(Rectangle::new(*width, *height))),
                         MeshMaterial2d(materials.add(mesh_color)),
-                        Transform::from_xyz(part_def.offset.x, part_def.offset.y, part_def.z_depth),
+                        Transform::from_xyz(offset.x, offset.y, z_depth),
                         slot,
                         FallbackMesh,
                     ));
@@ -172,6 +185,7 @@ fn spawn_creature(
     });
 
     commands.insert_resource(sprite_handles);
+    commands.insert_resource(ResolvedRig { anchors: resolved });
     commands.insert_resource(SpriteFallback {
         timer: Timer::from_seconds(2.0, TimerMode::Once),
         resolved: false,
@@ -179,8 +193,6 @@ fn spawn_creature(
 }
 
 /// After 2 seconds, checks which sprite parts actually loaded.
-/// For parts that have sprites: show the sprite, despawn the fallback mesh.
-/// For parts without sprites: the fallback mesh stays visible.
 fn check_sprite_fallback(
     time: Res<Time>,
     mut fallback: ResMut<SpriteFallback>,
@@ -199,7 +211,6 @@ fn check_sprite_fallback(
     }
     fallback.resolved = true;
 
-    // Check which slots have at least one sprite that loaded
     let mut loaded_slots = std::collections::HashSet::new();
     for ((slot, _mood), handle) in &sprite_handles.handles {
         if images.get(handle).is_some() {
@@ -214,14 +225,12 @@ fn check_sprite_fallback(
 
     info!("Sprites loaded for parts: {:?} — switching those to sprite rendering", loaded_slots);
 
-    // Show sprite entities for loaded slots
     for (slot, mut vis) in sprite_q.iter_mut() {
         if loaded_slots.contains(&slot.0) {
             *vis = Visibility::Visible;
         }
     }
 
-    // Despawn fallback meshes for slots that have sprites
     for (entity, slot) in mesh_q.iter() {
         if loaded_slots.contains(&slot.0) {
             commands.entity(entity).despawn();

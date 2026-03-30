@@ -1,18 +1,31 @@
 //! # Genome
 //!
 //! Every Kobara is born with a set of genes — f32 values between 0.0 and 1.0.
-//! The species defines the possible ranges; the individual fills them in.
+//! "Kobara" is the universal term for all creatures in this world (a fusion of
+//! kokoro 心 + hara 腹 — "where the spirit lives"). Species determines the
+//! creature's body type and visual template.
+//!
+//! The species defines the possible gene ranges; the individual fills them in.
 //! This guarantees each creature is unique, just like in real biology.
 
 use bevy::prelude::Resource;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
-/// Available species. Each species has different gene ranges.
+/// Available species of Kobara. Each has different body shapes, rigs,
+/// and gene ranges.
+///
+/// All creatures are Kobaras — species determines their physical form:
+/// - **Marumi** (丸み, "roundness") — soft, round mammal-like Kobaras
+/// - **Tsubasa** (翼, "wing") — bird-like Kobaras (future)
+/// - **Uroko** (鱗, "scale") — reptile-like Kobaras (future)
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum Species {
-    Kobara,
-    // Future species: Lumini, Verun, Drakel ...
+    /// Round, soft, mammal-like Kobara. The first and most common species.
+    Marumi,
+    // Future species:
+    // Tsubasa, // bird-like
+    // Uroko,   // reptile-like
 }
 
 /// The creature's DNA. Each field is a value between 0.0 and 1.0.
@@ -49,11 +62,11 @@ pub struct Genome {
 }
 
 impl Genome {
-    /// Generates a random genome for the Kobara species.
+    /// Generates a random genome for a Marumi Kobara.
     pub fn random() -> Self {
         let mut rng = rand::rng();
         Self {
-            species:                Species::Kobara,
+            species:                Species::Marumi,
             curiosity:              rng.random_range(0.2..=1.0),
             loneliness_sensitivity: rng.random_range(0.1..=0.9),
             appetite:               rng.random_range(0.1..=0.8),

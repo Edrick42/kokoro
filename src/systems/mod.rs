@@ -5,6 +5,7 @@ pub mod effects;
 pub mod evolution;
 pub mod genome_visuals;
 pub mod mood_sync;
+pub mod rig;
 pub mod stats;
 pub mod time_tick;
 pub mod ui;

@@ -77,8 +77,8 @@ fn load_mind(conn: &Connection) -> Result<Option<Mind>> {
 
 fn str_to_species(s: &str) -> Species {
     match s {
-        "Kobara" => Species::Kobara,
-        _        => Species::Kobara, // Fallback — future species added here
+        "Marumi" => Species::Marumi,
+        _        => Species::Marumi, // Fallback — future species added here
     }
 }
 

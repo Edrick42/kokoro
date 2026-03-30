@@ -1,20 +1,26 @@
 //! Body part definitions and species templates.
 //!
-//! Each species is defined by a `SpeciesTemplate` — a list of body parts with
-//! their positions, z-depths, and visual properties. The creature spawn system
-//! reads this template to assemble the creature from individual sprite/mesh
-//! entities arranged in a parent-child hierarchy.
+//! Each species is defined by a `SpeciesTemplate` containing:
+//! - A **body rig** (proportional landmark system) that controls face/body shape
+//! - A list of **body part definitions** with visual properties (fallback shape,
+//!   tint, mood reactivity)
+//!
+//! The rig provides normalized positions that get resolved to pixel offsets
+//! using the genome. This means each individual creature looks slightly
+//! different, and different species can have radically different proportions.
 //!
 //! ## Adding a new species
 //!
 //! 1. Add a variant to `Species` in `genome/mod.rs`
-//! 2. Write a template function here (like `kobara_template()`)
-//! 3. Register it in `SpeciesRegistry::new()`
-//! 4. Drop sprites into `assets/sprites/{species_dir}/`
+//! 2. Write a rig function in `rig.rs` (e.g. `drakel_rig()`)
+//! 3. Write a template function here (e.g. `drakel_template()`)
+//! 4. Register both in `SpeciesRegistry::new()`
+//! 5. Drop sprites into `assets/sprites/{species_dir}/`
 
 use bevy::prelude::*;
 use std::collections::HashMap;
 use crate::genome::Species;
+use super::rig::BodyRig;
 
 // ---------------------------------------------------------------------------
 // Marker components
@@ -55,19 +61,12 @@ pub enum FallbackShape {
     Rect { width: f32, height: f32 },
 }
 
-/// Defines a single body part within a species template.
-///
-/// This is pure data — no Bevy components here. The spawn system reads
-/// these definitions and creates the actual entities with the right
-/// components attached.
+/// Visual properties for a body part (everything except position,
+/// which comes from the rig).
 #[derive(Clone, Debug)]
 pub struct BodyPartDef {
     /// Slot name, e.g. "body", "eye_left", "mouth"
     pub slot: String,
-    /// Position relative to the creature root
-    pub offset: Vec2,
-    /// Layering order (lower = behind, higher = in front)
-    pub z_depth: f32,
     /// Default scale
     pub base_scale: Vec2,
     /// Does this part change sprite when mood changes?
@@ -81,12 +80,14 @@ pub struct BodyPartDef {
 }
 
 /// Complete visual template for a species.
-/// One of these exists per species in the `SpeciesRegistry`.
+/// Combines the proportional rig with body part visual properties.
 #[derive(Clone, Debug)]
 pub struct SpeciesTemplate {
     /// Subdirectory under `assets/sprites/` for this species
     pub species_dir: String,
-    /// All body parts that make up this species
+    /// Proportional landmark system — controls positioning
+    pub rig: BodyRig,
+    /// Visual properties for each body part
     pub parts: Vec<BodyPartDef>,
 }
 
@@ -101,9 +102,10 @@ impl SpeciesRegistry {
     /// Creates the registry with all known species templates.
     pub fn new() -> Self {
         let mut templates = HashMap::new();
-        templates.insert(Species::Kobara, kobara_template());
+        templates.insert(Species::Marumi, marumi_template());
         // Future species go here:
         // templates.insert(Species::Lumini, lumini_template());
+        // templates.insert(Species::Drakel, drakel_template());
         Self { templates }
     }
 
@@ -124,36 +126,17 @@ const DARK: Color = Color::srgb(0.1, 0.1, 0.1);
 
 /// Visual template for the Kobara species.
 ///
-/// Part positions match the original `creature_form.rs` layout so the
-/// procedural fallback looks identical to what was there before.
-pub fn kobara_template() -> SpeciesTemplate {
+/// Positioning comes from `marumi_rig()` in `rig.rs`.
+/// This function only defines visual properties (fallback shapes, tint, etc).
+pub fn marumi_template() -> SpeciesTemplate {
+    use super::rig::marumi_rig;
+
     SpeciesTemplate {
-        species_dir: "kobara".into(),
+        species_dir: "marumi".into(),
+        rig: marumi_rig(),
         parts: vec![
             BodyPartDef {
-                slot: "ear_left".into(),
-                offset: Vec2::new(-42.0, 45.0),
-                z_depth: -0.1,
-                base_scale: Vec2::ONE,
-                mood_reactive: false,
-                tinted: true,
-                fallback_shape: FallbackShape::Circle { radius: 18.0 },
-                fallback_color: None, // uses genome body color
-            },
-            BodyPartDef {
-                slot: "ear_right".into(),
-                offset: Vec2::new(42.0, 45.0),
-                z_depth: -0.1,
-                base_scale: Vec2::ONE,
-                mood_reactive: false,
-                tinted: true,
-                fallback_shape: FallbackShape::Circle { radius: 18.0 },
-                fallback_color: None,
-            },
-            BodyPartDef {
                 slot: "body".into(),
-                offset: Vec2::ZERO,
-                z_depth: 0.0,
                 base_scale: Vec2::ONE,
                 mood_reactive: false,
                 tinted: true,
@@ -161,9 +144,23 @@ pub fn kobara_template() -> SpeciesTemplate {
                 fallback_color: None,
             },
             BodyPartDef {
+                slot: "ear_left".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: false,
+                tinted: true,
+                fallback_shape: FallbackShape::Circle { radius: 18.0 },
+                fallback_color: None,
+            },
+            BodyPartDef {
+                slot: "ear_right".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: false,
+                tinted: true,
+                fallback_shape: FallbackShape::Circle { radius: 18.0 },
+                fallback_color: None,
+            },
+            BodyPartDef {
                 slot: "eye_left".into(),
-                offset: Vec2::new(-18.0, 12.0),
-                z_depth: 1.0,
                 base_scale: Vec2::ONE,
                 mood_reactive: true,
                 tinted: false,
@@ -172,8 +169,6 @@ pub fn kobara_template() -> SpeciesTemplate {
             },
             BodyPartDef {
                 slot: "eye_right".into(),
-                offset: Vec2::new(18.0, 12.0),
-                z_depth: 1.0,
                 base_scale: Vec2::ONE,
                 mood_reactive: true,
                 tinted: false,
@@ -182,8 +177,6 @@ pub fn kobara_template() -> SpeciesTemplate {
             },
             BodyPartDef {
                 slot: "mouth".into(),
-                offset: Vec2::new(0.0, -14.0),
-                z_depth: 1.0,
                 base_scale: Vec2::ONE,
                 mood_reactive: true,
                 tinted: false,

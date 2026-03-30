@@ -6,7 +6,7 @@ round, chunky character with shading, thick outlines, and personality.
 
 Each part is drawn at pixel-art resolution and upscaled 8x with nearest-neighbor.
 
-Output: assets/sprites/kobara/{slot}_{mood}.png
+Output: assets/sprites/marumi/{slot}_{mood}.png
 
 Usage:
     python3 scripts/generate_sprites.py
@@ -20,7 +20,7 @@ import math
 # Config
 # ---------------------------------------------------------------------------
 
-OUT_DIR = os.path.join(os.path.dirname(__file__), '..', 'assets', 'sprites', 'kobara')
+OUT_DIR = os.path.join(os.path.dirname(__file__), '..', 'assets', 'sprites', 'marumi')
 EFFECTS_DIR = os.path.join(os.path.dirname(__file__), '..', 'assets', 'sprites', 'shared', 'effects')
 SCALE = 8
 

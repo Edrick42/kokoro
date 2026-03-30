@@ -193,6 +193,16 @@
   - Genome-driven visual modifiers: tint, scale, spacing
   - *Build It: `CreatureVisualsPlugin` and the spawn system*
 
+- [Chapter 25b: The Sprite Pipeline](part-4/ch25b-sprite-pipeline.md)
+  - Why generate art with code
+  - The contract: what the game engine expects (names, sizes, transparency)
+  - The toolkit: Pillow, pixel sets, flood outline, gradient shading
+  - Marumi: body shading, parameterized eyes, 8 mouth variants
+  - Tsubasa: wings with directional gradient, triangle beak, tail feathers
+  - Uroko: scale texture, slit pupils, horn crests, fanged snout
+  - Creating a new species: the complete step-by-step
+  - Design principles for pixel art sprites
+
 - [Chapter 26: User Interface with Bevy UI](part-4/ch26-ui.md)
   - Bevy's UI system: `Node`, `Button`, flexbox layout
   - Interaction handling: `Interaction` component

@@ -10,6 +10,8 @@
 //!
 //! - **On app exit**: performs a final save so no progress is lost.
 
+use std::sync::Mutex;
+
 use bevy::prelude::*;
 use bevy::app::AppExit;
 
@@ -18,9 +20,9 @@ use crate::mind::Mind;
 use super::{db, load, save};
 
 /// Shared database connection stored as a Bevy resource.
-/// Wrapped in a newtype so Bevy can manage its lifetime.
+/// Wrapped in a Mutex because rusqlite::Connection is not Sync.
 #[derive(Resource)]
-pub struct DbConnection(pub rusqlite::Connection);
+pub struct DbConnection(pub Mutex<rusqlite::Connection>);
 
 /// How many ticks between auto-saves.
 const AUTOSAVE_INTERVAL: u64 = 60;
@@ -56,7 +58,7 @@ fn startup_load(mut commands: Commands) {
 
     commands.insert_resource(genome);
     commands.insert_resource(mind);
-    commands.insert_resource(DbConnection(conn));
+    commands.insert_resource(DbConnection(Mutex::new(conn)));
 }
 
 /// Auto-saves every AUTOSAVE_INTERVAL ticks.
@@ -66,7 +68,8 @@ fn autosave_system(
     mind:   Res<Mind>,
 ) {
     if mind.age_ticks % AUTOSAVE_INTERVAL == 0 && mind.age_ticks > 0 {
-        if let Err(e) = save::save_all(&db.0, &genome, &mind) {
+        let conn = db.0.lock().expect("DB lock poisoned");
+        if let Err(e) = save::save_all(&conn, &genome, &mind) {
             error!("Auto-save failed: {e}");
         } else {
             debug!("Auto-saved at tick {}", mind.age_ticks);
@@ -82,7 +85,8 @@ fn save_on_exit(
     mind:   Res<Mind>,
 ) {
     for _ in exit_events.read() {
-        if let Err(e) = save::save_all(&db.0, &genome, &mind) {
+        let conn = db.0.lock().expect("DB lock poisoned");
+        if let Err(e) = save::save_all(&conn, &genome, &mind) {
             error!("Exit save failed: {e}");
         } else {
             info!("Saved on exit at tick {}", mind.age_ticks);

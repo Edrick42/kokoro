@@ -12,7 +12,7 @@
 
 use bevy::prelude::*;
 use crate::mind::{Mind, MoodState};
-use super::body_parts::CreatureRoot;
+use crate::creature::species::CreatureRoot;
 
 /// Marker for effect sprite entities so we can find and despawn them.
 #[derive(Component)]

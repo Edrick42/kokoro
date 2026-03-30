@@ -10,7 +10,7 @@
 
 use bevy::prelude::*;
 use crate::genome::Genome;
-use super::body_parts::{BodyPartSlot, CreatureRoot};
+use crate::creature::species::{BodyPartSlot, CreatureRoot};
 
 /// Applies genome-driven visual transforms to body parts.
 ///

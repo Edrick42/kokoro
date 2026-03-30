@@ -13,8 +13,8 @@
 
 use bevy::prelude::*;
 use crate::mind::Mind;
-use super::body_parts::{BodyPartSlot, CreatureRoot, MoodReactive};
-use super::creature_spawn::PartSpriteHandles;
+use crate::creature::species::{BodyPartSlot, CreatureRoot, MoodReactive};
+use crate::creature::spawn::PartSpriteHandles;
 
 /// Controls the idle sway animation on the creature root.
 #[derive(Component)]

@@ -38,7 +38,7 @@ impl Plugin for PersistencePlugin {
 }
 
 /// Opens the database and restores (or creates) the Kobara before any other system runs.
-fn startup_load(mut commands: Commands) {
+pub fn startup_load(mut commands: Commands) {
     let conn = db::open().expect("Failed to open save database");
 
     let (genome, mind) = match load::load_saved(&conn) {

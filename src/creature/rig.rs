@@ -330,47 +330,248 @@ pub fn marumi_rig() -> BodyRig {
 }
 
 // ---------------------------------------------------------------------------
-// Future species rigs — showing how different they can be
+// Tsubasa rig (bird-like Kobara)
 // ---------------------------------------------------------------------------
 
-// Example of what a predator rig would look like (not implemented yet):
-//
-// pub fn drakel_rig() -> BodyRig {
-//     BodyRig {
-//         base_size: Vec2::new(120.0, 200.0),  // taller, narrower
-//         anchors: vec![
-//             // Eyes higher and closer together (forward-facing predator)
-//             AnchorPoint {
-//                 slot: "eye_left".into(),
-//                 base_pos: Vec2::new(-0.15, 0.35),  // closer together, higher
-//                 ...
-//             },
-//             // Snout/mouth further from eyes (elongated face)
-//             AnchorPoint {
-//                 slot: "mouth".into(),
-//                 base_pos: Vec2::new(0.0, -0.3),  // much lower
-//                 ...
-//             },
-//             // Pointed ears, higher and more angled
-//             AnchorPoint {
-//                 slot: "ear_left".into(),
-//                 base_pos: Vec2::new(-0.45, 0.70),  // more spread, higher
-//                 ...
-//             },
-//         ],
-//     }
-// }
-//
-// pub fn lumini_rig() -> BodyRig {
-//     // Herbivore: wide face, eyes on sides (panoramic vision)
-//     BodyRig {
-//         base_size: Vec2::new(180.0, 140.0),  // wider than tall
-//         anchors: vec![
-//             AnchorPoint {
-//                 slot: "eye_left".into(),
-//                 base_pos: Vec2::new(-0.40, 0.20),  // far apart (side-facing)
-//                 ...
-//             },
-//         ],
-//     }
-// }
+/// Creates the body rig for the Tsubasa species.
+///
+/// Tsubasa are bird-like Kobaras: lighter body, wider stance, wings instead
+/// of ears, beak instead of mouth, and eyes on the sides for panoramic vision.
+///
+/// ```text
+///       wing_L            wing_R
+///         ╲    eye_L eye_R    ╱
+///          ╲   ┌────────┐   ╱
+///           ╲ ╱          ╲ ╱
+///            │    beak    │
+///            │            │
+///             ╲   tail   ╱
+///              ╲________╱
+/// ```
+pub fn tsubasa_rig() -> BodyRig {
+    BodyRig {
+        // Tsubasa are slightly taller and narrower than Marumi
+        base_size: Vec2::new(380.0, 420.0),
+
+        anchors: vec![
+            // --- Body (center) ---
+            AnchorPoint {
+                slot: "body".into(),
+                base_pos: Vec2::new(0.0, 0.0),
+                z_depth: 0.0,
+                gene_offsets: vec![],
+                mirror_of: None,
+            },
+
+            // --- Left wing (replaces ear, wider and lower) ---
+            AnchorPoint {
+                slot: "wing_left".into(),
+                base_pos: Vec2::new(-0.65, 0.15),
+                z_depth: -0.1,
+                gene_offsets: vec![
+                    GeneOffset {
+                        gene: GeneTrait::Curiosity,
+                        axis: Axis::X,
+                        range: (0.0, -0.08),
+                    },
+                    GeneOffset {
+                        gene: GeneTrait::Resilience,
+                        axis: Axis::Y,
+                        range: (-0.05, 0.05),
+                    },
+                ],
+                mirror_of: None,
+            },
+
+            // --- Right wing (mirrors left) ---
+            AnchorPoint {
+                slot: "wing_right".into(),
+                base_pos: Vec2::new(0.65, 0.15),
+                z_depth: -0.1,
+                gene_offsets: vec![],
+                mirror_of: Some("wing_left".into()),
+            },
+
+            // --- Left eye (side-facing, for panoramic bird vision) ---
+            AnchorPoint {
+                slot: "eye_left".into(),
+                base_pos: Vec2::new(-0.30, 0.32),
+                z_depth: 1.0,
+                gene_offsets: vec![
+                    GeneOffset {
+                        gene: GeneTrait::Curiosity,
+                        axis: Axis::X,
+                        range: (0.03, -0.06),
+                    },
+                ],
+                mirror_of: None,
+            },
+
+            // --- Right eye (mirrors left) ---
+            AnchorPoint {
+                slot: "eye_right".into(),
+                base_pos: Vec2::new(0.30, 0.32),
+                z_depth: 1.0,
+                gene_offsets: vec![],
+                mirror_of: Some("eye_left".into()),
+            },
+
+            // --- Beak (replaces mouth, lower and more prominent) ---
+            AnchorPoint {
+                slot: "beak".into(),
+                base_pos: Vec2::new(0.0, 0.05),
+                z_depth: 1.5,
+                gene_offsets: vec![
+                    GeneOffset {
+                        gene: GeneTrait::Appetite,
+                        axis: Axis::Y,
+                        range: (0.02, -0.06),
+                    },
+                ],
+                mirror_of: None,
+            },
+
+            // --- Tail (bottom, behind body) ---
+            AnchorPoint {
+                slot: "tail".into(),
+                base_pos: Vec2::new(0.0, -0.75),
+                z_depth: -0.2,
+                gene_offsets: vec![
+                    GeneOffset {
+                        gene: GeneTrait::Resilience,
+                        axis: Axis::Y,
+                        range: (0.0, -0.08),
+                    },
+                ],
+                mirror_of: None,
+            },
+        ],
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Uroko rig (reptile-like Kobara)
+// ---------------------------------------------------------------------------
+
+/// Creates the body rig for the Uroko species.
+///
+/// Uroko are reptile-like Kobaras: elongated body, forward-facing predator
+/// eyes (close together), pronounced snout, horn-like crests, and a thick tail.
+///
+/// ```text
+///       crest_L  crest_R
+///          ╲  ╱
+///       eye_L eye_R
+///        ┌────────┐
+///       ╱          ╲
+///      │   snout    │
+///      │            │
+///       ╲          ╱
+///        ╲________╱
+///           tail
+/// ```
+pub fn uroko_rig() -> BodyRig {
+    BodyRig {
+        // Uroko are taller and narrower — elongated reptilian body
+        base_size: Vec2::new(340.0, 460.0),
+
+        anchors: vec![
+            // --- Body (center) ---
+            AnchorPoint {
+                slot: "body".into(),
+                base_pos: Vec2::new(0.0, 0.0),
+                z_depth: 0.0,
+                gene_offsets: vec![],
+                mirror_of: None,
+            },
+
+            // --- Left crest/horn (replaces ear, pointed, higher) ---
+            AnchorPoint {
+                slot: "crest_left".into(),
+                base_pos: Vec2::new(-0.28, 0.82),
+                z_depth: -0.1,
+                gene_offsets: vec![
+                    GeneOffset {
+                        gene: GeneTrait::Resilience,
+                        axis: Axis::Y,
+                        range: (0.0, 0.08),
+                    },
+                    GeneOffset {
+                        gene: GeneTrait::Curiosity,
+                        axis: Axis::X,
+                        range: (0.0, -0.05),
+                    },
+                ],
+                mirror_of: None,
+            },
+
+            // --- Right crest (mirrors left) ---
+            AnchorPoint {
+                slot: "crest_right".into(),
+                base_pos: Vec2::new(0.28, 0.82),
+                z_depth: -0.1,
+                gene_offsets: vec![],
+                mirror_of: Some("crest_left".into()),
+            },
+
+            // --- Left eye (forward-facing predator, close together) ---
+            AnchorPoint {
+                slot: "eye_left".into(),
+                base_pos: Vec2::new(-0.20, 0.35),
+                z_depth: 1.0,
+                gene_offsets: vec![
+                    GeneOffset {
+                        gene: GeneTrait::Curiosity,
+                        axis: Axis::X,
+                        range: (0.02, -0.04),
+                    },
+                    GeneOffset {
+                        gene: GeneTrait::Resilience,
+                        axis: Axis::Y,
+                        range: (-0.02, 0.03),
+                    },
+                ],
+                mirror_of: None,
+            },
+
+            // --- Right eye (mirrors left) ---
+            AnchorPoint {
+                slot: "eye_right".into(),
+                base_pos: Vec2::new(0.20, 0.35),
+                z_depth: 1.0,
+                gene_offsets: vec![],
+                mirror_of: Some("eye_left".into()),
+            },
+
+            // --- Snout (replaces mouth, lower and wider) ---
+            AnchorPoint {
+                slot: "snout".into(),
+                base_pos: Vec2::new(0.0, -0.05),
+                z_depth: 1.0,
+                gene_offsets: vec![
+                    GeneOffset {
+                        gene: GeneTrait::Appetite,
+                        axis: Axis::Y,
+                        range: (0.03, -0.08),
+                    },
+                ],
+                mirror_of: None,
+            },
+
+            // --- Tail (bottom, thick) ---
+            AnchorPoint {
+                slot: "tail".into(),
+                base_pos: Vec2::new(0.0, -0.80),
+                z_depth: -0.2,
+                gene_offsets: vec![
+                    GeneOffset {
+                        gene: GeneTrait::Appetite,
+                        axis: Axis::Y,
+                        range: (0.0, -0.10),
+                    },
+                ],
+                mirror_of: None,
+            },
+        ],
+    }
+}

@@ -1,20 +1,25 @@
 //! # Mind
 //!
-//! The creature's AI engine, built in two layers:
+//! The creature's AI engine, built in three layers:
 //!
 //! 1. **Finite State Machine (FSM)** — defines the current mood state
 //!    (hungry, tired, playful, etc.) and drives transitions between states.
+//!    The FSM has **veto power** on critical states (Sick, Sleeping).
 //!
 //! 2. **Emergent behaviour** — transitions depend on the genome, vital stats,
 //!    and a random component. The result looks like personality: same stats,
 //!    different genes → different behaviour.
 //!
-//! ## Future — Phase 4
-//! A small local neural network (via `candle-core`) will replace part of the
-//! hardcoded rules, learning the specific interaction patterns of each owner.
+//! 3. **Neural network (Phase 4)** — a small MLP trained locally on the
+//!    owner's interaction history. It *suggests* mood transitions that the
+//!    FSM can accept or override. Each Kobara's network is unique.
 
 use bevy::prelude::Resource;
 use serde::{Deserialize, Serialize};
+
+pub mod neural;
+pub mod plugin;
+pub mod training;
 
 /// The creature's current emotional and behavioural state.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -56,6 +61,12 @@ impl MoodState {
             MoodState::Sick     => "sick",
             MoodState::Sleeping => "sleeping",
         }
+    }
+
+    /// Returns true for moods where the FSM has absolute authority
+    /// and the neural network cannot override.
+    pub fn is_critical(&self) -> bool {
+        matches!(self, MoodState::Sick | MoodState::Sleeping)
     }
 }
 
@@ -120,6 +131,37 @@ impl Mind {
         self.mood = MoodState::Sleeping;
     }
 
+    /// Pure FSM mood update — returns what the FSM thinks the mood should be.
+    ///
+    /// This is separated from `update_mood` so the neural network can
+    /// compare its suggestion against the FSM's decision.
+    pub fn fsm_mood(&self, genome: &crate::genome::Genome) -> MoodState {
+        use rand::Rng;
+        let mut rng = rand::rng();
+
+        if self.stats.energy < 15.0 {
+            MoodState::Sleeping
+        } else if self.stats.health < 30.0 {
+            MoodState::Sick
+        } else if self.stats.hunger > 75.0 {
+            MoodState::Hungry
+        } else if self.stats.happiness < 25.0 {
+            if genome.loneliness_sensitivity > 0.6 {
+                MoodState::Lonely
+            } else {
+                MoodState::Tired
+            }
+        } else if self.stats.happiness > 80.0 && self.stats.energy > 60.0 {
+            if genome.curiosity > 0.6 || rng.random_range(0.0f32..1.0) < genome.curiosity {
+                MoodState::Playful
+            } else {
+                MoodState::Happy
+            }
+        } else {
+            MoodState::Happy
+        }
+    }
+
     /// Updates the mood state based on vital stats and the creature's genome.
     ///
     /// Called every tick by [`TimeTickPlugin`]. This is where emergent behaviour
@@ -138,35 +180,8 @@ impl Mind {
         let mood_noise: f32 = rng.random_range(-1.0..1.0) * (1.0 - genome.resilience) * 2.0;
         self.stats.happiness = (self.stats.happiness + mood_noise).clamp(0.0, 100.0);
 
-        // FSM transition: priority order matters
-        self.mood = if self.stats.energy < 15.0 {
-            MoodState::Sleeping
-
-        } else if self.stats.health < 30.0 {
-            MoodState::Sick
-
-        } else if self.stats.hunger > 75.0 {
-            MoodState::Hungry
-
-        } else if self.stats.happiness < 25.0 {
-            // Emergent behaviour: lonely vs just tired depends on the genome
-            if genome.loneliness_sensitivity > 0.6 {
-                MoodState::Lonely
-            } else {
-                MoodState::Tired
-            }
-
-        } else if self.stats.happiness > 80.0 && self.stats.energy > 60.0 {
-            // Curious creatures are more likely to become Playful spontaneously
-            if genome.curiosity > 0.6 || rng.random_range(0.0f32..1.0) < genome.curiosity {
-                MoodState::Playful
-            } else {
-                MoodState::Happy
-            }
-
-        } else {
-            MoodState::Happy
-        };
+        // FSM transition
+        self.mood = self.fsm_mood(genome);
 
         self.age_ticks += 1;
     }

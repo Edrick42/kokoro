@@ -8,7 +8,7 @@ authors = ["Edrick Alves Manoel"]
 [dependencies]
 bevy    = "0.16.1"
 serde   = { version = "1.0", features = ["derive"] }
-bincode = "2.0"
+bincode = { version = "2.0", features = ["serde"] }
 rand    = "0.9"
 # Persistence — local SQLite for creature memory
 rusqlite = { version = "0.31", features = ["bundled"] }

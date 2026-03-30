@@ -9,8 +9,8 @@
 
 use bevy::prelude::*;
 use crate::mind::Mind;
-use super::body_parts::{BodyPartSlot, MoodReactive};
-use super::creature_spawn::PartSpriteHandles;
+use crate::creature::species::{BodyPartSlot, MoodReactive};
+use crate::creature::spawn::PartSpriteHandles;
 
 /// Watches for mood changes and swaps sprites on mood-reactive parts.
 ///

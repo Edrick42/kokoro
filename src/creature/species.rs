@@ -103,9 +103,8 @@ impl SpeciesRegistry {
     pub fn new() -> Self {
         let mut templates = HashMap::new();
         templates.insert(Species::Marumi, marumi_template());
-        // Future species go here:
-        // templates.insert(Species::Lumini, lumini_template());
-        // templates.insert(Species::Drakel, drakel_template());
+        templates.insert(Species::Tsubasa, tsubasa_template());
+        templates.insert(Species::Uroko, uroko_template());
         Self { templates }
     }
 
@@ -182,6 +181,148 @@ pub fn marumi_template() -> SpeciesTemplate {
                 tinted: false,
                 fallback_shape: FallbackShape::Rect { width: 28.0, height: 7.0 },
                 fallback_color: Some(DARK),
+            },
+        ],
+    }
+}
+
+/// Visual template for the Tsubasa (bird) species.
+///
+/// Parts: body, wing_left, wing_right, eye_left, eye_right, beak, tail.
+/// Positioning comes from `tsubasa_rig()` in `rig.rs`.
+pub fn tsubasa_template() -> SpeciesTemplate {
+    use super::rig::tsubasa_rig;
+
+    SpeciesTemplate {
+        species_dir: "tsubasa".into(),
+        rig: tsubasa_rig(),
+        parts: vec![
+            BodyPartDef {
+                slot: "body".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: false,
+                tinted: true,
+                fallback_shape: FallbackShape::Circle { radius: 48.0 },
+                fallback_color: None,
+            },
+            BodyPartDef {
+                slot: "wing_left".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: false,
+                tinted: true,
+                fallback_shape: FallbackShape::Rect { width: 40.0, height: 20.0 },
+                fallback_color: None,
+            },
+            BodyPartDef {
+                slot: "wing_right".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: false,
+                tinted: true,
+                fallback_shape: FallbackShape::Rect { width: 40.0, height: 20.0 },
+                fallback_color: None,
+            },
+            BodyPartDef {
+                slot: "eye_left".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: true,
+                tinted: false,
+                fallback_shape: FallbackShape::Circle { radius: 7.0 },
+                fallback_color: Some(DARK),
+            },
+            BodyPartDef {
+                slot: "eye_right".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: true,
+                tinted: false,
+                fallback_shape: FallbackShape::Circle { radius: 7.0 },
+                fallback_color: Some(DARK),
+            },
+            BodyPartDef {
+                slot: "beak".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: true,
+                tinted: false,
+                fallback_shape: FallbackShape::Rect { width: 16.0, height: 10.0 },
+                fallback_color: Some(Color::srgb(0.95, 0.75, 0.2)),
+            },
+            BodyPartDef {
+                slot: "tail".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: false,
+                tinted: true,
+                fallback_shape: FallbackShape::Rect { width: 14.0, height: 22.0 },
+                fallback_color: None,
+            },
+        ],
+    }
+}
+
+/// Visual template for the Uroko (reptile) species.
+///
+/// Parts: body, crest_left, crest_right, eye_left, eye_right, snout, tail.
+/// Positioning comes from `uroko_rig()` in `rig.rs`.
+pub fn uroko_template() -> SpeciesTemplate {
+    use super::rig::uroko_rig;
+
+    SpeciesTemplate {
+        species_dir: "uroko".into(),
+        rig: uroko_rig(),
+        parts: vec![
+            BodyPartDef {
+                slot: "body".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: false,
+                tinted: true,
+                fallback_shape: FallbackShape::Circle { radius: 50.0 },
+                fallback_color: None,
+            },
+            BodyPartDef {
+                slot: "crest_left".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: false,
+                tinted: true,
+                fallback_shape: FallbackShape::Rect { width: 12.0, height: 24.0 },
+                fallback_color: None,
+            },
+            BodyPartDef {
+                slot: "crest_right".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: false,
+                tinted: true,
+                fallback_shape: FallbackShape::Rect { width: 12.0, height: 24.0 },
+                fallback_color: None,
+            },
+            BodyPartDef {
+                slot: "eye_left".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: true,
+                tinted: false,
+                fallback_shape: FallbackShape::Circle { radius: 8.0 },
+                fallback_color: Some(Color::srgb(0.9, 0.2, 0.1)),
+            },
+            BodyPartDef {
+                slot: "eye_right".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: true,
+                tinted: false,
+                fallback_shape: FallbackShape::Circle { radius: 8.0 },
+                fallback_color: Some(Color::srgb(0.9, 0.2, 0.1)),
+            },
+            BodyPartDef {
+                slot: "snout".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: true,
+                tinted: false,
+                fallback_shape: FallbackShape::Rect { width: 30.0, height: 12.0 },
+                fallback_color: Some(DARK),
+            },
+            BodyPartDef {
+                slot: "tail".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: false,
+                tinted: true,
+                fallback_shape: FallbackShape::Rect { width: 16.0, height: 35.0 },
+                fallback_color: None,
             },
         ],
     }

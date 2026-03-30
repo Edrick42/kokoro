@@ -17,15 +17,16 @@ use serde::{Deserialize, Serialize};
 ///
 /// All creatures are Kobaras — species determines their physical form:
 /// - **Marumi** (丸み, "roundness") — soft, round mammal-like Kobaras
-/// - **Tsubasa** (翼, "wing") — bird-like Kobaras (future)
-/// - **Uroko** (鱗, "scale") — reptile-like Kobaras (future)
+/// - **Tsubasa** (翼, "wing") — bird-like Kobaras
+/// - **Uroko** (鱗, "scale") — reptile-like Kobaras
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum Species {
     /// Round, soft, mammal-like Kobara. The first and most common species.
     Marumi,
-    // Future species:
-    // Tsubasa, // bird-like
-    // Uroko,   // reptile-like
+    /// Bird-like Kobara with wings and a beak. Lighter, more expressive.
+    Tsubasa,
+    /// Reptile-like Kobara with scales and a tail. Sturdy, sharp features.
+    Uroko,
 }
 
 /// The creature's DNA. Each field is a value between 0.0 and 1.0.
@@ -62,18 +63,76 @@ pub struct Genome {
 }
 
 impl Genome {
-    /// Generates a random genome for a Marumi Kobara.
-    pub fn random() -> Self {
+    /// Generates a random genome for the given species.
+    pub fn random_for(species: Species) -> Self {
         let mut rng = rand::rng();
+
+        // Gene ranges vary by species
+        let (curiosity_range, appetite_range, resilience_range) = match &species {
+            Species::Marumi  => (0.2..=1.0, 0.1..=0.8, 0.2..=1.0),
+            Species::Tsubasa => (0.4..=1.0, 0.1..=0.5, 0.3..=0.9), // curious, light eaters
+            Species::Uroko   => (0.1..=0.7, 0.3..=1.0, 0.5..=1.0), // calm, hungry, tough
+        };
+
         Self {
-            species:                Species::Marumi,
-            curiosity:              rng.random_range(0.2..=1.0),
+            species,
+            curiosity:              rng.random_range(curiosity_range),
             loneliness_sensitivity: rng.random_range(0.1..=0.9),
-            appetite:               rng.random_range(0.1..=0.8),
+            appetite:               rng.random_range(appetite_range),
             circadian:              rng.random_range(0.0..=1.0),
-            resilience:             rng.random_range(0.2..=1.0),
+            resilience:             rng.random_range(resilience_range),
             learning_rate:          rng.random_range(0.1..=0.6),
             hue:                    rng.random_range(0.0..360.0),
+        }
+    }
+
+    /// Generates a random genome for a Marumi Kobara (default species).
+    pub fn random() -> Self {
+        Self::random_for(Species::Marumi)
+    }
+
+    /// Creates a child genome by crossing two parent genomes with mutation.
+    pub fn crossover(parent_a: &Genome, parent_b: &Genome, child_species: Species) -> Self {
+        use rand::Rng;
+        let mut rng = rand::rng();
+
+        fn pick(rng: &mut impl Rng, a: f32, b: f32) -> f32 {
+            if rng.random_bool(0.5) { a } else { b }
+        }
+
+        fn mutate(rng: &mut impl Rng, val: f32, min: f32, max: f32) -> f32 {
+            if rng.random_range(0.0f32..1.0) < 0.15 {
+                let shift = rng.random_range(-0.1f32..0.1);
+                (val + shift).clamp(min, max)
+            } else {
+                val
+            }
+        }
+
+        let c = pick(&mut rng, parent_a.curiosity, parent_b.curiosity);
+        let curiosity = mutate(&mut rng, c, 0.0, 1.0);
+        let l = pick(&mut rng, parent_a.loneliness_sensitivity, parent_b.loneliness_sensitivity);
+        let loneliness_sensitivity = mutate(&mut rng, l, 0.0, 1.0);
+        let a = pick(&mut rng, parent_a.appetite, parent_b.appetite);
+        let appetite = mutate(&mut rng, a, 0.0, 1.0);
+        let ci = pick(&mut rng, parent_a.circadian, parent_b.circadian);
+        let circadian = mutate(&mut rng, ci, 0.0, 1.0);
+        let r = pick(&mut rng, parent_a.resilience, parent_b.resilience);
+        let resilience = mutate(&mut rng, r, 0.0, 1.0);
+        let lr = pick(&mut rng, parent_a.learning_rate, parent_b.learning_rate);
+        let learning_rate = mutate(&mut rng, lr, 0.0, 1.0);
+        let h = pick(&mut rng, parent_a.hue, parent_b.hue);
+        let hue = mutate(&mut rng, h / 360.0, 0.0, 1.0) * 360.0;
+
+        Self {
+            species: child_species,
+            curiosity,
+            loneliness_sensitivity,
+            appetite,
+            circadian,
+            resilience,
+            learning_rate,
+            hue,
         }
     }
 

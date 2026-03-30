@@ -19,7 +19,7 @@ use std::collections::HashMap;
 
 use crate::genome::Genome;
 use crate::mind::Mind;
-use super::body_parts::*;
+use super::species::*;
 use super::rig::ResolvedAnchor;
 
 /// Preloaded sprite handles for all (slot, mood_key) combinations.

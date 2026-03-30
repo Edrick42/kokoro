@@ -1,24 +1,38 @@
+mod creature;
 mod genome;
 mod mind;
 mod persistence;
-mod systems;
+mod ui;
+mod visuals;
 mod world;
 
 use bevy::prelude::*;
 
+use creature::{
+    collection::MultiCreaturePlugin,
+    reproduction::ReproductionPlugin,
+    spawn::CreatureVisualsPlugin,
+};
+use mind::plugin::NeuralMindPlugin;
 use persistence::plugin::PersistencePlugin;
-use systems::{
+use ui::{
+    actions::ActionsPlugin,
+    creature_selector::CreatureSelectorPlugin,
+    hud::StatsPlugin,
+};
+use visuals::{
+    accessories::AccessoriesPlugin,
     animation::AnimationPlugin,
-    creature_spawn::CreatureVisualsPlugin,
     effects::EffectsPlugin,
     evolution::EvolutionPlugin,
     genome_visuals::apply_genome_visuals,
     mood_sync::sync_mood_sprites,
-    stats::StatsPlugin,
-    time_tick::TimeTickPlugin,
-    ui::actions::ActionsPlugin,
 };
-use world::{daycycle::DayCyclePlugin, setup_world};
+use world::{
+    daycycle::DayCyclePlugin,
+    setup_world,
+    time_tick::TimeTickPlugin,
+};
 
 fn main() {
     App::new()
@@ -38,11 +52,15 @@ fn main() {
         // Creature visuals — modular body part composition
         .add_plugins(CreatureVisualsPlugin)
         // World systems
-        .add_plugins(DayCyclePlugin)
-        // Gameplay plugins
-        .add_plugins((TimeTickPlugin, StatsPlugin, ActionsPlugin))
-        // Visual plugins — effects, animation, evolution
-        .add_plugins((EffectsPlugin, AnimationPlugin, EvolutionPlugin))
+        .add_plugins((DayCyclePlugin, TimeTickPlugin))
+        // Neural mind — learns owner interaction patterns
+        .add_plugins(NeuralMindPlugin)
+        // UI plugins
+        .add_plugins((StatsPlugin, ActionsPlugin, CreatureSelectorPlugin))
+        // Creature lifecycle — reproduction, collection
+        .add_plugins((ReproductionPlugin, MultiCreaturePlugin))
+        // Visual plugins — effects, animation, evolution, accessories
+        .add_plugins((EffectsPlugin, AnimationPlugin, EvolutionPlugin, AccessoriesPlugin))
         // Visual update systems
         .add_systems(Update, (sync_mood_sprites, apply_genome_visuals))
         .run();

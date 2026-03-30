@@ -1,7 +1,7 @@
 //! Player action buttons — Feed, Play, Sleep + species creation.
 //!
 //! Two rows of buttons:
-//! - **Top row**: New Marumi / New Tsubasa / New Uroko — create a new creature
+//! - **Top row**: New Moluun / New Pylum / New Skael — create a new creature
 //! - **Bottom row**: Feed / Play / Sleep — interact with the active creature
 //!
 //! Bevy's built-in `Interaction` component handles both mouse clicks and
@@ -56,9 +56,9 @@ fn setup_buttons(mut commands: Commands) {
             column_gap: Val::Px(6.0),
             ..default()
         }).with_children(|row| {
-            spawn_species_button(row, Species::Marumi,  "Marumi",   Color::srgb(0.55, 0.75, 0.90));
-            spawn_species_button(row, Species::Tsubasa, "Tsubasa",  Color::srgb(0.90, 0.78, 0.45));
-            spawn_species_button(row, Species::Uroko,   "Uroko",    Color::srgb(0.50, 0.75, 0.55));
+            spawn_species_button(row, Species::Moluun,  "Moluun",   Color::srgb(0.55, 0.75, 0.90));
+            spawn_species_button(row, Species::Pylum, "Pylum",  Color::srgb(0.90, 0.78, 0.45));
+            spawn_species_button(row, Species::Skael,   "Skael",    Color::srgb(0.50, 0.75, 0.55));
         });
 
         // Bottom row — actions

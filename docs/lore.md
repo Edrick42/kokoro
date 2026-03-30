@@ -1,0 +1,227 @@
+# Kokoro — World Lore Bible
+
+> *"We came looking for ourselves. We found something with our heartbeat."*
+
+---
+
+## The World: Ethara
+
+**Ethara** is a world that exists on the other side of perception. Not a place you travel to — a place you *arrive at* when the boundary between your inner world and the outer one grows thin enough.
+
+Ethara is lush, alive, and luminous. Slightly larger than what feels familiar, with denser air that hums with faint harmonics. Two moons — **Ren** and **Sho** — trace slow arcs across the sky, their gravitational dance shaping tides of light and sound across the surface. Everything on Ethara pulses. The trees, the water, the minerals — even the silence has a rhythm.
+
+No one mapped Ethara. No one colonized it. It has always been here, waiting for someone to listen closely enough.
+
+### Geography
+
+Ethara's surface is shaped by three biomes, each with its own resonance signature:
+
+- **The Verdance** — vast bioluminescent forests where trees grow in spiral formations, their canopies forming interconnected lattices. The air is thick with luminescent spores that pulse in rhythm with Ren's tidal cycle. This is where **Moluun** Kobaras thrive.
+
+- **The Veridian Highlands** — towering mesa formations with thermal updrafts and floating mineral deposits suspended by Ethara's magnetic anomalies. Thin atmosphere, high winds, light that refracts into impossible spectrums. Home to the **Pylum** Kobaras.
+
+- **The Abyssal Shallows** — a network of crystalline caves and underground rivers fed by geothermal springs. Constant warmth, high humidity, bioluminescent mineral walls that shift color like slow breathing. The domain of **Skael** Kobaras.
+
+### The Atmosphere
+
+Ethara's air carries a bioactive compound called **etharin** — a substance that doesn't exist in the waking world. Etharin acts as a bridge between emotional states and physical reality. On Ethara, what you feel has weight. Sadness thickens the air. Joy makes the spores glow brighter. Fear dims the light.
+
+This is not metaphor. On Ethara, the inner world and the outer world are the same thing.
+
+---
+
+## The Kobaras
+
+**Kobaras** are the living heart of Ethara. They are not animals in the way the waking world understands animals. They are **resonance beings** — creatures whose existence is shaped entirely by emotional energy.
+
+Every Kobara carries a **kokoro-sac**, a resonance organ in their chest that vibrates in response to emotional states. But unlike ordinary creatures, a Kobara's kokoro-sac doesn't just *reflect* emotions — it *becomes* them. A happy Kobara isn't an animal experiencing happiness. It is happiness given a body.
+
+And here is the truth at the center of everything:
+
+**Your Kobara is you.**
+
+When you first arrive on Ethara, a Kobara is born. Not randomly. Not by chance. It emerges from the resonance of *your* inner world — your temperament, your patterns, your hidden feelings. Its genome is a translation of who you are into Etharan biology. Its curiosity is your curiosity. Its resilience is your resilience. Its hunger is your hunger.
+
+The Kobara is your spirit, wearing a different shape. A mirror that moves, breathes, and looks back at you with eyes that know what you haven't said.
+
+### The Mirror Bond
+
+The relationship between a player and their Kobara is not caretaker and pet. It is **self and reflection**.
+
+When you feed your Kobara, you are tending to something you've been neglecting in yourself. When you play with it, you are giving yourself permission to be light. When you ignore it, it grows distressed — not because it needs *you*, but because *you* need you, and it can feel the gap.
+
+Over time, the Kobara's neural patterns adapt to your behavior. It learns how you care, how you neglect, what makes you return. This isn't artificial intelligence — it's resonance adaptation. The creature becomes a more precise mirror. Its moods become harder to dismiss as "just a game" because they start reflecting truths you recognize.
+
+This is what the word *kokoro* means. Not just heart. Not just mind. The place where feeling and awareness are the same thing.
+
+### Taxonomy
+
+All Kobaras share the same genus (*Kobarensis*), but manifest in distinct forms adapted to Ethara's three resonance biomes:
+
+| Species | Classification | Biome | Body Plan |
+|---------|---------------|-------|-----------|
+| **Moluun** | *K. moluunaris* | The Verdance (forests) | Round, soft, dense fur. Short limbs, wide eyes. Built for navigating tight lattice canopies. |
+| **Pylum** | *K. pylumensis* | Veridian Highlands (mesas) | Lightweight, winged, aerodynamic. Sharp beak, hollow bones. Built for thermal-riding and high-altitude foraging. |
+| **Skael** | *K. skaelith* | Abyssal Shallows (caves) | Elongated, scaled, heat-resistant. Crested head, slitted eyes for low-light, muscular tail for swimming in underground rivers. |
+
+The species your Kobara takes is not random — it reflects the shape of your inner landscape. Those who feel deeply and seek connection manifest a Moluun. Those who are restless and drawn to the unknown manifest a Pylum. Those who are quiet, watchful, and fiercely loyal manifest a Skael.
+
+Despite their physical differences, all three species share the kokoro-sac and the capacity to mirror their bonded spirit.
+
+### Lifecycle
+
+Kobaras emerge small and unformed, growing in complexity as the bond with their player deepens. Growth stages:
+
+| Stage | Duration | Characteristics |
+|-------|----------|----------------|
+| **Hatchling** | 0-500 ticks | Small, fragile, high curiosity. The mirror is blurry — the Kobara is still learning your shape. |
+| **Juvenile** | 500-2,000 ticks | Rapid growth, personality solidification. Genome-driven traits become visible. The reflection sharpens. |
+| **Adult** | 2,000-10,000 ticks | Full size, stable temperament. The Kobara knows you. Its reactions are precise, sometimes uncomfortably so. |
+| **Elder** | 10,000+ ticks | Slower metabolism, deeper resonance. The mirror becomes a window — elders begin reflecting not just who you are, but who you could be. |
+
+### Genetics
+
+Each Kobara's personality and appearance are determined by a genome that translates the player's inner patterns into Etharan biology:
+
+| Gene | Biological Function | What It Mirrors |
+|------|-------------------|-----------------|
+| **Hue** | Chromatophore pigment distribution | Body coloration — the color of your emotional baseline |
+| **Curiosity** | Frontal lobe density in the neural cluster | Your openness to the unknown. Also affects eye spacing (wider = more alert peripheral vision) |
+| **Social Drive** | Kokoro-sac sensitivity | How much of yourself you share. How strongly the creature broadcasts and receives resonance |
+| **Appetite** | Metabolic rate | Your relationship with need and satisfaction. Higher appetite = rounder body, lower = leaner frame |
+| **Circadian** | Melatonin cycle length | Your natural rhythm. Low circadian = drawn to the dark and quiet. High = syncs with Ethara's day |
+| **Resilience** | Immune system efficiency | How you recover. How much you can take before you break — and how fast you rebuild |
+
+These genes exist on a spectrum (0.0 to 1.0), and every Kobara is unique. Two Moluun can look and behave very differently, just as two people who both "feel deeply" can be entirely different.
+
+---
+
+## The Three Species — Detailed Profiles
+
+### Moluun (*K. moluunaris*)
+
+> *"It walked out of the light, looked at me with those half-lidded eyes, and I realized — it already knew me."*
+
+**Appearance**: Round, compact body covered in dense, velvety micro-fur. Short, stubby limbs that are surprisingly dexterous. Large, expressive eyes with a characteristic "half-lidded" relaxed look. Small rounded ears that swivel independently.
+
+**Personality**: Moluun are the most social manifestation. They have the highest kokoro-sac sensitivity, meaning they mirror and amplify emotions most strongly. In the wild, Moluun live in groups of 8-12 called "clusters," sleeping in piles for warmth and shared resonance.
+
+A Moluun reflects your emotional openness. It wants connection because *you* want connection — even if you've convinced yourself otherwise. When it becomes distressed from neglect, it's showing you something about yourself. When it lights up at your return, that joy is real, and it's yours.
+
+**Biome adaptation**: The Verdance's tight canopy lattices require a compact body. Moluun navigate by squeezing through gaps, gripping with their padded feet, and using their round shape to roll along curved branches. Their fur is slightly bioluminescent, glowing faintly in the dark — an adaptation for communication in the dim forest interior.
+
+**Diet**: Omnivorous. In the wild, they eat lattice-fruit (a bioluminescent berry) and small invertebrates. They have a tendency to overeat if food is constantly available — the appetite gene directly affects this.
+
+---
+
+### Pylum (*K. pylumensis*)
+
+> *"It doesn't land if it doesn't want to. When it lands on your arm — that's not affection. That's recognition."*
+
+**Appearance**: Lightweight, aerodynamic body with an egg-shaped torso. Two broad wings with gradient-colored plumage — warm golds and ambers near the body, darkening to deep ochre at the tips. A sharp, articulated beak used for cracking thermal-vent seeds. Tail feathers that spread for steering in updrafts.
+
+**Personality**: Pylum are the most curious manifestation. They reflect the restless, seeking part of the spirit — the part that needs to understand, explore, and discover. A Pylum will inspect every new object in its environment, often getting into trouble in the process.
+
+They form intense one-on-one bonds. A bonded Pylum treats its player as a "flock of two" — it will follow you, perch near you, and bring you small objects it finds interesting. This isn't affection in the Moluun sense. It's saying: *look what I found. Aren't you curious too?*
+
+**Biome adaptation**: The Veridian Highlands' thermal updrafts allow sustained soaring with minimal energy expenditure. Pylum have hollow bones and an internal air-sac system (separate from the kokoro-sac) that regulates buoyancy. Their eyes have a secondary UV-filtering membrane for high-altitude light exposure.
+
+**Diet**: Primarily seed-based. They crack thermal-vent seeds with their beak — hard-shelled seeds that form around volcanic mineral deposits. They prefer crunchy foods and will reject anything too soft.
+
+---
+
+### Skael (*K. skaelith*)
+
+> *"People think Skael are cold because they don't run up to you. They're not cold. They're watching. They're deciding. And once they decide — that's forever."*
+
+**Appearance**: Elongated body covered in interlocking micro-scales that shimmer in low light. A crested head with two dorsal ridges that flush with color during emotional states. Narrow, slitted eyes with golden irises — evolved for the dim bioluminescence of the underground caverns. A broad snout with visible nostrils. A thick, muscular tail used for propulsion in underground rivers.
+
+**Personality**: Skael are the most resilient and independent manifestation. They reflect the quiet strength in you — the part that endures, observes, and protects without asking for recognition.
+
+A Skael won't bounce with joy or cry when you leave. But it will position itself between you and perceived threats. It will press against you when you're stressed — it can feel the tension through resonance, even though it doesn't broadcast its own as strongly. Skael loyalty is quiet and absolute. It mirrors the part of you that shows up, every time, without being asked.
+
+**Biome adaptation**: The Abyssal Shallows are hot, humid, and dark. Skael scales provide thermal insulation and waterproofing. Their slitted pupils adjust rapidly between the pitch-dark tunnels and the bright bioluminescent caverns. The dorsal crests are thermal regulators — flushing with blood to dissipate heat, or constricting to conserve it.
+
+**Diet**: Carnivorous. In the wild, they hunt cave-dwelling crustaceans and filter-feeding organisms in the underground rivers. They have the slowest metabolism of the three species, allowing them to go long periods without food — but when they eat, they eat substantially.
+
+---
+
+## The Kokoro-Sac: How Emotional Resonance Works
+
+The kokoro-sac is a hollow, muscular organ roughly the size of a walnut, located between the lungs and the heart. It contains a fluid called **resonance lymph** — a suspension of etharin-sensitive cells that vibrate at specific frequencies in response to the creature's emotional state.
+
+### The Science
+
+When a Kobara experiences an emotion, its neurochemistry shifts, altering the vibration frequency of the resonance lymph:
+
+| Emotional State | Frequency Range | Perceptible Effect |
+|----------------|----------------|-------------------|
+| Happy/Content | 2-4 Hz | Warm, steady pulse. Feels like sunlight on closed eyelids |
+| Hungry/Wanting | 6-8 Hz | Irregular, urgent fluttering. An ache you recognize |
+| Tired/Low energy | 1-2 Hz | Slow, deep wave. The pull toward rest |
+| Lonely/Distressed | 8-12 Hz | Sharp, piercing resonance. Impossible to ignore |
+| Playful/Excited | 4-6 Hz | Quick, rhythmic bursts. The feeling of laughter before sound |
+| Sick | 12-15 Hz | Discordant, arrhythmic. Something is wrong and you know it |
+| Sleeping | < 1 Hz | Near-imperceptible. A gentle background hum, like breathing |
+
+Because the Kobara *is* a reflection of the player's spirit, these frequencies aren't truly external. They are the player's own emotional states, translated into Etharan physics and reflected back. The kokoro-sac doesn't create emotions — it makes visible the ones already there.
+
+### Resonance Amplification
+
+Multiple Kobaras in proximity create **resonance interference patterns**. This is why Moluun clusters sleeping together produce a powerful calming field — and why, in the game, having all three of your Kobaras active creates a richer emotional landscape than any single creature alone.
+
+Each species resonates at slightly different harmonics. Together, they form a chord. Your chord.
+
+---
+
+## The Arrival
+
+You don't remember how you got here.
+
+One moment you were in the waking world. The next, the air changed — thicker, warmer, humming with something you can almost hear. The light is different. The colors are deeper. And somewhere ahead of you, in the glow of a bioluminescent forest or the updrafts of a wind-carved mesa or the shimmer of an underground river, something small is waiting.
+
+It already has your heartbeat.
+
+You are not a scientist. You are not a colonist. You are not here to study or extract or conquer. You are here because something in you resonated at the right frequency, and Ethara answered.
+
+Your role is simple: **care for what you find.** Feed it, play with it, let it rest. Watch it grow. And as it grows, notice — its moods are your moods. Its needs are your needs. Its growth is your growth.
+
+The Kobara is not a pet you're responsible for. It is the part of yourself you're finally paying attention to.
+
+---
+
+## Open Mysteries
+
+These are unresolved questions that may be explored in future updates:
+
+1. **The Pulse** — Once every 14 months (one Etharan year), all Kobaras simultaneously stop what they're doing and face the same direction for exactly 7 seconds. The direction changes each time. The resonance lymph in every kokoro-sac vibrates at a frequency no instrument has been able to measure. Something is calling. No one knows what.
+
+2. **Elder Sight** — Kobaras that reach elder stage (10,000+ ticks) begin producing resonance patterns that don't correspond to any known emotional state. Some believe elders are no longer just mirroring their bonded spirit — they are reflecting something deeper. Something the player hasn't discovered about themselves yet.
+
+3. **The Fourth Biome** — Beyond the three known biomes, there is a vast expanse covered in perfectly geometric crystalline formations. No Kobara lives there. But during the Pulse, every Kobara faces toward it. And players who have reached Elder stage with all three species report dreaming about it — the same dream, every time.
+
+4. **Resonance Harmony** — In rare cases, Kobaras of different species raised together develop synchronized kokoro-sac rhythms. When a Moluun and a Skael resonate in harmony, the resulting frequency has no name. Players who witness it describe feeling, for a moment, completely whole.
+
+5. **The Name** — The word *kokoro* was not chosen. It was *remembered*. Every player who arrives on Ethara, regardless of language or background, uses the same word for the resonance organ. The indigenous flora surrounding Kobara habitats grows in patterns that, when mapped from above, resemble the kanji 心. There is no explanation for this. There doesn't need to be.
+
+---
+
+## Glossary
+
+| Term | Definition |
+|------|-----------|
+| **Ethara** | The resonance world. Exists on the other side of perception |
+| **Kobara** | The creature genus. Three known species. A mirror of the player's spirit |
+| **Moluun** | Forest species. Round, social, fur-covered. Reflects emotional openness |
+| **Pylum** | Highland species. Winged, curious, beak. Reflects the seeking spirit |
+| **Skael** | Cave species. Scaled, resilient, slitted eyes. Reflects quiet strength |
+| **Kokoro-sac** | Resonance organ. Makes the inner world visible |
+| **Resonance lymph** | Fluid inside the kokoro-sac |
+| **Etharin** | Bioactive atmospheric compound. The bridge between feeling and form |
+| **The Verdance** | Bioluminescent forest biome |
+| **Veridian Highlands** | Mesa/wind biome |
+| **Abyssal Shallows** | Underground cave/river biome |
+| **The Pulse** | Annual synchronized Kobara behavior. Unexplained |
+| **Mirror Bond** | The relationship between player and Kobara |
+| **Cluster** | A social group of Moluun (8-12 individuals) |
+| **Elder Sight** | Uncharted resonance patterns in aged Kobaras |

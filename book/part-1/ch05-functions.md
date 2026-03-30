@@ -83,15 +83,15 @@ The `|c|` is a closure parameter. It receives each creature and returns `true` w
 Closures can capture variables from their environment:
 
 ```rust
-let species = Species::Marumi;
+let species = Species::Moluun;
 
 // This closure captures `species` by reference
-let is_marumi = |creature: &StoredCreature| {
+let is_moluun = |creature: &StoredCreature| {
     creature.genome.species == species   // Uses `species` from outer scope
 };
 
 let count = collection.creatures.iter()
-    .filter(|c| is_marumi(c))
+    .filter(|c| is_moluun(c))
     .count();
 ```
 
@@ -103,7 +103,7 @@ Rust closures capture by the least expensive method needed:
 You can force move semantics with the `move` keyword:
 
 ```rust
-let name = String::from("Marumi");
+let name = String::from("Moluun");
 let greeting = move || {
     println!("Hello, {name}!");  // `name` is moved INTO the closure
 };
@@ -139,7 +139,7 @@ No intermediate allocations. No temporary vectors. The compiler fuses these into
 |---|---|---|
 | `.map(f)` | Transform each element | `.map(|c| c.name.clone())` |
 | `.filter(f)` | Keep elements where `f` returns true | `.filter(|c| c.health > 0.0)` |
-| `.find(f)` | First element matching `f` | `.find(|c| c.species == Marumi)` |
+| `.find(f)` | First element matching `f` | `.find(|c| c.species == Moluun)` |
 | `.position(f)` | Index of first element matching `f` | `.position(|c| c.age > 100)` |
 | `.enumerate()` | Adds index to each element | `.enumerate().map(|(i, c)| ...)` |
 | `.count()` | Number of elements | `.filter(...).count()` |

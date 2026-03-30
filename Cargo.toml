@@ -3,6 +3,7 @@ name = "kokoro"
 version = "0.1.0"
 edition = "2024"
 description = "A virtual creature game where every Kobara is truly unique"
+default-run = "kokoro"
 authors = ["Edrick Alves Manoel"]
 
 [dependencies]
@@ -14,6 +15,9 @@ rand    = "0.9"
 rusqlite = { version = "0.31", features = ["bundled"] }
 # Local time offset for day/night cycle (Unix only, safe no-op on other platforms)
 libc     = "0.2"
+
+# Sprite generation (only used by bin targets, not the game itself)
+image = { version = "0.25", default-features = false, features = ["png"] }
 
 # Small optimization in dev builds for your own code
 [profile.dev]

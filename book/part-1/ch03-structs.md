@@ -24,7 +24,7 @@ This is directly from Kokoro's `src/genome/mod.rs`. Each field has a name and a 
 
 ```rust
 let genome = Genome {
-    species: Species::Marumi,
+    species: Species::Moluun,
     hue: 200.0,
     curiosity: 0.65,
     loneliness_sensitivity: 0.50,
@@ -61,7 +61,7 @@ impl Genome {
     pub fn random_for(species: Species) -> Self {
         let mut rng = rand::rng();
         match species {
-            Species::Marumi => Genome {
+            Species::Moluun => Genome {
                 species,
                 hue: rng.random_range(180.0..260.0),
                 curiosity: rng.random_range(0.3..0.7),
@@ -203,9 +203,9 @@ First, define the species:
 ```rust
 #[derive(Debug, Clone, PartialEq)]
 pub enum Species {
-    Marumi,
-    Tsubasa,
-    Uroko,
+    Moluun,
+    Pylum,
+    Skael,
 }
 ```
 
@@ -243,7 +243,7 @@ let active: bool = true;        // 1 byte on the stack
 
 **Heap**: Flexible, dynamically-sized. `String`, `Vec`, `Box`.
 ```rust
-let name = String::from("Marumi");  // Pointer on stack → data on heap
+let name = String::from("Moluun");  // Pointer on stack → data on heap
 ```
 
 A `String` is actually three values on the stack: a pointer to heap memory, a length, and a capacity. When the `String` is dropped, the heap memory is freed.

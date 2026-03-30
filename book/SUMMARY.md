@@ -184,7 +184,7 @@
   - Normalized coordinates → pixel offsets
   - Gene-driven offsets (curiosity → eye spacing)
   - Species-specific rigs
-  - *Build It: `BodyRig`, `marumi_rig()`, `tsubasa_rig()`, `uroko_rig()`*
+  - *Build It: `BodyRig`, `moluun_rig()`, `pylum_rig()`, `skael_rig()`*
 
 - [Chapter 25: Modular Sprite Composition](part-4/ch25-sprites.md)
   - Entity hierarchy for body parts
@@ -193,13 +193,13 @@
   - Genome-driven visual modifiers: tint, scale, spacing
   - *Build It: `CreatureVisualsPlugin` and the spawn system*
 
-- [Chapter 25b: The Sprite Pipeline](part-4/ch25b-sprite-pipeline.md)
-  - Why generate art with code
+- [Chapter 25b: The Sprite Pipeline — Generating Art with Rust](part-4/ch25b-sprite-pipeline.md)
+  - Why generate art with code (and why in Rust, not Python)
   - The contract: what the game engine expects (names, sizes, transparency)
-  - The toolkit: Pillow, pixel sets, flood outline, gradient shading
-  - Marumi: body shading, parameterized eyes, 8 mouth variants
-  - Tsubasa: wings with directional gradient, triangle beak, tail feathers
-  - Uroko: scale texture, slit pupils, horn crests, fanged snout
+  - The toolkit: `image` crate, HashSet shapes, flood outline, gradient shading
+  - Moluun: body shading, parameterized eyes with Default trait, 8 mouth variants
+  - Pylum: wings with directional gradient, triangle beak, tail feathers
+  - Skael: scale texture with step_by, slit pupils, horn crests, fanged snout
   - Creating a new species: the complete step-by-step
   - Design principles for pixel art sprites
 

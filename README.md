@@ -177,7 +177,7 @@ cargo run
 ### Generate sprites
 
 ```bash
-python3 scripts/generate_sprites.py
+python3 scripts/generate_marumi_sprites.py
 ```
 
 Sprites are output to `assets/sprites/marumi/`. The game falls back to procedural meshes if sprites are missing.

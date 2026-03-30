@@ -29,7 +29,7 @@ We'll build our game using **Bevy**, a modern Rust game engine built on the Enti
 
 Here's what the finished project includes:
 
-- **Three species** — Marumi (round, friendly), Tsubasa (winged, curious), Uroko (scaled, resilient)
+- **Three species** — Moluun (round, friendly), Pylum (winged, curious), Skael (scaled, resilient)
 - **Genetic system** — Each creature has a unique genome that affects behavior, appearance, and stats
 - **Emotional AI** — A finite state machine combined with a neural network that learns your play patterns
 - **Modular visuals** — Creatures assembled from body parts, with mood-reactive sprites and genome-driven variation

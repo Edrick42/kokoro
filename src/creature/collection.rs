@@ -1,6 +1,6 @@
 //! Multi-creature system — manages a collection of Kobaras.
 //!
-//! All three species (Marumi, Tsubasa, Uroko) are created at startup.
+//! All three species (Moluun, Pylum, Skael) are created at startup.
 //! Only ONE creature is active (visible + interactable) at a time.
 //! The species buttons switch to the existing creature of that species.
 //!
@@ -35,7 +35,7 @@ pub struct StoredCreature {
     pub mind: Mind,
 }
 
-/// Holds all creatures the player has. Index 0 = Marumi, 1 = Tsubasa, 2 = Uroko.
+/// Holds all creatures the player has. Index 0 = Moluun, 1 = Pylum, 2 = Skael.
 #[derive(Resource, Default)]
 pub struct CreatureCollection {
     pub creatures: Vec<StoredCreature>,
@@ -52,31 +52,31 @@ pub struct SelectSpeciesEvent {
 }
 
 /// On startup, create one creature of each species.
-/// The primary creature (from persistence) becomes Marumi.
-/// Tsubasa and Uroko get fresh random genomes.
+/// The primary creature (from persistence) becomes Moluun.
+/// Pylum and Skael get fresh random genomes.
 fn init_collection(
     genome: Res<Genome>,
     mind: Res<Mind>,
     mut collection: ResMut<CreatureCollection>,
 ) {
-    // Marumi — use the persisted genome/mind
+    // Moluun — use the persisted genome/mind
     collection.creatures.push(StoredCreature {
-        name: "Marumi".to_string(),
+        name: "Moluun".to_string(),
         genome: genome.clone(),
         mind: mind.clone(),
     });
 
-    // Tsubasa — fresh random
+    // Pylum — fresh random
     collection.creatures.push(StoredCreature {
-        name: "Tsubasa".to_string(),
-        genome: Genome::random_for(Species::Tsubasa),
+        name: "Pylum".to_string(),
+        genome: Genome::random_for(Species::Pylum),
         mind: Mind::new(),
     });
 
-    // Uroko — fresh random
+    // Skael — fresh random
     collection.creatures.push(StoredCreature {
-        name: "Uroko".to_string(),
-        genome: Genome::random_for(Species::Uroko),
+        name: "Skael".to_string(),
+        genome: Genome::random_for(Species::Skael),
         mind: Mind::new(),
     });
 

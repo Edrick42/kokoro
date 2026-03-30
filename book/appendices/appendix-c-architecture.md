@@ -8,9 +8,9 @@ kokoro/
 ├── book/                         # This ebook
 ├── assets/
 │   └── sprites/
-│       ├── kobara/               # Marumi species sprites
-│       ├── tsubasa/              # Tsubasa species sprites
-│       └── uroko/                # Uroko species sprites
+│       ├── kobara/               # Moluun species sprites
+│       ├── pylum/              # Pylum species sprites
+│       └── skael/                # Skael species sprites
 ├── scripts/                      # Sprite generation scripts (Python)
 └── src/
     ├── main.rs                   # App entry point, plugin registration
@@ -93,9 +93,9 @@ App::new()
 
 | Species | Personality | Visual Style | Unique Parts |
 |---------|------------|-------------|-------------|
-| **Marumi** | Friendly, social | Round, soft, cool colors | Ears, simple eyes, small mouth |
-| **Tsubasa** | Curious, adventurous | Winged, warm colors | Wings, beak, tail feathers |
-| **Uroko** | Resilient, calm | Scaled, elongated, green | Crests/horns, slitted eyes, snout, thick tail |
+| **Moluun** | Friendly, social | Round, soft, cool colors | Ears, simple eyes, small mouth |
+| **Pylum** | Curious, adventurous | Winged, warm colors | Wings, beak, tail feathers |
+| **Skael** | Resilient, calm | Scaled, elongated, green | Crests/horns, slitted eyes, snout, thick tail |
 
 ## Neural Network Architecture
 

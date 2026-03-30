@@ -16,17 +16,17 @@ use serde::{Deserialize, Serialize};
 /// and gene ranges.
 ///
 /// All creatures are Kobaras — species determines their physical form:
-/// - **Marumi** (丸み, "roundness") — soft, round mammal-like Kobaras
-/// - **Tsubasa** (翼, "wing") — bird-like Kobaras
-/// - **Uroko** (鱗, "scale") — reptile-like Kobaras
+/// - **Moluun** — soft, round, forest-dwelling Kobaras from the Verdance
+/// - **Pylum** — winged, curious Kobaras from the Veridian Highlands
+/// - **Skael** — scaled, resilient Kobaras from the Abyssal Shallows
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum Species {
-    /// Round, soft, mammal-like Kobara. The first and most common species.
-    Marumi,
-    /// Bird-like Kobara with wings and a beak. Lighter, more expressive.
-    Tsubasa,
-    /// Reptile-like Kobara with scales and a tail. Sturdy, sharp features.
-    Uroko,
+    /// Round, soft, mammal-like Kobara from the Verdance forests.
+    Moluun,
+    /// Bird-like Kobara with wings and a beak from the Veridian Highlands.
+    Pylum,
+    /// Reptile-like Kobara with scales from the Abyssal Shallows.
+    Skael,
 }
 
 /// The creature's DNA. Each field is a value between 0.0 and 1.0.
@@ -69,9 +69,9 @@ impl Genome {
 
         // Gene ranges vary by species
         let (curiosity_range, appetite_range, resilience_range) = match &species {
-            Species::Marumi  => (0.2..=1.0, 0.1..=0.8, 0.2..=1.0),
-            Species::Tsubasa => (0.4..=1.0, 0.1..=0.5, 0.3..=0.9), // curious, light eaters
-            Species::Uroko   => (0.1..=0.7, 0.3..=1.0, 0.5..=1.0), // calm, hungry, tough
+            Species::Moluun => (0.2..=1.0, 0.1..=0.8, 0.2..=1.0),
+            Species::Pylum  => (0.4..=1.0, 0.1..=0.5, 0.3..=0.9), // curious, light eaters
+            Species::Skael  => (0.1..=0.7, 0.3..=1.0, 0.5..=1.0), // calm, hungry, tough
         };
 
         Self {
@@ -86,9 +86,9 @@ impl Genome {
         }
     }
 
-    /// Generates a random genome for a Marumi Kobara (default species).
+    /// Generates a random genome for a Moluun Kobara (default species).
     pub fn random() -> Self {
-        Self::random_for(Species::Marumi)
+        Self::random_for(Species::Moluun)
     }
 
     /// Creates a child genome by crossing two parent genomes with mutation.

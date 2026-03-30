@@ -30,7 +30,7 @@ The `&` creates a reference. The function **borrows** the data temporarily. When
 **You can have as many immutable references as you want simultaneously:**
 
 ```rust
-let genome = Genome::random_for(Species::Marumi);
+let genome = Genome::random_for(Species::Moluun);
 let r1 = &genome;
 let r2 = &genome;
 let r3 = &genome;

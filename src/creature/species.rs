@@ -102,9 +102,9 @@ impl SpeciesRegistry {
     /// Creates the registry with all known species templates.
     pub fn new() -> Self {
         let mut templates = HashMap::new();
-        templates.insert(Species::Marumi, marumi_template());
-        templates.insert(Species::Tsubasa, tsubasa_template());
-        templates.insert(Species::Uroko, uroko_template());
+        templates.insert(Species::Moluun, moluun_template());
+        templates.insert(Species::Pylum, pylum_template());
+        templates.insert(Species::Skael, skael_template());
         Self { templates }
     }
 
@@ -125,14 +125,14 @@ const DARK: Color = Color::srgb(0.1, 0.1, 0.1);
 
 /// Visual template for the Kobara species.
 ///
-/// Positioning comes from `marumi_rig()` in `rig.rs`.
+/// Positioning comes from `moluun_rig()` in `rig.rs`.
 /// This function only defines visual properties (fallback shapes, tint, etc).
-pub fn marumi_template() -> SpeciesTemplate {
-    use super::rig::marumi_rig;
+pub fn moluun_template() -> SpeciesTemplate {
+    use super::rig::moluun_rig;
 
     SpeciesTemplate {
-        species_dir: "marumi".into(),
-        rig: marumi_rig(),
+        species_dir: "moluun".into(),
+        rig: moluun_rig(),
         parts: vec![
             BodyPartDef {
                 slot: "body".into(),
@@ -186,16 +186,16 @@ pub fn marumi_template() -> SpeciesTemplate {
     }
 }
 
-/// Visual template for the Tsubasa (bird) species.
+/// Visual template for the Pylum (bird) species.
 ///
 /// Parts: body, wing_left, wing_right, eye_left, eye_right, beak, tail.
-/// Positioning comes from `tsubasa_rig()` in `rig.rs`.
-pub fn tsubasa_template() -> SpeciesTemplate {
-    use super::rig::tsubasa_rig;
+/// Positioning comes from `pylum_rig()` in `rig.rs`.
+pub fn pylum_template() -> SpeciesTemplate {
+    use super::rig::pylum_rig;
 
     SpeciesTemplate {
-        species_dir: "tsubasa".into(),
-        rig: tsubasa_rig(),
+        species_dir: "pylum".into(),
+        rig: pylum_rig(),
         parts: vec![
             BodyPartDef {
                 slot: "body".into(),
@@ -257,16 +257,16 @@ pub fn tsubasa_template() -> SpeciesTemplate {
     }
 }
 
-/// Visual template for the Uroko (reptile) species.
+/// Visual template for the Skael (reptile) species.
 ///
 /// Parts: body, crest_left, crest_right, eye_left, eye_right, snout, tail.
-/// Positioning comes from `uroko_rig()` in `rig.rs`.
-pub fn uroko_template() -> SpeciesTemplate {
-    use super::rig::uroko_rig;
+/// Positioning comes from `skael_rig()` in `rig.rs`.
+pub fn skael_template() -> SpeciesTemplate {
+    use super::rig::skael_rig;
 
     SpeciesTemplate {
-        species_dir: "uroko".into(),
-        rig: uroko_rig(),
+        species_dir: "skael".into(),
+        rig: skael_rig(),
         parts: vec![
             BodyPartDef {
                 slot: "body".into(),

@@ -22,11 +22,11 @@
 //! ## Species vs genome
 //!
 //! - **Species** defines the base rig: anchor positions, which genes affect
-//!   which anchors, and how much variation is allowed. A Marumi (round, cute)
+//!   which anchors, and how much variation is allowed. A Moluun (round, cute)
 //!   has very different base positions than a Drakel (sharp, predatory).
 //!
 //! - **Genome** applies per-individual variation within the species' allowed
-//!   ranges. Two Marumis will look similar but not identical.
+//!   ranges. Two Moluuns will look similar but not identical.
 //!
 //! Think of it like facial landmark polygons — same topology, different
 //! proportions per individual.
@@ -218,7 +218,7 @@ impl BodyRig {
 // Species rig definitions
 // ---------------------------------------------------------------------------
 
-/// Creates the body rig for the Marumi species.
+/// Creates the body rig for the Moluun species.
 ///
 /// Proportions are tuned to match the original idle_00.png reference:
 /// round, chunky body with eyes slightly above center, small ears on top,
@@ -234,7 +234,7 @@ impl BodyRig {
 ///         ╲              ╱
 ///           ╲__________╱
 /// ```
-pub fn marumi_rig() -> BodyRig {
+pub fn moluun_rig() -> BodyRig {
     BodyRig {
         // Bounding box matches rendered sprite scale.
         // Body sprite is 52px * 8x scale = 416px. Height accounts for
@@ -330,12 +330,12 @@ pub fn marumi_rig() -> BodyRig {
 }
 
 // ---------------------------------------------------------------------------
-// Tsubasa rig (bird-like Kobara)
+// Pylum rig (bird-like Kobara)
 // ---------------------------------------------------------------------------
 
-/// Creates the body rig for the Tsubasa species.
+/// Creates the body rig for the Pylum species.
 ///
-/// Tsubasa are bird-like Kobaras: lighter body, wider stance, wings instead
+/// Pylum are bird-like Kobaras: lighter body, wider stance, wings instead
 /// of ears, beak instead of mouth, and eyes on the sides for panoramic vision.
 ///
 /// ```text
@@ -348,9 +348,9 @@ pub fn marumi_rig() -> BodyRig {
 ///             ╲   tail   ╱
 ///              ╲________╱
 /// ```
-pub fn tsubasa_rig() -> BodyRig {
+pub fn pylum_rig() -> BodyRig {
     BodyRig {
-        // Tsubasa are slightly taller and narrower than Marumi
+        // Pylum are slightly taller and narrower than Moluun
         base_size: Vec2::new(380.0, 420.0),
 
         anchors: vec![
@@ -450,12 +450,12 @@ pub fn tsubasa_rig() -> BodyRig {
 }
 
 // ---------------------------------------------------------------------------
-// Uroko rig (reptile-like Kobara)
+// Skael rig (reptile-like Kobara)
 // ---------------------------------------------------------------------------
 
-/// Creates the body rig for the Uroko species.
+/// Creates the body rig for the Skael species.
 ///
-/// Uroko are reptile-like Kobaras: elongated body, forward-facing predator
+/// Skael are reptile-like Kobaras: elongated body, forward-facing predator
 /// eyes (close together), pronounced snout, horn-like crests, and a thick tail.
 ///
 /// ```text
@@ -470,9 +470,9 @@ pub fn tsubasa_rig() -> BodyRig {
 ///        ╲________╱
 ///           tail
 /// ```
-pub fn uroko_rig() -> BodyRig {
+pub fn skael_rig() -> BodyRig {
     BodyRig {
-        // Uroko are taller and narrower — elongated reptilian body
+        // Skael are taller and narrower — elongated reptilian body
         base_size: Vec2::new(340.0, 460.0),
 
         anchors: vec![

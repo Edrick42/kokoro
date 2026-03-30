@@ -97,8 +97,8 @@ let initial: char = 'K';   // Unicode character — 4 bytes
 Strings in Rust have two main types, and understanding the difference is your first encounter with ownership thinking:
 
 ```rust
-let name: String = String::from("Marumi #1");   // Owned, heap-allocated, growable
-let label: &str = "Marumi";                      // Borrowed reference to string data
+let name: String = String::from("Moluun #1");   // Owned, heap-allocated, growable
+let label: &str = "Moluun";                      // Borrowed reference to string data
 ```
 
 - `String` — **owns** its data. Allocated on the heap. Can be modified. Freed when it goes out of scope.
@@ -135,7 +135,7 @@ Let's see this in action:
 
 ```rust
 fn main() {
-    let creature_name = String::from("Marumi");  // creature_name owns the String
+    let creature_name = String::from("Moluun");  // creature_name owns the String
 
     let selected = creature_name;  // Ownership MOVES to selected
 

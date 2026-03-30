@@ -236,15 +236,17 @@ impl BodyRig {
 /// ```
 pub fn marumi_rig() -> BodyRig {
     BodyRig {
-        // Bounding box: 140×160 pixels — slightly taller than wide
-        // to accommodate ears on top and feet on bottom.
-        base_size: Vec2::new(140.0, 160.0),
+        // Bounding box matches rendered sprite scale.
+        // Body sprite is 52px * 8x scale = 416px. Height accounts for
+        // ears on top and feet on bottom.
+        // Values measured from idle_00.png reference.
+        base_size: Vec2::new(416.0, 365.0),
 
         anchors: vec![
             // --- Body (center, behind everything) ---
             AnchorPoint {
                 slot: "body".into(),
-                base_pos: Vec2::new(0.0, -0.05),
+                base_pos: Vec2::new(0.0, 0.0),
                 z_depth: 0.0,
                 gene_offsets: vec![],
                 mirror_of: None,
@@ -253,14 +255,14 @@ pub fn marumi_rig() -> BodyRig {
             // --- Left ear (top-left, behind body) ---
             AnchorPoint {
                 slot: "ear_left".into(),
-                base_pos: Vec2::new(-0.35, 0.55),
+                base_pos: Vec2::new(-0.40, 0.88),
                 z_depth: -0.1,
                 gene_offsets: vec![
                     // Curious creatures have ears slightly more spread apart
                     GeneOffset {
                         gene: GeneTrait::Curiosity,
                         axis: Axis::X,
-                        range: (0.0, -0.08),
+                        range: (0.0, -0.06),
                     },
                 ],
                 mirror_of: None,
@@ -269,16 +271,17 @@ pub fn marumi_rig() -> BodyRig {
             // --- Right ear (mirrors left ear) ---
             AnchorPoint {
                 slot: "ear_right".into(),
-                base_pos: Vec2::new(0.35, 0.55),
+                base_pos: Vec2::new(0.40, 0.88),
                 z_depth: -0.1,
                 gene_offsets: vec![],
                 mirror_of: Some("ear_left".into()),
             },
 
             // --- Left eye (above center, in front) ---
+            // Measured from idle_00.png: ±0.385 X, 0.364 Y
             AnchorPoint {
                 slot: "eye_left".into(),
-                base_pos: Vec2::new(-0.22, 0.15),
+                base_pos: Vec2::new(-0.38, 0.36),
                 z_depth: 1.0,
                 gene_offsets: vec![
                     // Curiosity widens eye spacing
@@ -300,7 +303,7 @@ pub fn marumi_rig() -> BodyRig {
             // --- Right eye (mirrors left eye) ---
             AnchorPoint {
                 slot: "eye_right".into(),
-                base_pos: Vec2::new(0.22, 0.15),
+                base_pos: Vec2::new(0.38, 0.36),
                 z_depth: 1.0,
                 gene_offsets: vec![],
                 mirror_of: Some("eye_left".into()),
@@ -309,7 +312,8 @@ pub fn marumi_rig() -> BodyRig {
             // --- Mouth (below center, in front) ---
             AnchorPoint {
                 slot: "mouth".into(),
-                base_pos: Vec2::new(0.0, -0.15),
+                // Measured from idle_00.png: nearly centered (0.026)
+                base_pos: Vec2::new(0.0, 0.03),
                 z_depth: 1.0,
                 gene_offsets: vec![
                     // Appetite shifts mouth down slightly (bigger mouth for hungry genes)

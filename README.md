@@ -2,7 +2,7 @@
 
 > *Kokoro* (心) means "heart" and "mind" in Japanese — the invisible force that makes each creature feel alive.
 
-Kokoro is a virtual creature game built in Rust where every **Kobara** is genuinely unique. Inspired by Tamagotchi, but taken further: each creature carries a genetic blueprint that shapes its personality, appearance, and behaviour. No two Kobaras are alike — just like in nature.
+Kokoro is a virtual creature game built in Rust where every **Kobara** is genuinely unique. The name *Kobara* fuses 心 (kokoro, heart/mind) with 腹 (hara, the seat of the soul) — "where the spirit lives". Inspired by Tamagotchi, but taken further: each creature carries a genetic blueprint that shapes its personality, appearance, and behaviour. No two Kobaras are alike — just like in nature.
 
 ---
 
@@ -16,15 +16,43 @@ In most virtual pet games, creatures are skins over the same logic. In Kokoro:
 
 ---
 
+## Species
+
+All creatures are Kobaras. The **species** determines their physical form:
+
+| Species | Kanji | Meaning | Type | Status |
+|---------|-------|---------|------|--------|
+| **Marumi** | 丸み | roundness | Mammal-like | Implemented |
+| **Tsubasa** | 翼 | wing | Bird-like | Planned |
+| **Uroko** | 鱗 | scale | Reptile-like | Planned |
+
+Each species has its own **body rig** (a proportional landmark system, like facial mapping polygons) that defines face shape and body proportions. The genome nudges these landmarks to produce unique individuals within the same species.
+
+---
+
 ## Architecture
 
 ```
 src/
-├── genome/       # DNA of each Kobara (genes, species, body color)
-├── mind/         # AI engine: FSM mood states + emergent behaviour rules
-├── systems/      # Bevy ECS systems: rendering, HUD, time ticks
-├── world/        # Scene setup: camera, environment
-└── main.rs       # App entry point
+├── genome/           # DNA: 7 genes per Kobara (curiosity, appetite, hue, etc.)
+├── mind/             # AI engine: FSM mood states + emergent behaviour rules
+├── persistence/      # SQLite: save/load + interaction event log
+├── systems/
+│   ├── rig.rs            # Proportional landmark system (face/body mapping)
+│   ├── body_parts.rs     # Species visual templates (parts, fallbacks)
+│   ├── creature_spawn.rs # Assembles creature from rig + sprites
+│   ├── mood_sync.rs      # Swaps eyes/mouth sprites on mood change
+│   ├── genome_visuals.rs # Genome → tint color, body scale
+│   ├── animation.rs      # Idle sway + eye blink
+│   ├── effects.rs        # Mood effects (zzz, hearts, rain cloud, stars)
+│   ├── evolution.rs      # Growth stages: Baby → Child → Adult → Elder
+│   ├── stats.rs          # HUD displaying vital stats
+│   ├── time_tick.rs      # Game tick (1/sec) + circadian bonus
+│   └── ui/actions.rs     # Player buttons: Feed, Play, Sleep
+├── world/
+│   ├── mod.rs            # Camera setup
+│   └── daycycle.rs       # Background color based on system clock
+└── main.rs               # App entry point
 ```
 
 ### The creature's mind (AI layers)
@@ -34,7 +62,7 @@ src/
 │  Finite State Machine                   │  ← current mood: Happy, Hungry, Lonely...
 │  mood transitions driven by vital stats │
 ├─────────────────────────────────────────┤
-│  Emergent behaviour rules               │  ← genome × stats × randomness
+│  Emergent behaviour rules               │  ← genome x stats x randomness
 │  same stats, different genes = different│    behaviour
 ├─────────────────────────────────────────┤
 │  Local neural network  (Phase 4)        │  ← learns from owner interaction history
@@ -54,7 +82,22 @@ Each gene is an `f32` between `0.0` and `1.0`:
 | `circadian` | Night owl | Day creature |
 | `resilience` | Fragile, moody | Bounces back quickly |
 | `learning_rate` | Slow learner | Adapts fast |
-| `hue` | — | Determines body colour (0°–360°) |
+| `hue` | --- | Determines body colour (0-360) |
+
+### Body rig (landmark system)
+
+Instead of hardcoded pixel positions, each species defines **anchor points** in a normalized `[-1, 1]` coordinate space. The genome shifts these anchors to produce unique face shapes:
+
+```
+        (-1, 1) ────────── (1, 1)
+           |    ear   ear    |
+           |   eye_L  eye_R  |     ← landmarks
+           |     mouth       |
+       (-1, -1) ────────── (1, -1)
+```
+
+- **Same species, different genome** = slightly different face proportions
+- **Different species** = radically different rig (forward-facing predator eyes vs side-facing herbivore eyes)
 
 ---
 
@@ -66,15 +109,15 @@ Each gene is an `f32` between `0.0` and `1.0`:
 | Game engine | [Bevy](https://bevyengine.org/) 0.16 (ECS-first, mobile-ready) |
 | Serialisation | `serde` + `bincode` |
 | Randomness | `rand` |
-| Persistence (Phase 2) | `rusqlite` — SQLite embedded |
-| Neural network (Phase 4) | `candle-core` (Hugging Face, pure Rust) |
-| Target platforms | Android, iOS (via `cargo-mobile2`) |
+| Persistence | `rusqlite` (SQLite embedded) |
+| Neural network (Phase 4) | Manual implementation or `candle-core` |
+| Target platforms | Desktop, Android, iOS |
 
 ---
 
 ## Roadmap
 
-### Phase 1 — Foundation ✅ (current)
+### Phase 1 — Foundation
 - [x] Bevy project structure
 - [x] Genome system with random generation
 - [x] Finite state machine (FSM) mood engine
@@ -83,22 +126,37 @@ Each gene is an `f32` between `0.0` and `1.0`:
 - [x] HUD displaying vital stats and mood
 
 ### Phase 2 — Memory & persistence
-- [ ] SQLite persistence via `rusqlite`
-- [ ] Save/load creature state between sessions
-- [ ] Interaction history log
-- [ ] Basic evolution: stats shift slightly over generations
+- [x] SQLite persistence via `rusqlite`
+- [x] Save/load creature state between sessions
+- [x] Interaction history log (events table)
 
-### Phase 3 — Mobile UI
-- [ ] Touch controls (feed, play, sleep)
-- [ ] Sprite-based visuals replacing meshes
+### Phase 3 — Visuals & interaction
+- [x] Action buttons (Feed, Play, Sleep)
+- [x] Modular sprite composition (body, eyes, mouth, ears)
+- [x] Body rig / proportional landmark system
+- [x] Mood-reactive sprite swapping (eyes + mouth)
+- [x] Genome-driven visuals (tint, body scale, eye spacing)
+- [x] Day/night cycle from system clock
+- [x] Visual effects per mood (zzz, hearts, rain cloud, stars)
+- [x] Idle animation (body sway + eye blink)
+- [x] Visual evolution / growth stages
+- [x] Programmatic sprite generation (Python/PIL)
+- [ ] Refine sprite quality to match reference art
 - [ ] Sound cues tied to mood states
 - [ ] Android + iOS build via `cargo-mobile2`
 
 ### Phase 4 — Neural mind
-- [ ] Small MLP (multi-layer perceptron) in pure Rust via `candle-core`
-- [ ] Trains locally on interaction history
-- [ ] Creature adapts to owner's patterns over weeks
+- [ ] Small MLP (12-8-7, ~182 parameters) in pure Rust
+- [ ] Trains locally on interaction history from SQLite
+- [ ] Creature adapts to owner's daily patterns
+- [ ] FSM keeps veto power on critical states (Sick, Sleeping)
 - [ ] Each Kobara's network is unique and non-transferable
+
+### Phase 5 — Expansion
+- [ ] New species: Tsubasa (bird), Uroko (reptile) with unique rigs
+- [ ] Accessories and visual marks at age milestones
+- [ ] Reproduction / genetic inheritance between Kobaras
+- [ ] Multi-creature interaction
 
 ---
 
@@ -107,9 +165,8 @@ Each gene is an `f32` between `0.0` and `1.0`:
 ### Prerequisites
 
 - [Rust](https://rustup.rs/) (stable)
-- For mobile: [`cargo-mobile2`](https://github.com/tauri-apps/cargo-mobile2)
 
-### Run on desktop (development)
+### Run on desktop
 
 ```bash
 git clone https://github.com/Edrick42/kokoro
@@ -117,57 +174,38 @@ cd kokoro
 cargo run
 ```
 
-### Build for Android
+### Generate sprites
 
 ```bash
-cargo mobile init
-cargo android build --release
+python3 scripts/generate_sprites.py
 ```
 
----
+Sprites are output to `assets/sprites/marumi/`. The game falls back to procedural meshes if sprites are missing.
 
-## Art direction — generating creature sprites (v1.0)
-
-The current version renders the Kobara procedurally with Bevy meshes. For v1.0 sprites, here's the recommended approach:
-
-### Option A — AI image generation (fastest)
-Use a tool like **Midjourney**, **DALL·E 3**, or **Stable Diffusion** with prompts like:
+### Sprite structure
 
 ```
-cute virtual pet creature, round body, big eyes, soft pastel [COLOR] fur,
-chibi style, transparent background, pixel art / flat vector / hand-drawn,
-tamagotchi aesthetic, 512x512
-```
-
-Generate at least 4 animation frames per mood: idle, happy, hungry, sleeping.
-
-### Option B — Pixel art tools (full control)
-- **Aseprite** (~$20, industry standard for pixel art + animation)
-- **Libresprite** (free Aseprite fork)
-- **Pixelorama** (free, open source)
-
-Design at 32×32 or 64×64 px. Export each frame as PNG to `assets/sprites/kobara/`.
-
-### Option C — Vector → raster pipeline
-Draw in **Figma** or **Inkscape** → export SVG → rasterise to PNG at multiple resolutions for different screen densities.
-
-### Sprite structure (target)
-```
-assets/
-└── sprites/
-    └── kobara/
-        ├── idle_0.png
-        ├── idle_1.png
-        ├── happy_0.png
-        ├── hungry_0.png
-        └── sleeping_0.png
+assets/sprites/
+├── marumi/                  # Marumi species sprites
+│   ├── body_idle.png
+│   ├── ear_left_idle.png
+│   ├── ear_right_idle.png
+│   ├── eye_left_{mood}.png  # 8 mood variants
+│   ├── eye_right_{mood}.png
+│   └── mouth_{mood}.png     # 8 mood variants
+└── shared/effects/          # Mood visual effects
+    ├── zzz.png
+    ├── hearts.png
+    ├── rain_cloud.png
+    ├── stars_dizzy.png
+    └── sparkle.png
 ```
 
 ---
 
 ## Contributing
 
-This project is an open learning exercise in Rust. Issues, suggestions, and PRs are welcome — especially from people also learning the language.
+This project is an open learning exercise in Rust. Issues, suggestions, and PRs are welcome.
 
 ---
 

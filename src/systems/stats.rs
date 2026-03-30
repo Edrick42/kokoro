@@ -1,7 +1,7 @@
 //! HUD plugin — displays the creature's vital stats and current mood on screen.
 //!
-//! Each stat label is its own entity with a marker component, so they can be
-//! queried and updated independently without conflicting borrows.
+//! Each stat row has a pixel art icon, a label, and a value. All rows sit
+//! inside a semi-transparent dark panel for contrast against any background.
 
 use bevy::prelude::*;
 use crate::mind::Mind;
@@ -21,64 +21,66 @@ impl Plugin for StatsPlugin {
 #[derive(Component)] struct HudHappiness;
 #[derive(Component)] struct HudEnergy;
 
-fn setup_hud(mut commands: Commands) {
+fn setup_hud(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = TextFont { font_size: 16.0, ..default() };
 
-    // Mood state label
+    // Dark semi-transparent panel behind all stats
     commands.spawn((
-        Text::new(""),
-        font.clone(),
-        TextColor(Color::WHITE),
         Node {
             position_type: PositionType::Absolute,
-            top:  Val::Px(12.0),
-            left: Val::Px(12.0),
+            top: Val::Px(8.0),
+            left: Val::Px(8.0),
+            padding: UiRect::all(Val::Px(10.0)),
+            flex_direction: FlexDirection::Column,
+            row_gap: Val::Px(6.0),
             ..default()
         },
-        HudMood,
-    ));
+        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.6)),
+        BorderRadius::all(Val::Px(8.0)),
+    )).with_children(|panel| {
+        // Mood row
+        spawn_stat_row(panel, &asset_server, &font, "sprites/shared/icons/mood.png", Color::WHITE, HudMood);
+        // Hunger row
+        spawn_stat_row(panel, &asset_server, &font, "sprites/shared/icons/hunger.png", Color::srgb(1.0, 0.6, 0.2), HudHunger);
+        // Happiness row
+        spawn_stat_row(panel, &asset_server, &font, "sprites/shared/icons/happiness.png", Color::srgb(0.4, 1.0, 0.5), HudHappiness);
+        // Energy row
+        spawn_stat_row(panel, &asset_server, &font, "sprites/shared/icons/energy.png", Color::srgb(0.4, 0.7, 1.0), HudEnergy);
+    });
+}
 
-    // Hunger bar — orange tint
-    commands.spawn((
-        Text::new(""),
-        font.clone(),
-        TextColor(Color::srgb(1.0, 0.6, 0.2)),
-        Node {
-            position_type: PositionType::Absolute,
-            top:  Val::Px(36.0),
-            left: Val::Px(12.0),
-            ..default()
-        },
-        HudHunger,
-    ));
+fn spawn_stat_row<M: Component>(
+    parent: &mut ChildSpawnerCommands,
+    asset_server: &Res<AssetServer>,
+    font: &TextFont,
+    icon_path: &str,
+    text_color: Color,
+    marker: M,
+) {
+    parent.spawn(Node {
+        flex_direction: FlexDirection::Row,
+        align_items: AlignItems::Center,
+        column_gap: Val::Px(6.0),
+        ..default()
+    }).with_children(|row| {
+        // Icon
+        row.spawn((
+            ImageNode::new(asset_server.load(icon_path)),
+            Node {
+                width: Val::Px(20.0),
+                height: Val::Px(20.0),
+                ..default()
+            },
+        ));
 
-    // Happiness bar — green tint
-    commands.spawn((
-        Text::new(""),
-        font.clone(),
-        TextColor(Color::srgb(0.4, 1.0, 0.5)),
-        Node {
-            position_type: PositionType::Absolute,
-            top:  Val::Px(60.0),
-            left: Val::Px(12.0),
-            ..default()
-        },
-        HudHappiness,
-    ));
-
-    // Energy bar — blue tint
-    commands.spawn((
-        Text::new(""),
-        font,
-        TextColor(Color::srgb(0.4, 0.7, 1.0)),
-        Node {
-            position_type: PositionType::Absolute,
-            top:  Val::Px(84.0),
-            left: Val::Px(12.0),
-            ..default()
-        },
-        HudEnergy,
-    ));
+        // Text label + value
+        row.spawn((
+            Text::new(""),
+            font.clone(),
+            TextColor(text_color),
+            marker,
+        ));
+    });
 }
 
 fn update_hud(
@@ -89,15 +91,15 @@ fn update_hud(
     mut q_energy:    Query<&mut Text, (With<HudEnergy>,    Without<HudMood>,   Without<HudHunger>,    Without<HudHappiness>)>,
 ) {
     if let Ok(mut t) = q_mood.single_mut() {
-        *t = Text::new(format!("Mood:      {}", mind.mood.label()));
+        *t = Text::new(format!("{}", mind.mood.label()));
     }
     if let Ok(mut t) = q_hunger.single_mut() {
-        *t = Text::new(format!("Hunger:    {:.0}%", mind.stats.hunger));
+        *t = Text::new(format!("{:.0}%", mind.stats.hunger));
     }
     if let Ok(mut t) = q_happiness.single_mut() {
-        *t = Text::new(format!("Happiness: {:.0}%", mind.stats.happiness));
+        *t = Text::new(format!("{:.0}%", mind.stats.happiness));
     }
     if let Ok(mut t) = q_energy.single_mut() {
-        *t = Text::new(format!("Energy:    {:.0}%", mind.stats.energy));
+        *t = Text::new(format!("{:.0}%", mind.stats.energy));
     }
 }

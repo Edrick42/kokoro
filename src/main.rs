@@ -1,4 +1,6 @@
 mod creature;
+#[cfg(feature = "dev")]
+mod dev;
 mod genome;
 mod mind;
 mod persistence;
@@ -34,8 +36,9 @@ use world::{
 };
 
 fn main() {
-    App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
+    let mut app = App::new();
+
+    app.add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "Kokoro".into(),
                 resolution: (400.0, 700.0).into(),
@@ -61,6 +64,11 @@ fn main() {
         // Visual plugins — effects, animation, evolution, accessories
         .add_plugins((EffectsPlugin, AnimationPlugin, EvolutionPlugin, AccessoriesPlugin))
         // Visual update systems
-        .add_systems(Update, (sync_mood_sprites, apply_genome_visuals))
-        .run();
+        .add_systems(Update, (sync_mood_sprites, apply_genome_visuals));
+
+    // Dev mode — only compiled with `cargo run --features dev`
+    #[cfg(feature = "dev")]
+    app.add_plugins(dev::DevPlugin);
+
+    app.run();
 }

@@ -69,7 +69,7 @@ impl NeuralMind {
 
     /// How much influence the NN has (0.0 = none, 1.0 = full).
     /// Grows logarithmically with training sessions.
-    fn influence(&self) -> f32 {
+    pub fn influence(&self) -> f32 {
         if !self.mature {
             return 0.0;
         }

@@ -8,26 +8,15 @@
 //! The species defines the possible gene ranges; the individual fills them in.
 //! This guarantees each creature is unique, just like in real biology.
 
+mod color;
+mod crossover;
+mod species;
+
+pub use species::Species;
+
 use bevy::prelude::Resource;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-
-/// Available species of Kobara. Each has different body shapes, rigs,
-/// and gene ranges.
-///
-/// All creatures are Kobaras — species determines their physical form:
-/// - **Moluun** — soft, round, forest-dwelling Kobaras from the Verdance
-/// - **Pylum** — winged, curious Kobaras from the Veridian Highlands
-/// - **Skael** — scaled, resilient Kobaras from the Abyssal Shallows
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
-pub enum Species {
-    /// Round, soft, mammal-like Kobara from the Verdance forests.
-    Moluun,
-    /// Bird-like Kobara with wings and a beak from the Veridian Highlands.
-    Pylum,
-    /// Reptile-like Kobara with scales from the Abyssal Shallows.
-    Skael,
-}
 
 /// The creature's DNA. Each field is a value between 0.0 and 1.0.
 ///
@@ -89,64 +78,5 @@ impl Genome {
     /// Generates a random genome for a Moluun Kobara (default species).
     pub fn random() -> Self {
         Self::random_for(Species::Moluun)
-    }
-
-    /// Creates a child genome by crossing two parent genomes with mutation.
-    pub fn crossover(parent_a: &Genome, parent_b: &Genome, child_species: Species) -> Self {
-        use rand::Rng;
-        let mut rng = rand::rng();
-
-        fn pick(rng: &mut impl Rng, a: f32, b: f32) -> f32 {
-            if rng.random_bool(0.5) { a } else { b }
-        }
-
-        fn mutate(rng: &mut impl Rng, val: f32, min: f32, max: f32) -> f32 {
-            if rng.random_range(0.0f32..1.0) < 0.15 {
-                let shift = rng.random_range(-0.1f32..0.1);
-                (val + shift).clamp(min, max)
-            } else {
-                val
-            }
-        }
-
-        let c = pick(&mut rng, parent_a.curiosity, parent_b.curiosity);
-        let curiosity = mutate(&mut rng, c, 0.0, 1.0);
-        let l = pick(&mut rng, parent_a.loneliness_sensitivity, parent_b.loneliness_sensitivity);
-        let loneliness_sensitivity = mutate(&mut rng, l, 0.0, 1.0);
-        let a = pick(&mut rng, parent_a.appetite, parent_b.appetite);
-        let appetite = mutate(&mut rng, a, 0.0, 1.0);
-        let ci = pick(&mut rng, parent_a.circadian, parent_b.circadian);
-        let circadian = mutate(&mut rng, ci, 0.0, 1.0);
-        let r = pick(&mut rng, parent_a.resilience, parent_b.resilience);
-        let resilience = mutate(&mut rng, r, 0.0, 1.0);
-        let lr = pick(&mut rng, parent_a.learning_rate, parent_b.learning_rate);
-        let learning_rate = mutate(&mut rng, lr, 0.0, 1.0);
-        let h = pick(&mut rng, parent_a.hue, parent_b.hue);
-        let hue = mutate(&mut rng, h / 360.0, 0.0, 1.0) * 360.0;
-
-        Self {
-            species: child_species,
-            curiosity,
-            loneliness_sensitivity,
-            appetite,
-            circadian,
-            resilience,
-            learning_rate,
-            hue,
-        }
-    }
-
-    /// Returns the body color derived from the `hue` gene.
-    pub fn body_color(&self) -> bevy::color::Color {
-        bevy::color::Color::hsl(self.hue, 0.7, 0.75)
-    }
-
-    /// Returns a tint color for sprite rendering.
-    ///
-    /// Unlike `body_color()` which is meant for procedural meshes, this returns
-    /// a slightly lighter, more saturated color that looks good when multiplied
-    /// onto a flat-colored pixel art sprite.
-    pub fn tint_color(&self) -> bevy::color::Color {
-        bevy::color::Color::hsl(self.hue, 0.65, 0.80)
     }
 }

@@ -575,3 +575,109 @@ pub fn skael_rig() -> BodyRig {
         ],
     }
 }
+
+// ---------------------------------------------------------------------------
+// Nyxal rig — tentacled, intelligent aquatic Kobara
+// ---------------------------------------------------------------------------
+
+/// Builds the body rig for a Nyxal (octopus/squid-like creature).
+///
+/// Proportions: tall and organic, with a bulbous mantle on top and four
+/// tentacles extending below. Eyes are large and forward-facing (intelligent
+/// predator). Tentacles are mirrored front/back pairs.
+pub fn nyxal_rig() -> BodyRig {
+    BodyRig {
+        base_size: Vec2::new(360.0, 440.0),
+        anchors: vec![
+            // --- Body (central mass) ---
+            AnchorPoint {
+                slot: "body".into(),
+                base_pos: Vec2::new(0.0, 0.0),
+                z_depth: 0.0,
+                gene_offsets: vec![],
+                mirror_of: None,
+            },
+
+            // --- Mantle (top, behind body) ---
+            AnchorPoint {
+                slot: "mantle".into(),
+                base_pos: Vec2::new(0.0, 0.55),
+                z_depth: -0.1,
+                gene_offsets: vec![
+                    GeneOffset {
+                        gene: GeneTrait::Resilience,
+                        axis: Axis::Y,
+                        range: (-0.03, 0.06),
+                    },
+                ],
+                mirror_of: None,
+            },
+
+            // --- Eyes (large, forward-facing) ---
+            AnchorPoint {
+                slot: "eye_left".into(),
+                base_pos: Vec2::new(-0.25, 0.25),
+                z_depth: 1.0,
+                gene_offsets: vec![
+                    GeneOffset {
+                        gene: GeneTrait::Curiosity,
+                        axis: Axis::X,
+                        range: (0.03, -0.06),
+                    },
+                ],
+                mirror_of: None,
+            },
+            AnchorPoint {
+                slot: "eye_right".into(),
+                base_pos: Vec2::ZERO,
+                z_depth: 1.0,
+                gene_offsets: vec![],
+                mirror_of: Some("eye_left".into()),
+            },
+
+            // --- Front tentacles (shorter, used for manipulation) ---
+            AnchorPoint {
+                slot: "tentacle_front_left".into(),
+                base_pos: Vec2::new(-0.30, -0.50),
+                z_depth: 0.1,
+                gene_offsets: vec![
+                    GeneOffset {
+                        gene: GeneTrait::Appetite,
+                        axis: Axis::Y,
+                        range: (0.0, -0.08),
+                    },
+                ],
+                mirror_of: None,
+            },
+            AnchorPoint {
+                slot: "tentacle_front_right".into(),
+                base_pos: Vec2::ZERO,
+                z_depth: 0.1,
+                gene_offsets: vec![],
+                mirror_of: Some("tentacle_front_left".into()),
+            },
+
+            // --- Back tentacles (longer, used for locomotion) ---
+            AnchorPoint {
+                slot: "tentacle_back_left".into(),
+                base_pos: Vec2::new(-0.45, -0.65),
+                z_depth: -0.1,
+                gene_offsets: vec![
+                    GeneOffset {
+                        gene: GeneTrait::Resilience,
+                        axis: Axis::X,
+                        range: (-0.03, 0.05),
+                    },
+                ],
+                mirror_of: None,
+            },
+            AnchorPoint {
+                slot: "tentacle_back_right".into(),
+                base_pos: Vec2::ZERO,
+                z_depth: -0.1,
+                gene_offsets: vec![],
+                mirror_of: Some("tentacle_back_left".into()),
+            },
+        ],
+    }
+}

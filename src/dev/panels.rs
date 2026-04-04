@@ -7,10 +7,13 @@
 use bevy::prelude::*;
 use bevy_egui::{EguiContexts, egui};
 
+use crate::creature::physics::PhysicsBody;
+use crate::creature::species::CreatureRoot;
 use crate::genome::Genome;
 use crate::mind::Mind;
 use crate::mind::neural::{OUTPUT_SIZE, build_input, index_to_mood};
 use crate::mind::plugin::NeuralMind;
+use crate::visuals::breathing::{BreathingState, HeartbeatState};
 
 use super::DevModeState;
 
@@ -20,6 +23,7 @@ pub fn dev_panels_system(
     mind: Option<Res<Mind>>,
     genome: Option<Res<Genome>>,
     neural: Option<Res<NeuralMind>>,
+    physics_q: Query<(&PhysicsBody, &BreathingState, &HeartbeatState), With<CreatureRoot>>,
 ) {
     let Ok(ctx) = contexts.ctx_mut() else { return };
 
@@ -35,6 +39,7 @@ pub fn dev_panels_system(
             ui.checkbox(&mut dev_state.show_stats, "Stats Panel");
             ui.checkbox(&mut dev_state.show_genome, "Genome Panel");
             ui.checkbox(&mut dev_state.show_neural, "Neural Panel");
+            ui.checkbox(&mut dev_state.show_physics, "Physics Panel");
             ui.separator();
 
             egui::ScrollArea::vertical().show(ui, |ui| {
@@ -46,6 +51,9 @@ pub fn dev_panels_system(
                 }
                 if dev_state.show_neural {
                     draw_neural_panel(ui, neural.as_deref(), mind.as_deref(), genome.as_deref());
+                }
+                if dev_state.show_physics {
+                    draw_physics_panel(ui, &physics_q);
                 }
             });
         });
@@ -273,4 +281,53 @@ fn draw_neural_panel(
                 }
             }
         });
+}
+
+// ---------------------------------------------------------------------------
+// Physics & breathing panel
+// ---------------------------------------------------------------------------
+
+fn draw_physics_panel(
+    ui: &mut egui::Ui,
+    physics_q: &Query<(&PhysicsBody, &BreathingState, &HeartbeatState), With<CreatureRoot>>,
+) {
+    egui::CollapsingHeader::new("Physics & Vitals")
+        .default_open(true)
+        .show(ui, |ui| {
+            let Ok((body, breathing, heartbeat)) = physics_q.get_single() else {
+                ui.label("No creature found");
+                return;
+            };
+
+            // Physics
+            ui.label(format!(
+                "Vel: ({:.1}, {:.1})",
+                body.velocity.x, body.velocity.y
+            ));
+            ui.horizontal(|ui| {
+                ui.label(format!("Grounded: {}", if body.grounded { "yes" } else { "no" }));
+                if body.buoyant {
+                    ui.label("| Buoyant");
+                }
+            });
+
+            ui.add_space(4.0);
+
+            // Breathing
+            ui.label(format!(
+                "Breathing: {:.2} Hz | amp {:.3}",
+                breathing.rate, breathing.amplitude
+            ));
+
+            // Heartbeat
+            ui.label(format!("Heart: {:.0} BPM", heartbeat.bpm));
+            if heartbeat.irregularity > 0.0 {
+                ui.colored_label(
+                    egui::Color32::from_rgb(220, 80, 80),
+                    format!("Irregular ({:.0}%)", heartbeat.irregularity * 100.0),
+                );
+            }
+        });
+
+    ui.separator();
 }

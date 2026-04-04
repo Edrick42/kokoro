@@ -163,7 +163,7 @@ fn neural_mood_system(
     // Find the NN's top suggestion
     let (nn_mood_idx, nn_confidence) = probs.iter()
         .enumerate()
-        .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+        .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(std::cmp::Ordering::Equal))
         .unwrap();
 
     let nn_mood = index_to_mood(nn_mood_idx);

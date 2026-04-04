@@ -80,6 +80,13 @@ fn init_collection(
         mind: Mind::new(),
     });
 
+    // Nyxal — fresh random
+    collection.creatures.push(StoredCreature {
+        name: "Nyxal".to_string(),
+        genome: Genome::random_for(Species::Nyxal),
+        mind: Mind::new(),
+    });
+
     collection.active_index = 0;
 }
 

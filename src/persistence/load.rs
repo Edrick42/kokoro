@@ -80,6 +80,7 @@ fn str_to_species(s: &str) -> Species {
         "Moluun"  => Species::Moluun,
         "Pylum" => Species::Pylum,
         "Skael"   => Species::Skael,
+        "Nyxal"   => Species::Nyxal,
         _         => Species::Moluun,
     }
 }

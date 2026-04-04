@@ -21,6 +21,7 @@ pub struct DevModeState {
     pub show_stats: bool,
     pub show_genome: bool,
     pub show_neural: bool,
+    pub show_physics: bool,
 }
 
 impl Default for DevModeState {
@@ -31,6 +32,7 @@ impl Default for DevModeState {
             show_stats: true,
             show_genome: true,
             show_neural: true,
+            show_physics: true,
         }
     }
 }

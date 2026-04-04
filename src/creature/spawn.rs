@@ -20,9 +20,12 @@
 use bevy::prelude::*;
 use std::collections::HashMap;
 
-use crate::genome::Genome;
+use crate::genome::{Genome, Species};
 use crate::mind::Mind;
 use crate::creature::collection::CreatureCollection;
+use crate::creature::physics::{PhysicsBody, GROUND_Y};
+use crate::visuals::species_behavior::{BasePosition, SpeciesBehavior};
+use crate::visuals::breathing::{BreathingState, HeartbeatState, BaseBodyScale};
 use super::species::*;
 use super::rig::ResolvedAnchor;
 
@@ -156,9 +159,19 @@ fn do_spawn_creature(
         }
     }
 
+    // Physics body: land creatures fall, aquatic creatures float
+    let physics = match genome.species {
+        Species::Nyxal => PhysicsBody::aquatic_creature(GROUND_Y + 80.0),
+        _ => PhysicsBody::land_creature(GROUND_Y),
+    };
+
     // Spawn the root entity with all parts as children
     commands.spawn((
         CreatureRoot,
+        physics,
+        SpeciesBehavior { species: genome.species.clone(), elapsed: 0.0 },
+        BreathingState::new(),
+        HeartbeatState::new(),
         Transform::default(),
         Visibility::Inherited,
     )).with_children(|parent| {
@@ -177,6 +190,15 @@ fn do_spawn_creature(
                 .or_else(|| sprite_handles.handles.get(&(part_def.slot.clone(), "idle".to_string())))
                 .cloned();
 
+            let base_pos = BasePosition(Vec3::new(offset.x, offset.y, z_depth));
+
+            // Genome-derived body scale for breathing composition
+            let body_scale_x = if part_def.slot == "body" {
+                1.1 - genome.appetite * 0.2
+            } else {
+                1.0
+            };
+
             // Spawn sprite entity (hidden until fallback check confirms it loaded)
             if let Some(handle) = sprite_handle {
                 let color = if part_def.tinted { tint } else { Color::WHITE };
@@ -190,6 +212,7 @@ fn do_spawn_creature(
                         .with_scale(part_def.base_scale.extend(1.0)),
                     Visibility::Hidden,
                     slot.clone(),
+                    base_pos.clone(),
                 ));
                 if part_def.mood_reactive {
                     entity.insert(MoodReactive);
@@ -197,28 +220,40 @@ fn do_spawn_creature(
                 if part_def.tinted {
                     entity.insert(Tinted);
                 }
+                if part_def.slot == "body" {
+                    entity.insert(BaseBodyScale(Vec2::new(body_scale_x, 1.0)));
+                }
             }
 
             // Always spawn procedural mesh fallback
             let mesh_color = part_def.fallback_color.unwrap_or(body_color);
+            let base_pos_fallback = BasePosition(Vec3::new(offset.x, offset.y, z_depth));
             match &part_def.fallback_shape {
                 FallbackShape::Circle { radius } => {
-                    parent.spawn((
+                    let mut entity = parent.spawn((
                         Mesh2d(meshes.add(Circle::new(*radius))),
                         MeshMaterial2d(materials.add(mesh_color)),
                         Transform::from_xyz(offset.x, offset.y, z_depth),
                         slot,
                         FallbackMesh,
+                        base_pos_fallback,
                     ));
+                    if part_def.slot == "body" {
+                        entity.insert(BaseBodyScale(Vec2::new(body_scale_x, 1.0)));
+                    }
                 }
                 FallbackShape::Rect { width, height } => {
-                    parent.spawn((
+                    let mut entity = parent.spawn((
                         Mesh2d(meshes.add(Rectangle::new(*width, *height))),
                         MeshMaterial2d(materials.add(mesh_color)),
                         Transform::from_xyz(offset.x, offset.y, z_depth),
                         slot,
                         FallbackMesh,
+                        base_pos_fallback,
                     ));
+                    if part_def.slot == "body" {
+                        entity.insert(BaseBodyScale(Vec2::new(body_scale_x, 1.0)));
+                    }
                 }
             }
         }

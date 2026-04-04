@@ -12,6 +12,7 @@ use bevy::prelude::*;
 
 use creature::{
     collection::MultiCreaturePlugin,
+    physics::PhysicsPlugin,
     spawn::CreatureVisualsPlugin,
 };
 use mind::plugin::NeuralMindPlugin;
@@ -24,10 +25,12 @@ use ui::{
 use visuals::{
     accessories::AccessoriesPlugin,
     animation::AnimationPlugin,
+    breathing::BreathingPlugin,
     effects::EffectsPlugin,
     evolution::EvolutionPlugin,
     genome_visuals::apply_genome_visuals,
     mood_sync::sync_mood_sprites,
+    species_behavior::SpeciesBehaviorPlugin,
 };
 use world::{
     daycycle::DayCyclePlugin,
@@ -61,8 +64,11 @@ fn main() {
         .add_plugins((StatsPlugin, ActionsPlugin, CreatureSelectorPlugin))
         // Creature lifecycle — collection management
         .add_plugins(MultiCreaturePlugin)
-        // Visual plugins — effects, animation, evolution, accessories
+        // Physics — gravity, collision, buoyancy
+        .add_plugins(PhysicsPlugin)
+        // Visual plugins — effects, animation, evolution, accessories, organic behavior
         .add_plugins((EffectsPlugin, AnimationPlugin, EvolutionPlugin, AccessoriesPlugin))
+        .add_plugins((BreathingPlugin, SpeciesBehaviorPlugin))
         // Visual update systems
         .add_systems(Update, (sync_mood_sprites, apply_genome_visuals));
 

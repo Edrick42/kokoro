@@ -59,6 +59,7 @@ fn setup_buttons(mut commands: Commands) {
             spawn_species_button(row, Species::Moluun,  "Moluun",   Color::srgb(0.55, 0.75, 0.90));
             spawn_species_button(row, Species::Pylum, "Pylum",  Color::srgb(0.90, 0.78, 0.45));
             spawn_species_button(row, Species::Skael,   "Skael",    Color::srgb(0.50, 0.75, 0.55));
+            spawn_species_button(row, Species::Nyxal,   "Nyxal",    Color::srgb(0.45, 0.30, 0.70));
         });
 
         // Bottom row — actions

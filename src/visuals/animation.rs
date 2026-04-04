@@ -1,26 +1,15 @@
 //! Basic creature animations.
 //!
-//! Adds life to the creature with two simple animations:
+//! **Eye blink** — periodically closes the eyes for a brief moment
+//! by swapping to the sleeping eye sprite, then back to the current mood.
 //!
-//! 1. **Body sway** — gentle side-to-side rocking on the root entity,
-//!    giving the creature a breathing/idle feel.
-//!
-//! 2. **Eye blink** — periodically closes the eyes for a brief moment
-//!    by swapping to the sleeping eye sprite, then back to the current mood.
-//!
-//! Both animations are driven by timers and sine waves, keeping CPU cost
-//! negligible even on low-end hardware.
+//! Species-specific idle behaviors are handled by `species_behavior.rs`.
+//! Breathing and heartbeat are handled by `breathing.rs`.
 
 use bevy::prelude::*;
 use crate::mind::Mind;
-use crate::creature::species::{BodyPartSlot, CreatureRoot, MoodReactive};
+use crate::creature::species::{BodyPartSlot, MoodReactive};
 use crate::creature::spawn::PartSpriteHandles;
-
-/// Controls the idle sway animation on the creature root.
-#[derive(Component)]
-pub struct IdleSway {
-    elapsed: f32,
-}
 
 /// Controls the blink cycle for eyes.
 #[derive(Resource)]
@@ -42,35 +31,7 @@ impl Plugin for AnimationPlugin {
                 blink_duration: Timer::from_seconds(0.15, TimerMode::Once),
                 blinking: false,
             })
-           .add_systems(Update, (attach_idle_sway, idle_sway_system, blink_system).chain());
-    }
-}
-
-/// Attaches the `IdleSway` component to creature roots that don't have one yet.
-fn attach_idle_sway(
-    mut commands: Commands,
-    query: Query<Entity, (With<CreatureRoot>, Without<IdleSway>)>,
-) {
-    for entity in query.iter() {
-        commands.entity(entity).insert(IdleSway { elapsed: 0.0 });
-    }
-}
-
-/// Applies a gentle sine-wave rotation and vertical bob to the creature.
-fn idle_sway_system(
-    time: Res<Time>,
-    mut query: Query<(&mut Transform, &mut IdleSway), With<CreatureRoot>>,
-) {
-    for (mut transform, mut sway) in query.iter_mut() {
-        sway.elapsed += time.delta_secs();
-
-        // Gentle rotation sway (±2 degrees)
-        let angle = (sway.elapsed * 1.2).sin() * 0.035;
-        transform.rotation = Quat::from_rotation_z(angle);
-
-        // Subtle vertical bob (±2 pixels)
-        let bob = (sway.elapsed * 1.8).sin() * 2.0;
-        transform.translation.y = bob;
+           .add_systems(Update, blink_system);
     }
 }
 

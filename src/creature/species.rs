@@ -105,6 +105,7 @@ impl SpeciesRegistry {
         templates.insert(Species::Moluun, moluun_template());
         templates.insert(Species::Pylum, pylum_template());
         templates.insert(Species::Skael, skael_template());
+        templates.insert(Species::Nyxal, nyxal_template());
         Self { templates }
     }
 
@@ -322,6 +323,84 @@ pub fn skael_template() -> SpeciesTemplate {
                 mood_reactive: false,
                 tinted: true,
                 fallback_shape: FallbackShape::Rect { width: 16.0, height: 35.0 },
+                fallback_color: None,
+            },
+        ],
+    }
+}
+
+/// Deep-sea bioluminescent color for Nyxal eye glow.
+const BIOLUM: Color = Color::srgb(0.1, 0.5, 0.6);
+
+pub fn nyxal_template() -> SpeciesTemplate {
+    use super::rig::nyxal_rig;
+
+    SpeciesTemplate {
+        species_dir: "nyxal".into(),
+        rig: nyxal_rig(),
+        parts: vec![
+            BodyPartDef {
+                slot: "body".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: false,
+                tinted: true,
+                fallback_shape: FallbackShape::Circle { radius: 45.0 },
+                fallback_color: None,
+            },
+            BodyPartDef {
+                slot: "mantle".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: false,
+                tinted: true,
+                fallback_shape: FallbackShape::Circle { radius: 35.0 },
+                fallback_color: None,
+            },
+            BodyPartDef {
+                slot: "eye_left".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: true,
+                tinted: false,
+                fallback_shape: FallbackShape::Circle { radius: 10.0 },
+                fallback_color: Some(BIOLUM),
+            },
+            BodyPartDef {
+                slot: "eye_right".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: true,
+                tinted: false,
+                fallback_shape: FallbackShape::Circle { radius: 10.0 },
+                fallback_color: Some(BIOLUM),
+            },
+            BodyPartDef {
+                slot: "tentacle_front_left".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: false,
+                tinted: true,
+                fallback_shape: FallbackShape::Rect { width: 10.0, height: 30.0 },
+                fallback_color: None,
+            },
+            BodyPartDef {
+                slot: "tentacle_front_right".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: false,
+                tinted: true,
+                fallback_shape: FallbackShape::Rect { width: 10.0, height: 30.0 },
+                fallback_color: None,
+            },
+            BodyPartDef {
+                slot: "tentacle_back_left".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: false,
+                tinted: true,
+                fallback_shape: FallbackShape::Rect { width: 10.0, height: 30.0 },
+                fallback_color: None,
+            },
+            BodyPartDef {
+                slot: "tentacle_back_right".into(),
+                base_scale: Vec2::ONE,
+                mood_reactive: false,
+                tinted: true,
+                fallback_shape: FallbackShape::Rect { width: 10.0, height: 30.0 },
                 fallback_color: None,
             },
         ],

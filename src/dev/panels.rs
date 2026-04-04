@@ -12,8 +12,10 @@ use crate::creature::species::CreatureRoot;
 use crate::genome::Genome;
 use crate::mind::Mind;
 use crate::mind::neural::{OUTPUT_SIZE, build_input, index_to_mood};
+use crate::mind::absence::AbsenceState;
 use crate::mind::plugin::NeuralMind;
 use crate::visuals::breathing::{BreathingState, HeartbeatState};
+use crate::visuals::resonance_glow::ResonanceGlow;
 
 use super::DevModeState;
 
@@ -23,7 +25,9 @@ pub fn dev_panels_system(
     mind: Option<Res<Mind>>,
     genome: Option<Res<Genome>>,
     neural: Option<Res<NeuralMind>>,
+    absence: Option<Res<AbsenceState>>,
     physics_q: Query<(&PhysicsBody, &BreathingState, &HeartbeatState), With<CreatureRoot>>,
+    glow_q: Query<&ResonanceGlow>,
 ) {
     let Ok(ctx) = contexts.ctx_mut() else { return };
 
@@ -53,7 +57,7 @@ pub fn dev_panels_system(
                     draw_neural_panel(ui, neural.as_deref(), mind.as_deref(), genome.as_deref());
                 }
                 if dev_state.show_physics {
-                    draw_physics_panel(ui, &physics_q);
+                    draw_physics_panel(ui, &physics_q, &glow_q, absence.as_deref());
                 }
             });
         });
@@ -290,6 +294,8 @@ fn draw_neural_panel(
 fn draw_physics_panel(
     ui: &mut egui::Ui,
     physics_q: &Query<(&PhysicsBody, &BreathingState, &HeartbeatState), With<CreatureRoot>>,
+    glow_q: &Query<&ResonanceGlow>,
+    absence: Option<&AbsenceState>,
 ) {
     egui::CollapsingHeader::new("Physics & Vitals")
         .default_open(true)
@@ -326,6 +332,32 @@ fn draw_physics_panel(
                     egui::Color32::from_rgb(220, 80, 80),
                     format!("Irregular ({:.0}%)", heartbeat.irregularity * 100.0),
                 );
+            }
+
+            ui.add_space(4.0);
+
+            // Resonance glow (kokoro-sac)
+            if let Ok(glow) = glow_q.get_single() {
+                ui.label(format!(
+                    "Kokoro-sac: {:.1} Hz | int {:.2}",
+                    glow.frequency, glow.intensity
+                ));
+            }
+
+            // Absence (Mirror Bond)
+            if let Some(absence) = absence {
+                ui.add_space(4.0);
+                ui.label(format!(
+                    "Absence: {}s ({})",
+                    absence.seconds_away,
+                    absence.description()
+                ));
+                if !absence.acknowledged {
+                    ui.colored_label(
+                        egui::Color32::from_rgb(240, 200, 60),
+                        format!("Reunion: {} ticks left", absence.reunion_ticks),
+                    );
+                }
             }
         });
 

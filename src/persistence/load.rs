@@ -1,23 +1,44 @@
 //! Load functions — read a saved Kobara state from the database.
 
 use rusqlite::{Connection, Result};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::genome::{Genome, Species};
 use crate::mind::{Mind, MoodState, VitalStats};
 
+/// Result of loading a saved creature, including absence duration.
+pub struct LoadResult {
+    pub genome: Genome,
+    pub mind: Mind,
+    /// How many seconds the player was absent since the last session ended.
+    pub absence_secs: u64,
+}
+
 /// Attempts to load a previously saved Kobara.
 ///
-/// Returns `Ok(Some((genome, mind)))` if a save exists,
+/// Returns `Ok(Some(LoadResult))` if a save exists,
 /// or `Ok(None)` if the database is empty (first run).
-pub fn load_saved(conn: &Connection) -> Result<Option<(Genome, Mind)>> {
+pub fn load_saved(conn: &Connection) -> Result<Option<LoadResult>> {
     let genome = match load_genome(conn)? {
         Some(g) => g,
-        None    => return Ok(None), // No save found — first run
+        None    => return Ok(None),
     };
 
-    let mind = load_mind(conn)?.unwrap_or_else(Mind::new);
+    let (mind, last_session_end) = load_mind(conn)?
+        .unwrap_or_else(|| (Mind::new(), 0));
 
-    Ok(Some((genome, mind)))
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+
+    let absence_secs = if last_session_end > 0 {
+        (now - last_session_end).max(0) as u64
+    } else {
+        0
+    };
+
+    Ok(Some(LoadResult { genome, mind, absence_secs }))
 }
 
 fn load_genome(conn: &Connection) -> Result<Option<Genome>> {
@@ -48,28 +69,32 @@ fn load_genome(conn: &Connection) -> Result<Option<Genome>> {
     }
 }
 
-fn load_mind(conn: &Connection) -> Result<Option<Mind>> {
+fn load_mind(conn: &Connection) -> Result<Option<(Mind, i64)>> {
     let mut stmt = conn.prepare(
-        "SELECT hunger, happiness, energy, health, mood, age_ticks
+        "SELECT hunger, happiness, energy, health, mood, age_ticks, last_session_end
          FROM creature WHERE id = 1",
     )?;
 
     let result = stmt.query_row([], |row| {
         let mood_str: String = row.get(4)?;
-        Ok(Mind {
-            stats: VitalStats {
-                hunger:    row.get(0)?,
-                happiness: row.get(1)?,
-                energy:    row.get(2)?,
-                health:    row.get(3)?,
+        let last_session_end: i64 = row.get(6)?;
+        Ok((
+            Mind {
+                stats: VitalStats {
+                    hunger:    row.get(0)?,
+                    happiness: row.get(1)?,
+                    energy:    row.get(2)?,
+                    health:    row.get(3)?,
+                },
+                mood:      str_to_mood(&mood_str),
+                age_ticks: row.get(5)?,
             },
-            mood:      str_to_mood(&mood_str),
-            age_ticks: row.get(5)?,
-        })
+            last_session_end,
+        ))
     });
 
     match result {
-        Ok(mind)                                => Ok(Some(mind)),
+        Ok(pair)                                => Ok(Some(pair)),
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
         Err(e)                                  => Err(e),
     }

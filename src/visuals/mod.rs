@@ -5,4 +5,5 @@ pub mod effects;
 pub mod evolution;
 pub mod genome_visuals;
 pub mod mood_sync;
+pub mod resonance_glow;
 pub mod species_behavior;

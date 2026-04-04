@@ -17,6 +17,7 @@ use bevy::app::AppExit;
 
 use crate::genome::Genome;
 use crate::mind::Mind;
+use crate::mind::absence::{self, AbsenceState};
 use super::{db, load, save};
 
 /// Shared database connection stored as a Bevy resource.
@@ -32,7 +33,8 @@ pub struct PersistencePlugin;
 impl Plugin for PersistencePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(PreStartup, startup_load)
-           .add_systems(Update, autosave_system)
+           .add_systems(Startup, absence::apply_absence_effects)
+           .add_systems(Update, (autosave_system, absence::reunion_countdown))
            .add_systems(Last, save_on_exit);
     }
 }
@@ -41,23 +43,27 @@ impl Plugin for PersistencePlugin {
 pub fn startup_load(mut commands: Commands) {
     let conn = db::open().expect("Failed to open save database");
 
-    let (genome, mind) = match load::load_saved(&conn) {
-        Ok(Some((g, m))) => {
-            info!("Save found — Kobara restored (age: {} ticks)", m.age_ticks);
-            (g, m)
+    let (genome, mind, absence_secs) = match load::load_saved(&conn) {
+        Ok(Some(result)) => {
+            info!(
+                "Save found — Kobara restored (age: {} ticks, away {} secs)",
+                result.mind.age_ticks, result.absence_secs
+            );
+            (result.genome, result.mind, result.absence_secs)
         }
         Ok(None) => {
             info!("No save found — generating a new Kobara");
-            (Genome::random(), Mind::new())
+            (Genome::random(), Mind::new(), 0)
         }
         Err(e) => {
             error!("Failed to load save: {e} — starting fresh");
-            (Genome::random(), Mind::new())
+            (Genome::random(), Mind::new(), 0)
         }
     };
 
     commands.insert_resource(genome);
     commands.insert_resource(mind);
+    commands.insert_resource(AbsenceState::new(absence_secs));
     commands.insert_resource(DbConnection(Mutex::new(conn)));
 }
 

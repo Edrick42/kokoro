@@ -200,6 +200,7 @@
   - Moluun: body shading, parameterized eyes with Default trait, 8 mouth variants
   - Pylum: wings with directional gradient, triangle beak, tail feathers
   - Skael: scale texture with step_by, slit pupils, horn crests, fanged snout
+  - Nyxal: deep-sea palette, bioluminescent eyes, tapered tentacles
   - Creating a new species: the complete step-by-step
   - Design principles for pixel art sprites
 
@@ -210,19 +211,38 @@
   - Dynamic UI: the creature selector
   - *Build It: Action buttons, stat display, species selector*
 
-- [Chapter 27: Animation and Visual Effects](part-4/ch27-animation.md)
-  - Idle animation: gentle bobbing
-  - Reaction effects: particle-like feedback
+- [Chapter 27: Animation and Organic Behavior](part-4/ch27-animation.md)
+  - Eye blink system
+  - Species-specific idle behaviors (ear twitch, wing flutter, tentacle undulation)
+  - Breathing: mood-driven rhythmic scale oscillation
+  - Heartbeat: periodic pulse tied to health, irregular when sick
   - Growth stages and visual evolution
   - Accessories: milestone rewards
-  - *Build It: `AnimationPlugin`, `EffectsPlugin`, `EvolutionPlugin`*
+  - *Build It: `AnimationPlugin`, `BreathingPlugin`, `SpeciesBehaviorPlugin`*
+
+- [Chapter 27b: Physics for Virtual Creatures](part-4/ch27b-physics.md)
+  - Building a mini physics engine without external crates
+  - Gravity, ground collision, and bounce
+  - Buoyancy for aquatic creatures
+  - Mood-triggered impulses (jump, stumble, slump)
+  - Transform ownership: preventing system conflicts
+  - *Build It: `PhysicsPlugin` and `PhysicsBody`*
 
 - [Chapter 28: Plugins — Modular Architecture](part-4/ch28-plugins.md)
   - The Bevy Plugin trait
   - Designing self-contained plugins
   - Plugin ordering and dependencies
   - When to split vs when to combine
-  - *Deep Dive: How Kokoro's 10+ plugins compose into one App*
+  - Feature-gated plugins: Dev Mode with `#[cfg(feature)]`
+  - *Deep Dive: How Kokoro's 15+ plugins compose into one App*
+
+- [Chapter 28b: Dev Mode — Building Debug Tools](part-4/ch28b-devmode.md)
+  - Feature flags in Cargo.toml
+  - Runtime toggles with `DevModeState`
+  - Bevy Gizmos for rig visualization
+  - egui panels for real-time data inspection
+  - Conditional compilation: zero cost in release builds
+  - *Build It: `DevPlugin` with rig gizmos and data panels*
 
 ---
 
@@ -254,7 +274,16 @@
   - Web builds with WebAssembly
   - Packaging and release
 
-- [Chapter 33: The Rust Ecosystem](part-5/ch33-ecosystem.md)
+- [Chapter 33: Full-Stack Rust — Building the Kokoro Website](part-5/ch33-website.md)
+  - Why full-stack Rust (backend + frontend)
+  - Backend: Axum or Actix-web for REST API
+  - Frontend: Leptos, Dioxus, or Yew for reactive UI
+  - Database: connecting SQLite creature data to the web
+  - User profiles, Kobara info pages, lore browser
+  - Community features: sharing creatures, leaderboards
+  - *Build It: A companion website where your Kobara lives online*
+
+- [Chapter 34: The Rust Ecosystem](part-5/ch34-ecosystem.md)
   - Crates.io and documentation
   - Useful crates for game development
   - The Rust community

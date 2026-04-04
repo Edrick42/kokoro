@@ -26,6 +26,7 @@ use crate::creature::collection::CreatureCollection;
 use crate::creature::physics::{PhysicsBody, GROUND_Y};
 use crate::visuals::species_behavior::{BasePosition, SpeciesBehavior};
 use crate::visuals::breathing::{BreathingState, HeartbeatState, BaseBodyScale};
+use crate::visuals::resonance_glow::ResonanceGlow;
 use super::species::*;
 use super::rig::ResolvedAnchor;
 
@@ -257,6 +258,15 @@ fn do_spawn_creature(
                 }
             }
         }
+
+        // Kokoro-sac resonance glow — semi-transparent circle behind body
+        let glow_color = genome.body_color().with_alpha(0.15);
+        parent.spawn((
+            Mesh2d(meshes.add(Circle::new(55.0))),
+            MeshMaterial2d(materials.add(ColorMaterial::from(glow_color))),
+            Transform::from_xyz(0.0, 0.0, -0.5),
+            ResonanceGlow::new(),
+        ));
     });
 
     commands.insert_resource(sprite_handles);

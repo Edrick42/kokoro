@@ -19,8 +19,8 @@ use mind::plugin::NeuralMindPlugin;
 use persistence::plugin::PersistencePlugin;
 use ui::{
     actions::ActionsPlugin,
-    creature_selector::CreatureSelectorPlugin,
     hud::StatsPlugin,
+    vitals::VitalsPlugin,
 };
 use visuals::{
     accessories::AccessoriesPlugin,
@@ -30,6 +30,7 @@ use visuals::{
     evolution::EvolutionPlugin,
     genome_visuals::apply_genome_visuals,
     mood_sync::sync_mood_sprites,
+    resonance_glow::ResonanceGlowPlugin,
     species_behavior::SpeciesBehaviorPlugin,
 };
 use world::{
@@ -61,14 +62,14 @@ fn main() {
         // Neural mind — learns owner interaction patterns
         .add_plugins(NeuralMindPlugin)
         // UI plugins
-        .add_plugins((StatsPlugin, ActionsPlugin, CreatureSelectorPlugin))
+        .add_plugins((StatsPlugin, ActionsPlugin, VitalsPlugin))
         // Creature lifecycle — collection management
         .add_plugins(MultiCreaturePlugin)
         // Physics — gravity, collision, buoyancy
         .add_plugins(PhysicsPlugin)
         // Visual plugins — effects, animation, evolution, accessories, organic behavior
         .add_plugins((EffectsPlugin, AnimationPlugin, EvolutionPlugin, AccessoriesPlugin))
-        .add_plugins((BreathingPlugin, SpeciesBehaviorPlugin))
+        .add_plugins((BreathingPlugin, SpeciesBehaviorPlugin, ResonanceGlowPlugin))
         // Visual update systems
         .add_systems(Update, (sync_mood_sprites, apply_genome_visuals));
 

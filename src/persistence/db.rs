@@ -31,19 +31,26 @@ pub fn open() -> Result<Connection> {
 /// Runs all schema migrations in order.
 /// Safe to call on an existing database — uses IF NOT EXISTS throughout.
 fn migrate(conn: &Connection) -> Result<()> {
+    // Migration: add last_session_end to existing databases
+    let _ = conn.execute(
+        "ALTER TABLE creature ADD COLUMN last_session_end INTEGER NOT NULL DEFAULT 0",
+        [],
+    ); // Silently ignores if column already exists
+
     conn.execute_batch("
         PRAGMA journal_mode = WAL;
         PRAGMA foreign_keys = ON;
 
         -- Vital stats and current mood state
         CREATE TABLE IF NOT EXISTS creature (
-            id          INTEGER PRIMARY KEY CHECK (id = 1),
-            hunger      REAL    NOT NULL DEFAULT 30.0,
-            happiness   REAL    NOT NULL DEFAULT 70.0,
-            energy      REAL    NOT NULL DEFAULT 80.0,
-            health      REAL    NOT NULL DEFAULT 100.0,
-            mood        TEXT    NOT NULL DEFAULT 'Happy',
-            age_ticks   INTEGER NOT NULL DEFAULT 0
+            id               INTEGER PRIMARY KEY CHECK (id = 1),
+            hunger           REAL    NOT NULL DEFAULT 30.0,
+            happiness        REAL    NOT NULL DEFAULT 70.0,
+            energy           REAL    NOT NULL DEFAULT 80.0,
+            health           REAL    NOT NULL DEFAULT 100.0,
+            mood             TEXT    NOT NULL DEFAULT 'Happy',
+            age_ticks        INTEGER NOT NULL DEFAULT 0,
+            last_session_end INTEGER NOT NULL DEFAULT 0
         );
 
         -- Genetic blueprint — written once, never overwritten

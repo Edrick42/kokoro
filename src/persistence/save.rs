@@ -39,10 +39,15 @@ fn save_genome(conn: &Connection, genome: &Genome) -> Result<()> {
 
 /// Writes the current vital stats and mood. Replaces any previous row.
 fn save_mind(conn: &Connection, mind: &Mind) -> Result<()> {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+
     conn.execute(
         "INSERT OR REPLACE INTO creature
-         (id, hunger, happiness, energy, health, mood, age_ticks)
-         VALUES (1, ?1, ?2, ?3, ?4, ?5, ?6)",
+         (id, hunger, happiness, energy, health, mood, age_ticks, last_session_end)
+         VALUES (1, ?1, ?2, ?3, ?4, ?5, ?6, ?7)",
         params![
             mind.stats.hunger,
             mind.stats.happiness,
@@ -50,6 +55,7 @@ fn save_mind(conn: &Connection, mind: &Mind) -> Result<()> {
             mind.stats.health,
             mood_to_str(&mind.mood),
             mind.age_ticks,
+            now,
         ],
     )?;
     Ok(())

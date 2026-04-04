@@ -17,6 +17,7 @@
 use bevy::prelude::Resource;
 use serde::{Deserialize, Serialize};
 
+pub mod absence;
 pub mod neural;
 pub mod plugin;
 pub mod training;
@@ -112,22 +113,55 @@ impl Mind {
         }
     }
 
-    /// Feed the creature: reduces hunger, slightly boosts happiness.
-    pub fn feed(&mut self) {
-        self.stats.hunger    = (self.stats.hunger - 25.0).max(0.0);
-        self.stats.happiness = (self.stats.happiness + 8.0).min(100.0);
+    /// Feed the creature. Each species reacts differently:
+    /// - Moluun: loves food, gets very happy
+    /// - Pylum: picky eater, mild reaction
+    /// - Skael: eats a lot but stays stoic
+    /// - Nyxal: nibbles, moderate enjoyment
+    pub fn feed(&mut self, genome: &crate::genome::Genome) {
+        use crate::genome::Species;
+        let (hunger_relief, happiness_boost) = match genome.species {
+            Species::Moluun => (25.0, 12.0),
+            Species::Pylum  => (18.0, 5.0),
+            Species::Skael  => (35.0, 4.0),
+            Species::Nyxal  => (15.0, 8.0),
+        };
+        self.stats.hunger    = (self.stats.hunger - hunger_relief).max(0.0);
+        self.stats.happiness = (self.stats.happiness + happiness_boost).min(100.0);
     }
 
-    /// Play with the creature: boosts happiness, costs energy, increases hunger slightly.
-    pub fn play(&mut self) {
-        self.stats.happiness = (self.stats.happiness + 15.0).min(100.0);
-        self.stats.energy    = (self.stats.energy - 10.0).max(0.0);
-        self.stats.hunger    = (self.stats.hunger + 5.0).min(100.0);
+    /// Play with the creature. Species-specific reactions:
+    /// - Moluun: very playful, loves it
+    /// - Pylum: gets excited, burns lots of energy
+    /// - Skael: barely participates
+    /// - Nyxal: intellectually engaged, moderate energy
+    pub fn play(&mut self, genome: &crate::genome::Genome) {
+        use crate::genome::Species;
+        let (happiness_boost, energy_cost, hunger_cost) = match genome.species {
+            Species::Moluun => (18.0, 8.0, 5.0),
+            Species::Pylum  => (15.0, 12.0, 8.0),
+            Species::Skael  => (8.0, 5.0, 3.0),
+            Species::Nyxal  => (12.0, 6.0, 4.0),
+        };
+        self.stats.happiness = (self.stats.happiness + happiness_boost).min(100.0);
+        self.stats.energy    = (self.stats.energy - energy_cost).max(0.0);
+        self.stats.hunger    = (self.stats.hunger + hunger_cost).min(100.0);
     }
 
-    /// Put the creature to sleep: restores energy, sets mood to Sleeping.
-    pub fn sleep(&mut self) {
-        self.stats.energy = (self.stats.energy + 30.0).min(100.0);
+    /// Put the creature to sleep. Species-specific recovery:
+    /// - Moluun: sleeps well, good recovery
+    /// - Pylum: light sleeper, less recovery
+    /// - Skael: deep sleeper, great recovery
+    /// - Nyxal: floats asleep, moderate recovery
+    pub fn sleep(&mut self, genome: &crate::genome::Genome) {
+        use crate::genome::Species;
+        let energy_restore = match genome.species {
+            Species::Moluun => 30.0,
+            Species::Pylum  => 22.0,
+            Species::Skael  => 38.0,
+            Species::Nyxal  => 28.0,
+        };
+        self.stats.energy = (self.stats.energy + energy_restore).min(100.0);
         self.mood = MoodState::Sleeping;
     }
 
@@ -139,11 +173,23 @@ impl Mind {
         use rand::Rng;
         let mut rng = rand::rng();
 
+        // Species-specific thresholds
+        let hunger_threshold = match genome.species {
+            crate::genome::Species::Skael  => 65.0,  // gets hungry sooner (big appetite)
+            crate::genome::Species::Pylum  => 85.0,  // tolerates hunger longer
+            _ => 75.0,
+        };
+        let playful_threshold = match genome.species {
+            crate::genome::Species::Pylum  => 70.0,  // gets playful easily (curious)
+            crate::genome::Species::Skael  => 90.0,  // rarely playful (stoic)
+            _ => 80.0,
+        };
+
         if self.stats.energy < 15.0 {
             MoodState::Sleeping
         } else if self.stats.health < 30.0 {
             MoodState::Sick
-        } else if self.stats.hunger > 75.0 {
+        } else if self.stats.hunger > hunger_threshold {
             MoodState::Hungry
         } else if self.stats.happiness < 25.0 {
             if genome.loneliness_sensitivity > 0.6 {
@@ -151,7 +197,7 @@ impl Mind {
             } else {
                 MoodState::Tired
             }
-        } else if self.stats.happiness > 80.0 && self.stats.energy > 60.0 {
+        } else if self.stats.happiness > playful_threshold && self.stats.energy > 60.0 {
             if genome.curiosity > 0.6 || rng.random_range(0.0f32..1.0) < genome.curiosity {
                 MoodState::Playful
             } else {

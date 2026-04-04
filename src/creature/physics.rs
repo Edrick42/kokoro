@@ -13,10 +13,11 @@ use rand::Rng;
 use crate::creature::species::CreatureRoot;
 use crate::mind::{Mind, MoodState};
 
-/// Ground plane Y position — above the button row with margin.
+/// Ground plane Y position — well above the button row.
 /// Window is 700px tall (center=0, bottom=-350). Buttons occupy ~80px
-/// from bottom (-350 to -270). This leaves the creature resting above them.
-pub const GROUND_Y: f32 = -230.0;
+/// from bottom (-350 to -270). Creature center rests at -120, giving
+/// plenty of room for the body to be fully visible above the UI.
+pub const GROUND_Y: f32 = -60.0;
 
 /// Physics state attached to each creature's root entity.
 #[derive(Component)]

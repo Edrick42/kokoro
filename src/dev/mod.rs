@@ -22,6 +22,9 @@ pub struct DevModeState {
     pub show_genome: bool,
     pub show_neural: bool,
     pub show_physics: bool,
+    pub show_cheats: bool,
+    /// Tick speed multiplier (1.0 = normal, 5.0 = 5x faster)
+    pub tick_speed: f32,
 }
 
 impl Default for DevModeState {
@@ -33,6 +36,8 @@ impl Default for DevModeState {
             show_genome: true,
             show_neural: true,
             show_physics: true,
+            show_cheats: true,
+            tick_speed: 1.0,
         }
     }
 }

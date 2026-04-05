@@ -7,10 +7,11 @@
 use bevy::prelude::*;
 use bevy_egui::{EguiContexts, egui};
 
+use crate::creature::collection::CreatureCollection;
 use crate::creature::physics::PhysicsBody;
 use crate::creature::species::CreatureRoot;
 use crate::genome::Genome;
-use crate::mind::Mind;
+use crate::mind::{Mind, MoodState};
 use crate::mind::neural::{OUTPUT_SIZE, build_input, index_to_mood};
 use crate::mind::absence::AbsenceState;
 use crate::mind::plugin::NeuralMind;
@@ -22,10 +23,11 @@ use super::DevModeState;
 pub fn dev_panels_system(
     mut contexts: EguiContexts,
     mut dev_state: ResMut<DevModeState>,
-    mind: Option<Res<Mind>>,
+    mut mind: Option<ResMut<Mind>>,
     genome: Option<Res<Genome>>,
     neural: Option<Res<NeuralMind>>,
     absence: Option<Res<AbsenceState>>,
+    mut collection: Option<ResMut<CreatureCollection>>,
     physics_q: Query<(&PhysicsBody, &BreathingState, &HeartbeatState), With<CreatureRoot>>,
     glow_q: Query<&ResonanceGlow>,
 ) {
@@ -44,6 +46,7 @@ pub fn dev_panels_system(
             ui.checkbox(&mut dev_state.show_genome, "Genome Panel");
             ui.checkbox(&mut dev_state.show_neural, "Neural Panel");
             ui.checkbox(&mut dev_state.show_physics, "Physics Panel");
+            ui.checkbox(&mut dev_state.show_cheats, "Cheats");
             ui.separator();
 
             egui::ScrollArea::vertical().show(ui, |ui| {
@@ -58,6 +61,14 @@ pub fn dev_panels_system(
                 }
                 if dev_state.show_physics {
                     draw_physics_panel(ui, &physics_q, &glow_q, absence.as_deref());
+                }
+                if dev_state.show_cheats {
+                    draw_cheats_panel(
+                        ui,
+                        &mut dev_state,
+                        mind.as_deref_mut(),
+                        collection.as_deref_mut(),
+                    );
                 }
             });
         });
@@ -362,4 +373,102 @@ fn draw_physics_panel(
         });
 
     ui.separator();
+}
+
+// ---------------------------------------------------------------------------
+// Cheats panel
+// ---------------------------------------------------------------------------
+
+fn draw_cheats_panel(
+    ui: &mut egui::Ui,
+    dev_state: &mut DevModeState,
+    mind: Option<&mut Mind>,
+    collection: Option<&mut CreatureCollection>,
+) {
+    egui::CollapsingHeader::new("Cheats")
+        .default_open(false)
+        .show(ui, |ui| {
+            // --- Tick speed ---
+            ui.horizontal(|ui| {
+                ui.label("Speed:");
+                ui.add(egui::Slider::new(&mut dev_state.tick_speed, 0.5..=10.0).text("x"));
+            });
+
+            ui.add_space(4.0);
+
+            if let Some(mind) = mind {
+                // --- Skip time ---
+                ui.horizontal(|ui| {
+                    if ui.button("Skip 1h").clicked() {
+                        mind.age_ticks += 3600;
+                    }
+                    if ui.button("Skip 1d").clicked() {
+                        mind.age_ticks += 86400;
+                    }
+                });
+
+                ui.add_space(4.0);
+
+                // --- Max stats ---
+                if ui.button("Max all stats").clicked() {
+                    mind.stats.hunger = 0.0;
+                    mind.stats.happiness = 100.0;
+                    mind.stats.energy = 100.0;
+                    mind.stats.health = 100.0;
+                    mind.pending_hunger = 0.0;
+                    mind.pending_happiness = 0.0;
+                    mind.pending_energy = 0.0;
+                }
+
+                ui.add_space(4.0);
+
+                // --- Force mood ---
+                ui.label("Force mood:");
+                ui.horizontal(|ui| {
+                    for (label, mood) in [
+                        ("Happy", MoodState::Happy),
+                        ("Hungry", MoodState::Hungry),
+                        ("Tired", MoodState::Tired),
+                    ] {
+                        if ui.small_button(label).clicked() {
+                            mind.mood = mood;
+                            mind.mood_cooldown = 15;
+                        }
+                    }
+                });
+                ui.horizontal(|ui| {
+                    for (label, mood) in [
+                        ("Lonely", MoodState::Lonely),
+                        ("Playful", MoodState::Playful),
+                        ("Sick", MoodState::Sick),
+                        ("Sleep", MoodState::Sleeping),
+                    ] {
+                        if ui.small_button(label).clicked() {
+                            mind.mood = mood;
+                            mind.mood_cooldown = 15;
+                        }
+                    }
+                });
+            }
+
+            ui.add_space(4.0);
+
+            // --- Hatch egg ---
+            if let Some(collection) = collection {
+                let idx = collection.active_index;
+                if let Some(creature) = collection.creatures.get_mut(idx) {
+                    if !creature.egg.hatched {
+                        if ui.button("Hatch egg now").clicked() {
+                            creature.egg.progress = 1.0;
+                            creature.egg.hatched = true;
+                            collection.visuals_dirty = true;
+                        }
+                        ui.label(format!(
+                            "Incubation: {:.0}%",
+                            creature.egg.progress * 100.0
+                        ));
+                    }
+                }
+            }
+        });
 }

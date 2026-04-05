@@ -23,6 +23,7 @@ use std::collections::HashMap;
 use crate::genome::{Genome, Species};
 use crate::mind::Mind;
 use crate::creature::collection::CreatureCollection;
+use crate::creature::egg::{EggEntity, egg_color};
 use crate::creature::physics::{PhysicsBody, GROUND_Y};
 use crate::visuals::species_behavior::{BasePosition, SpeciesBehavior};
 use crate::visuals::breathing::{BreathingState, HeartbeatState, BaseBodyScale};
@@ -68,7 +69,7 @@ impl Plugin for CreatureVisualsPlugin {
     }
 }
 
-/// Spawns the creature as a root entity with child body parts.
+/// Spawns the creature (or egg) as a root entity.
 fn spawn_creature(
     commands: Commands,
     asset_server: Res<AssetServer>,
@@ -77,14 +78,25 @@ fn spawn_creature(
     genome: Res<Genome>,
     mind: Res<Mind>,
     registry: Res<SpeciesRegistry>,
+    collection: Res<CreatureCollection>,
 ) {
-    do_spawn_creature(commands, &asset_server, meshes, materials, &genome, &mind, &registry);
+    let is_egg = collection.creatures
+        .get(collection.active_index)
+        .map(|c| !c.egg.hatched)
+        .unwrap_or(false);
+
+    if is_egg {
+        do_spawn_egg(commands, meshes, materials, &genome);
+    } else {
+        do_spawn_creature(commands, &asset_server, meshes, materials, &genome, &mind, &registry);
+    }
 }
 
-/// Checks if creature visuals need respawning (after a switch) and rebuilds them.
+/// Checks if creature visuals need respawning (after a switch or hatch) and rebuilds them.
 fn respawn_on_switch(
     mut collection: ResMut<CreatureCollection>,
     root_q: Query<Entity, With<CreatureRoot>>,
+    egg_q: Query<Entity, With<EggEntity>>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     meshes: ResMut<Assets<Mesh>>,
@@ -98,13 +110,42 @@ fn respawn_on_switch(
     }
     collection.visuals_dirty = false;
 
-    // Despawn old creature entity and all children
+    // Despawn old creature and egg entities
     for entity in root_q.iter() {
         commands.entity(entity).despawn();
     }
+    for entity in egg_q.iter() {
+        commands.entity(entity).despawn();
+    }
 
-    // Spawn new creature with updated genome/mind
-    do_spawn_creature(commands, &asset_server, meshes, materials, &genome, &mind, &registry);
+    let is_egg = collection.creatures
+        .get(collection.active_index)
+        .map(|c| !c.egg.hatched)
+        .unwrap_or(false);
+
+    if is_egg {
+        do_spawn_egg(commands, meshes, materials, &genome);
+    } else {
+        do_spawn_creature(commands, &asset_server, meshes, materials, &genome, &mind, &registry);
+    }
+}
+
+/// Spawns an egg entity when the active creature hasn't hatched yet.
+fn do_spawn_egg(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    genome: &Genome,
+) {
+    let color = egg_color(&genome.species);
+
+    // Egg is a simple ellipse at the ground position
+    commands.spawn((
+        EggEntity,
+        Mesh2d(meshes.add(Ellipse::new(30.0, 38.0))),
+        MeshMaterial2d(materials.add(ColorMaterial::from(color))),
+        Transform::from_xyz(0.0, GROUND_Y, 0.0),
+    ));
 }
 
 /// Shared spawn logic used by both startup and respawn.

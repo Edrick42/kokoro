@@ -81,3 +81,42 @@ impl Genome {
         Self::random_for(Species::Moluun)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn random_moluun_within_ranges() {
+        for _ in 0..100 {
+            let g = Genome::random_for(Species::Moluun);
+            assert!(g.curiosity >= 0.2 && g.curiosity <= 1.0);
+            assert!(g.appetite >= 0.1 && g.appetite <= 0.8);
+            assert!(g.resilience >= 0.2 && g.resilience <= 1.0);
+            assert!(g.hue >= 0.0 && g.hue <= 360.0);
+        }
+    }
+
+    #[test]
+    fn random_nyxal_within_ranges() {
+        for _ in 0..100 {
+            let g = Genome::random_for(Species::Nyxal);
+            assert!(g.curiosity >= 0.5 && g.curiosity <= 1.0, "curiosity={}", g.curiosity);
+            assert!(g.appetite >= 0.2 && g.appetite <= 0.7, "appetite={}", g.appetite);
+            assert!(g.resilience >= 0.1 && g.resilience <= 0.6, "resilience={}", g.resilience);
+        }
+    }
+
+    #[test]
+    fn all_species_produce_valid_genomes() {
+        let species = [Species::Moluun, Species::Pylum, Species::Skael, Species::Nyxal];
+        for sp in &species {
+            for _ in 0..50 {
+                let g = Genome::random_for(sp.clone());
+                assert!(g.loneliness_sensitivity >= 0.1 && g.loneliness_sensitivity <= 0.9);
+                assert!(g.circadian >= 0.0 && g.circadian <= 1.0);
+                assert!(g.learning_rate >= 0.1 && g.learning_rate <= 0.6);
+            }
+        }
+    }
+}

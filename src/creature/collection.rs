@@ -15,6 +15,7 @@ use bevy::prelude::*;
 
 use crate::genome::{Genome, Species};
 use crate::mind::Mind;
+use crate::creature::egg::EggData;
 use crate::persistence::plugin::DbConnection;
 use crate::persistence::load;
 
@@ -29,12 +30,13 @@ impl Plugin for MultiCreaturePlugin {
     }
 }
 
-/// A stored creature — genome + mind state.
+/// A stored creature — genome + mind state + egg data.
 #[derive(Debug, Clone)]
 pub struct StoredCreature {
     pub name: String,
     pub genome: Genome,
     pub mind: Mind,
+    pub egg: EggData,
 }
 
 /// Holds all creatures the player has. Index 0 = Moluun, 1 = Pylum, 2 = Skael.
@@ -78,32 +80,36 @@ fn init_collection(
 
     info!("No saved collection — creating fresh creatures");
 
-    // Moluun — use the persisted genome/mind (from legacy single-creature save)
+    // Moluun — use the persisted genome/mind (already hatched)
     collection.creatures.push(StoredCreature {
         name: "Moluun".to_string(),
         genome: genome.clone(),
         mind: mind.clone(),
+        egg: EggData { progress: 1.0, hatched: true },
     });
 
-    // Pylum — fresh random
+    // Pylum — starts as egg
     collection.creatures.push(StoredCreature {
         name: "Pylum".to_string(),
         genome: Genome::random_for(Species::Pylum),
         mind: Mind::new(),
+        egg: EggData::default(),
     });
 
-    // Skael — fresh random
+    // Skael — starts as egg
     collection.creatures.push(StoredCreature {
         name: "Skael".to_string(),
         genome: Genome::random_for(Species::Skael),
         mind: Mind::new(),
+        egg: EggData::default(),
     });
 
-    // Nyxal — fresh random
+    // Nyxal — starts as egg
     collection.creatures.push(StoredCreature {
         name: "Nyxal".to_string(),
         genome: Genome::random_for(Species::Nyxal),
         mind: Mind::new(),
+        egg: EggData::default(),
     });
 
     collection.active_index = 0;

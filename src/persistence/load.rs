@@ -88,6 +88,10 @@ fn load_mind(conn: &Connection) -> Result<Option<(Mind, i64)>> {
                 },
                 mood:      str_to_mood(&mood_str),
                 age_ticks: row.get(5)?,
+                pending_hunger: 0.0,
+                pending_happiness: 0.0,
+                pending_energy: 0.0,
+                mood_cooldown: 0,
             },
             last_session_end,
         ))
@@ -115,6 +119,7 @@ pub fn load_collection(conn: &Connection) -> Result<Option<Vec<crate::creature::
         let mood_str: String = row.get(14)?;
         Ok(crate::creature::collection::StoredCreature {
             name: row.get(1)?,
+            egg: crate::creature::egg::EggData { progress: 1.0, hatched: true },
             genome: Genome {
                 species: str_to_species(&species_str),
                 curiosity: row.get(3)?,
@@ -134,6 +139,10 @@ pub fn load_collection(conn: &Connection) -> Result<Option<Vec<crate::creature::
                 },
                 mood: str_to_mood(&mood_str),
                 age_ticks: row.get(15)?,
+                pending_hunger: 0.0,
+                pending_happiness: 0.0,
+                pending_energy: 0.0,
+                mood_cooldown: 0,
             },
         })
     })?.filter_map(|r| r.ok()).collect();

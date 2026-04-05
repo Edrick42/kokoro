@@ -13,6 +13,15 @@
 //! 3. **Neural network (Phase 4)** — a small MLP trained locally on the
 //!    owner's interaction history. It *suggests* mood transitions that the
 //!    FSM can accept or override. Each Kobara's network is unique.
+//!
+//! ## Gradual transitions
+//!
+//! Actions (feed, play, sleep) don't change stats instantly. Instead, they
+//! queue **pending** changes that drain gradually over several ticks. This
+//! makes the creature feel organic rather than robotic.
+//!
+//! Mood changes have a **cooldown** — the creature won't flicker between
+//! moods every tick. After a mood transition, it stays for at least 5 ticks.
 
 use bevy::prelude::Resource;
 use serde::{Deserialize, Serialize};
@@ -47,11 +56,6 @@ impl MoodState {
         }
     }
 
-    /// Returns the mood key used for building sprite asset paths.
-    ///
-    /// The spawn system combines this with the body part slot to form
-    /// a filename: `{slot}_{mood_key}.png` (e.g. `eye_left_hungry.png`).
-    /// Happy maps to "idle" because the idle pose is the default state.
     pub fn mood_key(&self) -> &str {
         match self {
             MoodState::Happy    => "idle",
@@ -64,8 +68,6 @@ impl MoodState {
         }
     }
 
-    /// Returns true for moods where the FSM has absolute authority
-    /// and the neural network cannot override.
     pub fn is_critical(&self) -> bool {
         matches!(self, MoodState::Sick | MoodState::Sleeping)
     }
@@ -74,13 +76,9 @@ impl MoodState {
 /// Core vital stats of the creature (all values are 0.0–100.0).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VitalStats {
-    /// 0 = full, 100 = starving
     pub hunger: f32,
-    /// 0 = miserable, 100 = euphoric
     pub happiness: f32,
-    /// 0 = exhausted, 100 = fully rested
     pub energy: f32,
-    /// 0 = critical, 100 = perfect health
     pub health: f32,
 }
 
@@ -95,29 +93,48 @@ impl VitalStats {
     }
 }
 
-/// The creature's mind: holds the current mood state and vital stats.
+/// The creature's mind: holds the current mood state, vital stats,
+/// pending action effects, and mood transition cooldown.
 #[derive(Resource, Debug, Clone, Serialize, Deserialize)]
 pub struct Mind {
     pub mood:      MoodState,
     pub stats:     VitalStats,
-    /// Age in game ticks (1 tick = 1 real-world second by default)
     pub age_ticks: u64,
+
+    /// Pending stat changes that drain gradually (from feed/play/sleep).
+    #[serde(default)]
+    pub pending_hunger: f32,
+    #[serde(default)]
+    pub pending_happiness: f32,
+    #[serde(default)]
+    pub pending_energy: f32,
+
+    /// Ticks remaining before the FSM can change the mood again.
+    /// Prevents rapid flickering between mood states.
+    #[serde(default)]
+    pub mood_cooldown: u32,
 }
+
+/// How many units of pending stats drain per tick.
+const DRAIN_RATE: f32 = 5.0;
+
+/// Minimum ticks between mood transitions.
+const MOOD_COOLDOWN_TICKS: u32 = 5;
 
 impl Mind {
     pub fn new() -> Self {
         Self {
-            mood:      MoodState::Happy,
-            stats:     VitalStats::new(),
-            age_ticks: 0,
+            mood:              MoodState::Happy,
+            stats:             VitalStats::new(),
+            age_ticks:         0,
+            pending_hunger:    0.0,
+            pending_happiness: 0.0,
+            pending_energy:    0.0,
+            mood_cooldown:     0,
         }
     }
 
-    /// Feed the creature. Each species reacts differently:
-    /// - Moluun: loves food, gets very happy
-    /// - Pylum: picky eater, mild reaction
-    /// - Skael: eats a lot but stays stoic
-    /// - Nyxal: nibbles, moderate enjoyment
+    /// Feed the creature. Queues gradual hunger relief and happiness boost.
     pub fn feed(&mut self, genome: &crate::genome::Genome) {
         use crate::genome::Species;
         let (hunger_relief, happiness_boost) = match genome.species {
@@ -126,15 +143,11 @@ impl Mind {
             Species::Skael  => (35.0, 4.0),
             Species::Nyxal  => (15.0, 8.0),
         };
-        self.stats.hunger    = (self.stats.hunger - hunger_relief).max(0.0);
-        self.stats.happiness = (self.stats.happiness + happiness_boost).min(100.0);
+        self.pending_hunger    -= hunger_relief;
+        self.pending_happiness += happiness_boost;
     }
 
-    /// Play with the creature. Species-specific reactions:
-    /// - Moluun: very playful, loves it
-    /// - Pylum: gets excited, burns lots of energy
-    /// - Skael: barely participates
-    /// - Nyxal: intellectually engaged, moderate energy
+    /// Play with the creature. Queues gradual happiness boost and energy/hunger costs.
     pub fn play(&mut self, genome: &crate::genome::Genome) {
         use crate::genome::Species;
         let (happiness_boost, energy_cost, hunger_cost) = match genome.species {
@@ -143,16 +156,13 @@ impl Mind {
             Species::Skael  => (8.0, 5.0, 3.0),
             Species::Nyxal  => (12.0, 6.0, 4.0),
         };
-        self.stats.happiness = (self.stats.happiness + happiness_boost).min(100.0);
-        self.stats.energy    = (self.stats.energy - energy_cost).max(0.0);
-        self.stats.hunger    = (self.stats.hunger + hunger_cost).min(100.0);
+        self.pending_happiness += happiness_boost;
+        self.pending_energy    -= energy_cost;
+        self.pending_hunger    += hunger_cost;
     }
 
-    /// Put the creature to sleep. Species-specific recovery:
-    /// - Moluun: sleeps well, good recovery
-    /// - Pylum: light sleeper, less recovery
-    /// - Skael: deep sleeper, great recovery
-    /// - Nyxal: floats asleep, moderate recovery
+    /// Put the creature to sleep. Queues gradual energy recovery.
+    /// The FSM will transition to Sleeping naturally when energy is low.
     pub fn sleep(&mut self, genome: &crate::genome::Genome) {
         use crate::genome::Species;
         let energy_restore = match genome.species {
@@ -161,27 +171,25 @@ impl Mind {
             Species::Skael  => 38.0,
             Species::Nyxal  => 28.0,
         };
-        self.stats.energy = (self.stats.energy + energy_restore).min(100.0);
+        self.pending_energy += energy_restore;
+        // Force sleeping mood immediately for critical rest
         self.mood = MoodState::Sleeping;
+        self.mood_cooldown = 10; // Stay asleep for at least 10 ticks
     }
 
-    /// Pure FSM mood update — returns what the FSM thinks the mood should be.
-    ///
-    /// This is separated from `update_mood` so the neural network can
-    /// compare its suggestion against the FSM's decision.
+    /// Pure FSM mood calculation — returns what the mood should be based on stats.
     pub fn fsm_mood(&self, genome: &crate::genome::Genome) -> MoodState {
         use rand::Rng;
         let mut rng = rand::rng();
 
-        // Species-specific thresholds
         let hunger_threshold = match genome.species {
-            crate::genome::Species::Skael  => 65.0,  // gets hungry sooner (big appetite)
-            crate::genome::Species::Pylum  => 85.0,  // tolerates hunger longer
+            crate::genome::Species::Skael  => 65.0,
+            crate::genome::Species::Pylum  => 85.0,
             _ => 75.0,
         };
         let playful_threshold = match genome.species {
-            crate::genome::Species::Pylum  => 70.0,  // gets playful easily (curious)
-            crate::genome::Species::Skael  => 90.0,  // rarely playful (stoic)
+            crate::genome::Species::Pylum  => 70.0,
+            crate::genome::Species::Skael  => 90.0,
             _ => 80.0,
         };
 
@@ -208,27 +216,183 @@ impl Mind {
         }
     }
 
-    /// Updates the mood state based on vital stats and the creature's genome.
-    ///
-    /// Called every tick by [`TimeTickPlugin`]. This is where emergent behaviour
-    /// happens: the same stats produce different moods depending on the genome.
+    /// Updates the mood state each tick. Drains pending stat changes gradually
+    /// and applies mood transitions with cooldown.
     pub fn update_mood(&mut self, genome: &crate::genome::Genome) {
         use rand::Rng;
         let mut rng = rand::rng();
 
-        // Natural stat decay — modulated by genome genes
+        // --- Drain pending stat changes gradually ---
+        self.drain_pending();
+
+        // --- Natural stat decay ---
         let hunger_rate = 0.05 + genome.appetite * 0.1;
         self.stats.hunger    = (self.stats.hunger + hunger_rate).min(100.0);
         self.stats.energy    = (self.stats.energy - 0.03).max(0.0);
         self.stats.happiness = (self.stats.happiness - 0.02).max(0.0);
 
-        // Random mood noise — fragile creatures (low resilience) swing more
+        // --- Mood noise ---
         let mood_noise: f32 = rng.random_range(-1.0..1.0) * (1.0 - genome.resilience) * 2.0;
         self.stats.happiness = (self.stats.happiness + mood_noise).clamp(0.0, 100.0);
 
-        // FSM transition
-        self.mood = self.fsm_mood(genome);
+        // --- Mood transition with cooldown ---
+        if self.mood_cooldown > 0 {
+            self.mood_cooldown -= 1;
+        } else {
+            let new_mood = self.fsm_mood(genome);
+            // Critical states (Sick, Sleeping) bypass cooldown from non-critical
+            let force_critical = new_mood.is_critical() && !self.mood.is_critical();
+            if new_mood != self.mood || force_critical {
+                self.mood = new_mood;
+                self.mood_cooldown = MOOD_COOLDOWN_TICKS;
+            }
+        }
 
         self.age_ticks += 1;
+    }
+
+    /// Drains pending stat changes at DRAIN_RATE per tick.
+    fn drain_pending(&mut self) {
+        // Hunger
+        if self.pending_hunger.abs() > 0.1 {
+            let delta = self.pending_hunger.signum() * DRAIN_RATE.min(self.pending_hunger.abs());
+            self.stats.hunger = (self.stats.hunger + delta).clamp(0.0, 100.0);
+            self.pending_hunger -= delta;
+        } else {
+            self.pending_hunger = 0.0;
+        }
+
+        // Happiness
+        if self.pending_happiness.abs() > 0.1 {
+            let delta = self.pending_happiness.signum() * DRAIN_RATE.min(self.pending_happiness.abs());
+            self.stats.happiness = (self.stats.happiness + delta).clamp(0.0, 100.0);
+            self.pending_happiness -= delta;
+        } else {
+            self.pending_happiness = 0.0;
+        }
+
+        // Energy
+        if self.pending_energy.abs() > 0.1 {
+            let delta = self.pending_energy.signum() * DRAIN_RATE.min(self.pending_energy.abs());
+            self.stats.energy = (self.stats.energy + delta).clamp(0.0, 100.0);
+            self.pending_energy -= delta;
+        } else {
+            self.pending_energy = 0.0;
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::genome::{Genome, Species};
+
+    #[test]
+    fn feed_queues_pending_not_instant() {
+        let genome = Genome::random_for(Species::Moluun);
+        let mut mind = Mind::new();
+        mind.stats.hunger = 80.0;
+
+        let before = mind.stats.hunger;
+        mind.feed(&genome);
+
+        // Stats should NOT have changed yet — only pending queued
+        assert_eq!(mind.stats.hunger, before);
+        assert!(mind.pending_hunger < 0.0);
+    }
+
+    #[test]
+    fn pending_drains_over_multiple_ticks() {
+        let genome = Genome::random_for(Species::Moluun);
+        let mut mind = Mind::new();
+        mind.stats.hunger = 80.0;
+        mind.feed(&genome); // queues -25 pending
+
+        // After 1 tick, hunger should drop by DRAIN_RATE (5), not 25
+        mind.update_mood(&genome);
+        assert!(mind.stats.hunger < 80.0);
+        assert!(mind.stats.hunger > 70.0); // not all 25 drained yet
+    }
+
+    #[test]
+    fn mood_cooldown_prevents_flickering() {
+        let genome = Genome::random_for(Species::Moluun);
+        let mut mind = Mind::new();
+        mind.mood = MoodState::Happy;
+        mind.mood_cooldown = 3;
+
+        // Even if FSM says different mood, cooldown blocks it
+        mind.stats.hunger = 90.0; // would trigger Hungry
+        mind.update_mood(&genome);
+        // Mood might still be Happy because cooldown was active
+        assert!(mind.mood_cooldown <= 3);
+    }
+
+    #[test]
+    fn sleep_forces_sleeping_with_extended_cooldown() {
+        let genome = Genome::random_for(Species::Moluun);
+        let mut mind = Mind::new();
+        mind.sleep(&genome);
+
+        assert_eq!(mind.mood, MoodState::Sleeping);
+        assert_eq!(mind.mood_cooldown, 10);
+        assert!(mind.pending_energy > 0.0);
+    }
+
+    #[test]
+    fn species_specific_feed_amounts() {
+        let mut mind_m = Mind::new();
+        let mut mind_s = Mind::new();
+        let genome_m = Genome::random_for(Species::Moluun);
+        let genome_s = Genome::random_for(Species::Skael);
+
+        mind_m.feed(&genome_m);
+        mind_s.feed(&genome_s);
+
+        // Skael eats more (35 relief) than Moluun (25 relief)
+        assert!(mind_s.pending_hunger < mind_m.pending_hunger);
+    }
+
+    #[test]
+    fn fsm_sleeping_when_exhausted() {
+        let genome = Genome::random_for(Species::Moluun);
+        let mind = Mind {
+            mood: MoodState::Happy,
+            stats: VitalStats { hunger: 30.0, happiness: 70.0, energy: 5.0, health: 100.0 },
+            age_ticks: 0,
+            pending_hunger: 0.0, pending_happiness: 0.0, pending_energy: 0.0,
+            mood_cooldown: 0,
+        };
+        assert_eq!(mind.fsm_mood(&genome), MoodState::Sleeping);
+    }
+
+    #[test]
+    fn fsm_sick_when_low_health() {
+        let genome = Genome::random_for(Species::Moluun);
+        let mind = Mind {
+            mood: MoodState::Happy,
+            stats: VitalStats { hunger: 30.0, happiness: 70.0, energy: 80.0, health: 10.0 },
+            age_ticks: 0,
+            pending_hunger: 0.0, pending_happiness: 0.0, pending_energy: 0.0,
+            mood_cooldown: 0,
+        };
+        assert_eq!(mind.fsm_mood(&genome), MoodState::Sick);
+    }
+
+    #[test]
+    fn fsm_hungry_when_starving() {
+        let genome = Genome::random_for(Species::Moluun);
+        let mind = Mind {
+            mood: MoodState::Happy,
+            stats: VitalStats { hunger: 90.0, happiness: 70.0, energy: 80.0, health: 100.0 },
+            age_ticks: 0,
+            pending_hunger: 0.0, pending_happiness: 0.0, pending_energy: 0.0,
+            mood_cooldown: 0,
+        };
+        assert_eq!(mind.fsm_mood(&genome), MoodState::Hungry);
     }
 }

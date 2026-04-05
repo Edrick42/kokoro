@@ -12,6 +12,7 @@ use bevy::prelude::*;
 
 use creature::{
     collection::MultiCreaturePlugin,
+    egg::EggPlugin,
     physics::PhysicsPlugin,
     spawn::CreatureVisualsPlugin,
 };
@@ -63,8 +64,8 @@ fn main() {
         .add_plugins(NeuralMindPlugin)
         // UI plugins
         .add_plugins((StatsPlugin, ActionsPlugin, VitalsPlugin))
-        // Creature lifecycle — collection management
-        .add_plugins(MultiCreaturePlugin)
+        // Creature lifecycle — collection management + egg incubation
+        .add_plugins((MultiCreaturePlugin, EggPlugin))
         // Physics — gravity, collision, buoyancy
         .add_plugins(PhysicsPlugin)
         // Visual plugins — effects, animation, evolution, accessories, organic behavior

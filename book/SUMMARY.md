@@ -204,6 +204,14 @@
   - Creating a new species: the complete step-by-step
   - Design principles for pixel art sprites
 
+- [Chapter 25c: Low-Poly Procedural Art](part-4/ch25c-lowpoly-pipeline.md) 🔮
+  - Evolving from pixel ellipses to faceted polygon geometry
+  - Triangle fill, facet shading, polygon outline algorithms
+  - Alien body plans: bipedal, quadruped, serpentine, insectoid, cephalopod
+  - Gene-driven vertex positions (each individual looks unique)
+  - Compound eyes as faceted gems, chromatophore color shifting
+  - Design principles for low-poly indie style
+
 - [Chapter 26: User Interface with Bevy UI](part-4/ch26-ui.md) 🔮
   - Bevy's UI system: `Node`, `Button`, flexbox layout
   - Collapsible menus and modal panels

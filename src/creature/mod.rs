@@ -1,4 +1,5 @@
 pub mod collection;
+pub mod egg;
 pub mod physics;
 #[allow(dead_code)]
 pub mod reproduction;

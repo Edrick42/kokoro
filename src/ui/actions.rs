@@ -10,7 +10,8 @@ use crate::mind::Mind;
 use crate::mind::training::build_event_payload;
 use crate::persistence::plugin::DbConnection;
 use crate::persistence::save;
-use crate::creature::collection::SelectSpeciesEvent;
+use crate::creature::collection::{CreatureCollection, SelectSpeciesEvent};
+use crate::creature::egg::EggTapEvent;
 
 /// Identifies which action a button triggers.
 #[derive(Component, Clone, Copy)]
@@ -195,15 +196,29 @@ fn sync_menu_visibility(
     }
 }
 
-/// Handles Feed/Play/Sleep button presses.
+/// Handles Feed/Play/Sleep button presses. If viewing an egg, any action warms it.
 fn handle_action_press(
     query: Query<(&Interaction, &ActionKind), Changed<Interaction>>,
     mut mind: ResMut<Mind>,
     genome: Res<Genome>,
     db: Res<DbConnection>,
+    collection: Res<CreatureCollection>,
+    mut egg_events: EventWriter<EggTapEvent>,
 ) {
     for (interaction, kind) in query.iter() {
         if *interaction != Interaction::Pressed {
+            continue;
+        }
+
+        // If viewing an egg, any action warms it instead
+        let is_egg = collection.creatures
+            .get(collection.active_index)
+            .map(|c| !c.egg.hatched)
+            .unwrap_or(false);
+
+        if is_egg {
+            egg_events.write(EggTapEvent);
+            info!("Player warms the egg");
             continue;
         }
 
@@ -223,7 +238,6 @@ fn handle_action_press(
         };
 
         info!("Player action: {action_label}");
-
 
         let payload = build_event_payload(&mind.stats, &mind.mood, event_type);
         let conn = db.0.lock().expect("DB lock poisoned");

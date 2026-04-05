@@ -1,312 +1,215 @@
 //! Kokoro — Nyxal (Abyssal Squid) Sprite Generator
 //!
-//! Generates modular pixel art sprites for the Nyxal species:
-//! bulbous mantle, large bioluminescent eyes, and four tentacles.
-//! Deep-sea palette with dark purples, bioluminescent accents.
-//!
+//! Stages: egg → cub → young → adult → elder
 //! Usage: cargo run --bin generate_nyxal_sprites
 
+#[allow(dead_code)]
 mod sprite_common;
 
 use image::Rgba;
 use sprite_common::*;
 use std::path::{Path, PathBuf};
 
-// --- Color palette — deep sea bioluminescence ---
-const BODY: Rgba<u8> = Rgba([95, 60, 130, 255]);
-const BODY_HI: Rgba<u8> = Rgba([120, 80, 155, 255]);
-const BODY_SH: Rgba<u8> = Rgba([70, 42, 105, 255]);
-const BODY_SH2: Rgba<u8> = Rgba([55, 32, 85, 255]);
-const MANTLE: Rgba<u8> = Rgba([85, 50, 120, 255]);
-const MANTLE_HI: Rgba<u8> = Rgba([110, 70, 145, 255]);
-const OUTLINE: Rgba<u8> = Rgba([25, 18, 40, 255]);
-const PUPIL: Rgba<u8> = Rgba([15, 15, 30, 255]);
-const EYE_GLOW: Rgba<u8> = Rgba([40, 180, 200, 255]);
-const EYE_GLOW_HI: Rgba<u8> = Rgba([80, 220, 240, 255]);
-const TENTACLE: Rgba<u8> = Rgba([100, 65, 140, 255]);
-const TENTACLE_TIP: Rgba<u8> = Rgba([50, 170, 180, 255]);
-const TEAR: Rgba<u8> = Rgba([100, 160, 220, 255]);
+macro_rules! col {
+    ($name:ident, $r:expr, $g:expr, $b:expr) => {
+        #[allow(dead_code)] const $name: Rgba<u8> = Rgba([$r, $g, $b, 255]);
+    };
+}
+col!(BODY,          95,  60, 130);
+col!(BODY_HI,     120,  80, 155);
+col!(BODY_SH,      70,  42, 105);
+col!(MANTLE,        85,  50, 120);
+col!(OUTLINE,       25,  18,  40);
+col!(PUPIL,         15,  15,  30);
+col!(EYE_GLOW,      40, 180, 200);
+col!(TENTACLE,     100,  65, 140);
+col!(TENTACLE_TIP,  50, 170, 180);
+col!(TEAR,         100, 160, 220);
+col!(EGG_BASE,     130, 100, 160);
+col!(EGG_SPOT,     100,  80, 140);
 
-fn out_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("assets")
-        .join("sprites")
-        .join("nyxal")
+fn base_dir() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("assets").join("sprites").join("nyxal")
 }
 
-// ---------------------------------------------------------------------------
-// Body — bulbous, soft squid body
-// ---------------------------------------------------------------------------
-
-fn gen_body(dir: &Path) {
-    let (w, h) = (50, 50);
-    let mut img = new_canvas(w, h);
-    let (cx, cy) = (25.0_f32, 24.0_f32);
-
-    // Main body — slightly wider than tall, squid-like
-    let body = ellipse_pixels(cx, cy, 17.0, 15.0);
-
-    let top = cy - 15.0;
-    let bot = cy + 15.0;
-    let span = bot - top;
-
-    for &(x, y) in &body {
-        let t = (y as f32 - top) / span;
-        let dx = ((x as f32 - cx) / 17.0).abs().min(1.0);
-
-        let mut c = if t < 0.2 {
-            lerp(BODY_HI, BODY, t / 0.2)
-        } else if t < 0.5 {
-            BODY
-        } else if t < 0.75 {
-            lerp(BODY, BODY_SH, (t - 0.5) / 0.25)
-        } else {
-            lerp(BODY_SH, BODY_SH2, (t - 0.75) / 0.25)
-        };
-
-        if dx > 0.6 {
-            let edge_t = (dx - 0.6) / 0.4;
-            c = lerp(c, BODY_SH, edge_t * 0.5);
-        }
-
-        put(&mut img, x, y, c);
+fn gen_egg(dir: &Path) {
+    let (w, h) = (200, 200);
+    let mut img = new_canvas(w as u32, h as u32);
+    let (cx, cy) = (100.0, 100.0);
+    // Roe cluster — multiple small spheres
+    for &(sx, sy, r) in &[
+        (cx, cy, 35.0), (cx - 25.0, cy - 20.0, 22.0), (cx + 25.0, cy - 15.0, 20.0),
+        (cx - 15.0, cy + 25.0, 18.0), (cx + 20.0, cy + 22.0, 16.0),
+    ] {
+        let verts: Vec<(f32, f32)> = (0..8).map(|i| {
+            let a = i as f32 * std::f32::consts::TAU / 8.0;
+            (sx + a.cos() * r, sy + a.sin() * r)
+        }).collect();
+        smooth_shade(&mut img, &verts, (sx, sy), EGG_BASE, (-0.3, -1.0));
+        flood_outline(&mut img, &polygon_pixels(&verts), OUTLINE);
     }
-
-    // Specular highlight
-    let hi_pts = ellipse_pixels(cx - 4.0, cy - 7.0, 4.0, 2.5);
-    for &(x, y) in &hi_pts {
-        if body.contains(&(x, y)) {
-            let existing = *img.get_pixel(x as u32, y as u32);
-            put(&mut img, x, y, lerp(existing, BODY_HI, 0.5));
-        }
-    }
-
-    flood_outline(&mut img, &body, OUTLINE);
-    save(&img, "body_idle.png", dir);
+    save_raw(&img, "body_idle.png", dir);
 }
 
-// ---------------------------------------------------------------------------
-// Mantle — dome-shaped top piece
-// ---------------------------------------------------------------------------
+fn gen_cub_body(dir: &Path) {
+    let (w, h) = (240, 260);
+    let mut img = new_canvas(w as u32, h as u32);
+    let (cx, cy) = (120.0, 105.0);
+    // Soft round body
+    let verts = vec![
+        (cx, cy - 70.0), (cx + 45.0, cy - 60.0), (cx + 70.0, cy - 10.0),
+        (cx + 65.0, cy + 35.0), (cx + 35.0, cy + 60.0), (cx, cy + 65.0),
+        (cx - 35.0, cy + 60.0), (cx - 65.0, cy + 35.0), (cx - 70.0, cy - 10.0),
+        (cx - 45.0, cy - 60.0),
+    ];
+    smooth_shade(&mut img, &verts, (cx, cy), BODY, (-0.4, -0.9));
+    // 2 stub tentacles
+    let tl = [(cx - 20.0, cy + 63.0), (cx - 8.0, cy + 63.0), (cx - 12.0, cy + 100.0), (cx - 18.0, cy + 100.0)];
+    let tr = [(cx + 8.0, cy + 63.0), (cx + 20.0, cy + 63.0), (cx + 18.0, cy + 100.0), (cx + 12.0, cy + 100.0)];
+    smooth_shade(&mut img, &tl, (cx - 14.0, cy + 80.0), TENTACLE, (0.0, -1.0));
+    smooth_shade(&mut img, &tr, (cx + 14.0, cy + 80.0), TENTACLE, (0.0, -1.0));
+    // Glow tips
+    let tip_l = diamond_pixels(cx - 15.0, cy + 98.0, 4.0, 3.0);
+    let tip_r = diamond_pixels(cx + 15.0, cy + 98.0, 4.0, 3.0);
+    px_set(&mut img, &tip_l, TENTACLE_TIP); px_set(&mut img, &tip_r, TENTACLE_TIP);
 
-fn gen_mantle(dir: &Path) {
-    let (w, h) = (30, 22);
-    let mut img = new_canvas(w, h);
-
-    let dome = ellipse_pixels(15.0, 12.0, 12.0, 9.0);
-    for &(x, y) in &dome {
-        let t = (y as f32 - 3.0) / 18.0;
-        let c = if t < 0.3 {
-            lerp(MANTLE_HI, MANTLE, t / 0.3)
-        } else {
-            lerp(MANTLE, BODY_SH, (t - 0.3) / 0.7)
-        };
-        put(&mut img, x, y, c);
-    }
-
-    // Small highlight
-    let hi = ellipse_pixels(12.0, 8.0, 3.0, 2.0);
-    for &(x, y) in &hi {
-        if dome.contains(&(x, y)) {
-            put(&mut img, x, y, MANTLE_HI);
-        }
-    }
-
-    flood_outline(&mut img, &dome, OUTLINE);
-    save(&img, "mantle_idle.png", dir);
+    let body = polygon_pixels(&verts);
+    let all: Shape = body.iter().chain(&polygon_pixels(&tl)).chain(&polygon_pixels(&tr)).copied().collect();
+    flood_outline(&mut img, &all, OUTLINE);
+    save_raw(&img, "body_idle.png", dir);
 }
 
-// ---------------------------------------------------------------------------
-// Eyes — large, bioluminescent
-// ---------------------------------------------------------------------------
+fn gen_adult_body(dir: &Path) {
+    let (w, h) = (320, 380);
+    let mut img = new_canvas(w as u32, h as u32);
+    let cx = 160.0;
+    // Mantle dome
+    let mantle = vec![
+        (cx, 10.0), (cx + 40.0, 15.0), (cx + 55.0, 40.0),
+        (cx + 50.0, 65.0), (cx, 75.0),
+        (cx - 50.0, 65.0), (cx - 55.0, 40.0), (cx - 40.0, 15.0),
+    ];
+    smooth_shade(&mut img, &mantle, (cx, 42.0), MANTLE, (-0.3, -1.0));
+    // Body
+    let body = vec![
+        (cx + 50.0, 70.0), (cx + 65.0, 100.0), (cx + 60.0, 140.0),
+        (cx + 40.0, 165.0), (cx, 175.0),
+        (cx - 40.0, 165.0), (cx - 60.0, 140.0), (cx - 65.0, 100.0),
+        (cx - 50.0, 70.0),
+    ];
+    smooth_shade(&mut img, &body, (cx, 120.0), BODY, (-0.4, -0.9));
+    // 4 tentacles
+    let tentacles: Vec<([(f32, f32); 4], f32)> = vec![
+        ([(cx - 30.0, 170.0), (cx - 18.0, 170.0), (cx - 20.0, 280.0), (cx - 28.0, 280.0)], cx - 24.0),
+        ([(cx + 18.0, 170.0), (cx + 30.0, 170.0), (cx + 28.0, 280.0), (cx + 20.0, 280.0)], cx + 24.0),
+        ([(cx - 50.0, 160.0), (cx - 38.0, 160.0), (cx - 42.0, 260.0), (cx - 48.0, 260.0)], cx - 45.0),
+        ([(cx + 38.0, 160.0), (cx + 50.0, 160.0), (cx + 48.0, 260.0), (cx + 42.0, 260.0)], cx + 45.0),
+    ];
+    for (tv, tcx) in &tentacles {
+        smooth_shade(&mut img, tv, (*tcx, 220.0), TENTACLE, (0.0, -1.0));
+        // Glow tip
+        let tip_y = tv[2].1 - 3.0;
+        let tip = diamond_pixels(*tcx, tip_y, 4.0, 3.0);
+        px_set(&mut img, &tip, TENTACLE_TIP);
+    }
 
-struct EyeParams {
-    lid_rows: i32,
-    pupil_size: i32,
-    glow: bool,
-    tear: bool,
-    sparkle: bool,
-    squint: bool,
+    let mantle_s = polygon_pixels(&mantle);
+    let body_s = polygon_pixels(&body);
+    let mut all: Shape = mantle_s.iter().chain(&body_s).copied().collect();
+    for (tv, _) in &tentacles { all.extend(&polygon_pixels(tv)); }
+    flood_outline(&mut img, &all, OUTLINE);
+    save_raw(&img, "body_idle.png", dir);
 }
 
-impl Default for EyeParams {
-    fn default() -> Self {
-        EyeParams {
-            lid_rows: 0,
-            pupil_size: 3,
-            glow: true,
-            tear: false,
-            sparkle: false,
-            squint: false,
-        }
-    }
-}
-
-fn gen_eye(p: &EyeParams) -> image::RgbaImage {
-    let (w, h) = (14, 12);
-    let mut img = new_canvas(w, h);
-    let (cx, cy) = (7.0_f32, 6.0_f32);
-
-    // Eye globe — large, round
-    let ry = if p.squint { 3.0 } else { 4.5 };
-    let globe = ellipse_pixels(cx, cy, 5.0, ry);
-
-    // Fill with glow gradient
-    for &(x, y) in &globe {
-        let dist = (((x as f32 - cx).powi(2) + (y as f32 - cy).powi(2)).sqrt()) / 5.0;
-        let c = if p.glow {
-            lerp(EYE_GLOW_HI, EYE_GLOW, dist.min(1.0))
-        } else {
-            lerp(Rgba([180, 180, 190, 255]), Rgba([140, 140, 155, 255]), dist.min(1.0))
-        };
-        put(&mut img, x, y, c);
-    }
-
-    // Pupil — vertical slit (squid-like)
-    let pcx = cx as i32;
-    let pcy = cy as i32;
-    let ps = p.pupil_size;
-    for dy in -(ps)..=(ps) {
-        put(&mut img, pcx, pcy + dy, PUPIL);
-    }
-
-    // Upper eyelid
-    for row in 0..p.lid_rows {
-        for x in (cx as i32 - 5)..=(cx as i32 + 5) {
-            if globe.contains(&(x, cy as i32 - 4 + row)) {
-                put(&mut img, x, cy as i32 - 4 + row, OUTLINE);
+fn gen_eyes(dir: &Path, size: u32, hw: f32, hh: f32) {
+    for mood in ["idle", "happy", "hungry", "tired", "lonely", "playful", "sick"] {
+        let squint = mood == "tired" || mood == "sick";
+        let glow = mood == "idle" || mood == "playful" || mood == "happy";
+        let tear = mood == "lonely";
+        let h = if squint { hh * 0.5 } else { hh };
+        let mut img = new_canvas(size, size);
+        let c = size as f32 / 2.0;
+        let eye = diamond_pixels(c, c, hw, h);
+        let color = if glow { EYE_GLOW } else { PUPIL };
+        px_set(&mut img, &eye, color);
+        // Thick slit pupil when glowing (2px wide)
+        if glow {
+            for dy in -(h as i32)..=(h as i32) {
+                for dx in 0..=1 {
+                    let pos = (c as i32 + dx, c as i32 + dy);
+                    let neg = (c as i32 - dx, c as i32 + dy);
+                    if eye.contains(&pos) { put(&mut img, pos.0, pos.1, PUPIL); }
+                    if eye.contains(&neg) { put(&mut img, neg.0, neg.1, PUPIL); }
+                }
             }
         }
+        if tear { let t = ellipse_pixels(c + hw + 2.0, c + hh * 0.3, 2.0, 3.0); px_set(&mut img, &t, TEAR); }
+        save_raw(&img, &format!("eye_left_{mood}.png"), dir);
+        save_raw(&flip_h(&img), &format!("eye_right_{mood}.png"), dir);
     }
-
-    // Sparkle
-    if p.sparkle {
-        put(&mut img, pcx - 2, pcy - 2, Rgba([255, 255, 255, 255]));
-    }
-
-    // Tear
-    if p.tear {
-        let tear_pts = ellipse_pixels(cx + 2.0, cy + 5.0, 1.5, 2.0);
-        px_set(&mut img, &tear_pts, TEAR);
-    }
-
-    flood_outline(&mut img, &globe, OUTLINE);
-    img
+    let mut closed = new_canvas(size, size / 2);
+    let c2 = size as f32 / 2.0;
+    px_set(&mut closed, &diamond_pixels(c2, size as f32 / 4.0, hw, 2.0), OUTLINE);
+    save_raw(&closed, "eye_left_sleeping.png", dir);
+    save_raw(&flip_h(&closed), "eye_right_sleeping.png", dir);
 }
 
-fn gen_eyes(dir: &Path) {
-    // Idle — open, glowing
-    let idle = gen_eye(&EyeParams { sparkle: true, ..Default::default() });
-    save(&idle, "eye_left_idle.png", dir);
-    save(&flip_h(&idle), "eye_right_idle.png", dir);
-
-    // Hungry — half-lidded, dimmer
-    let hungry = gen_eye(&EyeParams { lid_rows: 2, glow: false, ..Default::default() });
-    save(&hungry, "eye_left_hungry.png", dir);
-    save(&flip_h(&hungry), "eye_right_hungry.png", dir);
-
-    // Tired — squinting
-    let tired = gen_eye(&EyeParams { squint: true, lid_rows: 1, glow: false, ..Default::default() });
-    save(&tired, "eye_left_tired.png", dir);
-    save(&flip_h(&tired), "eye_right_tired.png", dir);
-
-    // Lonely — teary
-    let lonely = gen_eye(&EyeParams { tear: true, ..Default::default() });
-    save(&lonely, "eye_left_lonely.png", dir);
-    save(&flip_h(&lonely), "eye_right_lonely.png", dir);
-
-    // Playful — wide, bright
-    let playful = gen_eye(&EyeParams { sparkle: true, pupil_size: 2, ..Default::default() });
-    save(&playful, "eye_left_playful.png", dir);
-    save(&flip_h(&playful), "eye_right_playful.png", dir);
-
-    // Sick — dim, no glow
-    let sick = gen_eye(&EyeParams { glow: false, pupil_size: 4, ..Default::default() });
-    save(&sick, "eye_left_sick.png", dir);
-    save(&flip_h(&sick), "eye_right_sick.png", dir);
-
-    // Sleeping — closed
-    let (w, h) = (14, 12);
-    let mut closed = new_canvas(w, h);
-    let cy = 6;
-    for x in 3..=11 {
-        put(&mut closed, x, cy, OUTLINE);
-        put(&mut closed, x, cy + 1, OUTLINE);
-    }
-    save(&closed, "eye_left_sleeping.png", dir);
-    save(&flip_h(&closed), "eye_right_sleeping.png", dir);
+fn gen_mantle(dir: &Path, size: u32) {
+    let s = size as f32;
+    let mut img = new_canvas(size, (s * 0.75) as u32);
+    let verts = vec![
+        (s * 0.5, s * 0.05), (s * 0.8, s * 0.15), (s * 0.9, s * 0.4),
+        (s * 0.85, s * 0.65), (s * 0.15, s * 0.65), (s * 0.1, s * 0.4),
+        (s * 0.2, s * 0.15),
+    ];
+    smooth_shade(&mut img, &verts, (s * 0.5, s * 0.4), MANTLE, (-0.3, -1.0));
+    flood_outline(&mut img, &polygon_pixels(&verts), OUTLINE);
+    save_raw(&img, "mantle_idle.png", dir);
 }
 
-// ---------------------------------------------------------------------------
-// Tentacles — tapered with bioluminescent tips
-// ---------------------------------------------------------------------------
+fn gen_tentacles(dir: &Path, size: u32) {
+    let s = size as f32;
+    // Front tentacle
+    let mut img = new_canvas(size, (s * 2.5) as u32);
+    let verts = [(s * 0.3, 2.0), (s * 0.7, 2.0), (s * 0.6, s * 1.8), (s * 0.5, s * 2.2), (s * 0.4, s * 1.8)];
+    smooth_shade(&mut img, &verts, (s * 0.5, s * 1.1), TENTACLE, (0.0, -1.0));
+    let tip = diamond_pixels(s * 0.5, s * 2.1, s * 0.12, s * 0.1);
+    px_set(&mut img, &tip, TENTACLE_TIP);
+    flood_outline(&mut img, &polygon_pixels(&verts), OUTLINE);
+    save_raw(&img, "tentacle_front_left_idle.png", dir);
+    save_raw(&flip_h(&img), "tentacle_front_right_idle.png", dir);
 
-fn gen_tentacles(dir: &Path) {
-    let (w, h) = (12, 32);
-
-    // Front tentacle — shorter, thicker
-    let mut front = new_canvas(w, h);
-    let mut front_pts = Shape::new();
-    for y in 0..28 {
-        let t = y as f32 / 28.0;
-        let half_w = (4.0 * (1.0 - t * 0.5)) as i32; // tapers
-        let cx = 6;
-        for x in (cx - half_w)..=(cx + half_w) {
-            let c = if t > 0.75 {
-                lerp(TENTACLE, TENTACLE_TIP, (t - 0.75) / 0.25)
-            } else {
-                lerp(TENTACLE, BODY_SH, t * 0.3)
-            };
-            put(&mut front, x, y, c);
-            front_pts.insert((x, y));
-        }
-    }
-    flood_outline(&mut front, &front_pts, OUTLINE);
-    save(&front, "tentacle_front_left_idle.png", dir);
-    save(&flip_h(&front), "tentacle_front_right_idle.png", dir);
-
-    // Back tentacle — longer, thinner
-    let mut back = new_canvas(w, h);
-    let mut back_pts = Shape::new();
-    for y in 0..30 {
-        let t = y as f32 / 30.0;
-        let half_w = (3.0 * (1.0 - t * 0.6)) as i32;
-        let cx = 6;
-        for x in (cx - half_w)..=(cx + half_w) {
-            let c = if t > 0.8 {
-                lerp(TENTACLE, TENTACLE_TIP, (t - 0.8) / 0.2)
-            } else {
-                lerp(TENTACLE, BODY_SH, t * 0.4)
-            };
-            put(&mut back, x, y, c);
-            back_pts.insert((x, y));
-        }
-    }
-    flood_outline(&mut back, &back_pts, OUTLINE);
-    save(&back, "tentacle_back_left_idle.png", dir);
-    save(&flip_h(&back), "tentacle_back_right_idle.png", dir);
+    // Back tentacle — longer
+    let mut img2 = new_canvas(size, (s * 2.8) as u32);
+    let verts2 = [(s * 0.35, 2.0), (s * 0.65, 2.0), (s * 0.58, s * 2.0), (s * 0.5, s * 2.5), (s * 0.42, s * 2.0)];
+    smooth_shade(&mut img2, &verts2, (s * 0.5, s * 1.3), TENTACLE, (0.0, -1.0));
+    let tip2 = diamond_pixels(s * 0.5, s * 2.4, s * 0.1, s * 0.08);
+    px_set(&mut img2, &tip2, TENTACLE_TIP);
+    flood_outline(&mut img2, &polygon_pixels(&verts2), OUTLINE);
+    save_raw(&img2, "tentacle_back_left_idle.png", dir);
+    save_raw(&flip_h(&img2), "tentacle_back_right_idle.png", dir);
 }
-
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
 
 fn main() {
-    let dir = out_dir();
-    std::fs::create_dir_all(&dir).expect("Failed to create nyxal sprite directory");
-    println!("Generating Nyxal sprites -> {}\n", dir.display());
+    let base = base_dir();
+    let egg = base.join("egg"); let cub = base.join("cub"); let young = base.join("young");
+    let adult = base.join("adult"); let elder = base.join("elder");
 
-    println!("[Body]");
-    gen_body(&dir);
+    println!("Generating Nyxal sprites (all stages)\n");
 
-    println!("\n[Mantle]");
-    gen_mantle(&dir);
+    println!("=== Egg ==="); gen_egg(&egg);
+    println!("\n=== Cub ==="); gen_cub_body(&cub);
+    gen_eyes(&cub, 38, 14.0, 14.0); gen_mantle(&cub, 40); gen_tentacles(&cub, 16);
+    println!("\n=== Young ==="); gen_cub_body(&young);
+    gen_eyes(&young, 34, 12.0, 13.0); gen_mantle(&young, 44); gen_tentacles(&young, 18);
+    println!("\n=== Adult ==="); gen_adult_body(&adult);
+    gen_eyes(&adult, 30, 10.0, 11.0); gen_mantle(&adult, 48); gen_tentacles(&adult, 20);
+    println!("\n=== Elder ==="); gen_adult_body(&elder);
+    gen_eyes(&elder, 30, 10.0, 11.0); gen_mantle(&elder, 48); gen_tentacles(&elder, 20);
 
-    println!("\n[Eyes — all moods]");
-    gen_eyes(&dir);
-
-    println!("\n[Tentacles]");
-    gen_tentacles(&dir);
-
-    println!("\nDone! All sprites saved.");
+    // Clean old root sprites
+    for entry in std::fs::read_dir(&base).unwrap().flatten() {
+        if entry.path().extension().map(|e| e == "png").unwrap_or(false) { std::fs::remove_file(entry.path()).ok(); }
+    }
+    println!("\nDone!");
 }

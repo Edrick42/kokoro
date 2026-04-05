@@ -40,6 +40,10 @@ pub enum GrowthStage {
 }
 
 impl GrowthStage {
+    pub fn from_age_pub(age: u64) -> Self {
+        Self::from_age(age)
+    }
+
     fn from_age(age: u64) -> Self {
         match age {
             0..500      => GrowthStage::Baby,
@@ -55,6 +59,17 @@ impl GrowthStage {
             GrowthStage::Child => 0.8,
             GrowthStage::Adult => 1.0,
             GrowthStage::Elder => 0.95,
+        }
+    }
+
+    /// Returns the sprite subdirectory for this growth stage.
+    /// Falls back to the base species directory if no stage-specific sprites exist.
+    pub fn sprite_subdir(&self) -> Option<&'static str> {
+        match self {
+            GrowthStage::Baby  => Some("cub"),
+            GrowthStage::Child => Some("young"),
+            GrowthStage::Adult => Some("adult"),
+            GrowthStage::Elder => Some("elder"),
         }
     }
 

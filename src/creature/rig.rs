@@ -238,11 +238,9 @@ impl BodyRig {
 /// ```
 pub fn moluun_rig() -> BodyRig {
     BodyRig {
-        // Bounding box matches rendered sprite scale.
-        // Body sprite is 52px * 8x scale = 416px. Height accounts for
-        // ears on top and feet on bottom.
-        // Values measured from idle_00.png reference.
-        base_size: Vec2::new(416.0, 365.0),
+        // Bounding box matches the adult stage sprite dimensions.
+        // Other stages (cub, young) are scaled by the evolution system.
+        base_size: Vec2::new(320.0, 360.0),
 
         anchors: vec![
             // --- Body (center, behind everything) ---
@@ -254,17 +252,16 @@ pub fn moluun_rig() -> BodyRig {
                 mirror_of: None,
             },
 
-            // --- Left ear (top-left, behind body) ---
+            // --- Left ear (just above the body, tucked close) ---
             AnchorPoint {
                 slot: "ear_left".into(),
-                base_pos: Vec2::new(-0.40, 0.88),
+                base_pos: Vec2::new(-0.25, 0.55),
                 z_depth: -0.1,
                 gene_offsets: vec![
-                    // Curious creatures have ears slightly more spread apart
                     GeneOffset {
                         gene: GeneTrait::Curiosity,
                         axis: Axis::X,
-                        range: (0.0, -0.06),
+                        range: (0.0, -0.04),
                     },
                 ],
                 mirror_of: None,
@@ -273,30 +270,27 @@ pub fn moluun_rig() -> BodyRig {
             // --- Right ear (mirrors left ear) ---
             AnchorPoint {
                 slot: "ear_right".into(),
-                base_pos: Vec2::new(0.40, 0.88),
+                base_pos: Vec2::ZERO,
                 z_depth: -0.1,
                 gene_offsets: vec![],
                 mirror_of: Some("ear_left".into()),
             },
 
-            // --- Left eye (above center, in front) ---
-            // Measured from idle_00.png: ±0.385 X, 0.364 Y
+            // --- Left eye (on the face, ~1/3 up from center) ---
             AnchorPoint {
                 slot: "eye_left".into(),
-                base_pos: Vec2::new(-0.38, 0.36),
+                base_pos: Vec2::new(-0.20, 0.18),
                 z_depth: 1.0,
                 gene_offsets: vec![
-                    // Curiosity widens eye spacing
                     GeneOffset {
                         gene: GeneTrait::Curiosity,
                         axis: Axis::X,
-                        range: (0.05, -0.08),
+                        range: (0.02, -0.04),
                     },
-                    // Resilience raises eyes slightly (confident look)
                     GeneOffset {
                         gene: GeneTrait::Resilience,
                         axis: Axis::Y,
-                        range: (-0.02, 0.04),
+                        range: (-0.01, 0.02),
                     },
                 ],
                 mirror_of: None,
@@ -305,17 +299,16 @@ pub fn moluun_rig() -> BodyRig {
             // --- Right eye (mirrors left eye) ---
             AnchorPoint {
                 slot: "eye_right".into(),
-                base_pos: Vec2::new(0.38, 0.36),
+                base_pos: Vec2::ZERO,
                 z_depth: 1.0,
                 gene_offsets: vec![],
                 mirror_of: Some("eye_left".into()),
             },
 
-            // --- Mouth (below center, in front) ---
+            // --- Mouth (on the face, between eyes and center) ---
             AnchorPoint {
                 slot: "mouth".into(),
-                // Measured from idle_00.png: nearly centered (0.026)
-                base_pos: Vec2::new(0.0, 0.03),
+                base_pos: Vec2::new(0.0, 0.05),
                 z_depth: 1.0,
                 gene_offsets: vec![
                     // Appetite shifts mouth down slightly (bigger mouth for hungry genes)
@@ -353,7 +346,7 @@ pub fn moluun_rig() -> BodyRig {
 pub fn pylum_rig() -> BodyRig {
     BodyRig {
         // Pylum are slightly taller and narrower than Moluun
-        base_size: Vec2::new(380.0, 420.0),
+        base_size: Vec2::new(320.0, 340.0),
 
         anchors: vec![
             // --- Body (center) ---
@@ -368,7 +361,7 @@ pub fn pylum_rig() -> BodyRig {
             // --- Left wing (replaces ear, wider and lower) ---
             AnchorPoint {
                 slot: "wing_left".into(),
-                base_pos: Vec2::new(-0.65, 0.15),
+                base_pos: Vec2::new(-0.38, 0.05),
                 z_depth: -0.1,
                 gene_offsets: vec![
                     GeneOffset {
@@ -388,7 +381,7 @@ pub fn pylum_rig() -> BodyRig {
             // --- Right wing (mirrors left) ---
             AnchorPoint {
                 slot: "wing_right".into(),
-                base_pos: Vec2::new(0.65, 0.15),
+                base_pos: Vec2::ZERO,
                 z_depth: -0.1,
                 gene_offsets: vec![],
                 mirror_of: Some("wing_left".into()),
@@ -397,7 +390,7 @@ pub fn pylum_rig() -> BodyRig {
             // --- Left eye (side-facing, for panoramic bird vision) ---
             AnchorPoint {
                 slot: "eye_left".into(),
-                base_pos: Vec2::new(-0.30, 0.32),
+                base_pos: Vec2::new(-0.20, 0.20),
                 z_depth: 1.0,
                 gene_offsets: vec![
                     GeneOffset {
@@ -412,7 +405,7 @@ pub fn pylum_rig() -> BodyRig {
             // --- Right eye (mirrors left) ---
             AnchorPoint {
                 slot: "eye_right".into(),
-                base_pos: Vec2::new(0.30, 0.32),
+                base_pos: Vec2::new(0.20, 0.20),
                 z_depth: 1.0,
                 gene_offsets: vec![],
                 mirror_of: Some("eye_left".into()),
@@ -436,13 +429,13 @@ pub fn pylum_rig() -> BodyRig {
             // --- Tail (bottom, behind body) ---
             AnchorPoint {
                 slot: "tail".into(),
-                base_pos: Vec2::new(0.0, -0.75),
+                base_pos: Vec2::new(0.0, -0.38),
                 z_depth: -0.2,
                 gene_offsets: vec![
                     GeneOffset {
                         gene: GeneTrait::Resilience,
                         axis: Axis::Y,
-                        range: (0.0, -0.08),
+                        range: (0.0, -0.05),
                     },
                 ],
                 mirror_of: None,
@@ -475,7 +468,7 @@ pub fn pylum_rig() -> BodyRig {
 pub fn skael_rig() -> BodyRig {
     BodyRig {
         // Skael are taller and narrower — elongated reptilian body
-        base_size: Vec2::new(340.0, 460.0),
+        base_size: Vec2::new(300.0, 380.0),
 
         anchors: vec![
             // --- Body (center) ---
@@ -490,7 +483,7 @@ pub fn skael_rig() -> BodyRig {
             // --- Left crest/horn (replaces ear, pointed, higher) ---
             AnchorPoint {
                 slot: "crest_left".into(),
-                base_pos: Vec2::new(-0.28, 0.82),
+                base_pos: Vec2::new(-0.20, 0.45),
                 z_depth: -0.1,
                 gene_offsets: vec![
                     GeneOffset {
@@ -510,7 +503,7 @@ pub fn skael_rig() -> BodyRig {
             // --- Right crest (mirrors left) ---
             AnchorPoint {
                 slot: "crest_right".into(),
-                base_pos: Vec2::new(0.28, 0.82),
+                base_pos: Vec2::ZERO,
                 z_depth: -0.1,
                 gene_offsets: vec![],
                 mirror_of: Some("crest_left".into()),
@@ -519,7 +512,7 @@ pub fn skael_rig() -> BodyRig {
             // --- Left eye (forward-facing predator, close together) ---
             AnchorPoint {
                 slot: "eye_left".into(),
-                base_pos: Vec2::new(-0.20, 0.35),
+                base_pos: Vec2::new(-0.18, 0.22),
                 z_depth: 1.0,
                 gene_offsets: vec![
                     GeneOffset {
@@ -539,7 +532,7 @@ pub fn skael_rig() -> BodyRig {
             // --- Right eye (mirrors left) ---
             AnchorPoint {
                 slot: "eye_right".into(),
-                base_pos: Vec2::new(0.20, 0.35),
+                base_pos: Vec2::new(0.18, 0.22),
                 z_depth: 1.0,
                 gene_offsets: vec![],
                 mirror_of: Some("eye_left".into()),
@@ -563,7 +556,7 @@ pub fn skael_rig() -> BodyRig {
             // --- Tail (bottom, thick) ---
             AnchorPoint {
                 slot: "tail".into(),
-                base_pos: Vec2::new(0.0, -0.80),
+                base_pos: Vec2::new(0.0, -0.40),
                 z_depth: -0.2,
                 gene_offsets: vec![
                     GeneOffset {
@@ -589,7 +582,7 @@ pub fn skael_rig() -> BodyRig {
 /// predator). Tentacles are mirrored front/back pairs.
 pub fn nyxal_rig() -> BodyRig {
     BodyRig {
-        base_size: Vec2::new(360.0, 440.0),
+        base_size: Vec2::new(320.0, 380.0),
         anchors: vec![
             // --- Body (central mass) ---
             AnchorPoint {
@@ -603,7 +596,7 @@ pub fn nyxal_rig() -> BodyRig {
             // --- Mantle (top, behind body) ---
             AnchorPoint {
                 slot: "mantle".into(),
-                base_pos: Vec2::new(0.0, 0.55),
+                base_pos: Vec2::new(0.0, 0.32),
                 z_depth: -0.1,
                 gene_offsets: vec![
                     GeneOffset {
@@ -618,7 +611,7 @@ pub fn nyxal_rig() -> BodyRig {
             // --- Eyes (large, forward-facing) ---
             AnchorPoint {
                 slot: "eye_left".into(),
-                base_pos: Vec2::new(-0.25, 0.25),
+                base_pos: Vec2::new(-0.18, 0.15),
                 z_depth: 1.0,
                 gene_offsets: vec![
                     GeneOffset {
@@ -640,7 +633,7 @@ pub fn nyxal_rig() -> BodyRig {
             // --- Front tentacles (shorter, used for manipulation) ---
             AnchorPoint {
                 slot: "tentacle_front_left".into(),
-                base_pos: Vec2::new(-0.30, -0.50),
+                base_pos: Vec2::new(-0.18, -0.28),
                 z_depth: 0.1,
                 gene_offsets: vec![
                     GeneOffset {
@@ -662,7 +655,7 @@ pub fn nyxal_rig() -> BodyRig {
             // --- Back tentacles (longer, used for locomotion) ---
             AnchorPoint {
                 slot: "tentacle_back_left".into(),
-                base_pos: Vec2::new(-0.45, -0.65),
+                base_pos: Vec2::new(-0.28, -0.35),
                 z_depth: -0.1,
                 gene_offsets: vec![
                     GeneOffset {

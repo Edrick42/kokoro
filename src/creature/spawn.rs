@@ -86,7 +86,7 @@ fn spawn_creature(
         .unwrap_or(false);
 
     if is_egg {
-        do_spawn_egg(commands, meshes, materials, &genome);
+        do_spawn_egg(commands, &asset_server, meshes, materials, &genome, &registry);
     } else {
         do_spawn_creature(commands, &asset_server, meshes, materials, &genome, &mind, &registry);
     }
@@ -124,7 +124,7 @@ fn respawn_on_switch(
         .unwrap_or(false);
 
     if is_egg {
-        do_spawn_egg(commands, meshes, materials, &genome);
+        do_spawn_egg(commands, &asset_server, meshes, materials, &genome, &registry);
     } else {
         do_spawn_creature(commands, &asset_server, meshes, materials, &genome, &mind, &registry);
     }
@@ -133,19 +133,35 @@ fn respawn_on_switch(
 /// Spawns an egg entity when the active creature hasn't hatched yet.
 fn do_spawn_egg(
     mut commands: Commands,
+    asset_server: &AssetServer,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     genome: &Genome,
+    registry: &SpeciesRegistry,
 ) {
-    let color = egg_color(&genome.species);
+    let template = registry.get(&genome.species);
+    let egg_path = format!("sprites/{}/egg/body_idle.png", template.species_dir);
 
-    // Egg is a simple ellipse at the ground position
-    commands.spawn((
-        EggEntity,
-        Mesh2d(meshes.add(Ellipse::new(30.0, 38.0))),
-        MeshMaterial2d(materials.add(ColorMaterial::from(color))),
-        Transform::from_xyz(0.0, GROUND_Y, 0.0),
-    ));
+    if std::path::Path::new(&format!("assets/{egg_path}")).exists() {
+        // Use the generated egg sprite
+        commands.spawn((
+            EggEntity,
+            Sprite {
+                image: asset_server.load(&egg_path),
+                ..default()
+            },
+            Transform::from_xyz(0.0, GROUND_Y, 0.0).with_scale(Vec3::splat(0.4)),
+        ));
+    } else {
+        // Fallback to procedural mesh
+        let color = egg_color(&genome.species);
+        commands.spawn((
+            EggEntity,
+            Mesh2d(meshes.add(Ellipse::new(30.0, 38.0))),
+            MeshMaterial2d(materials.add(ColorMaterial::from(color))),
+            Transform::from_xyz(0.0, GROUND_Y, 0.0),
+        ));
+    }
 }
 
 /// Shared spawn logic used by both startup and respawn.
@@ -163,6 +179,11 @@ fn do_spawn_creature(
     let body_color = genome.body_color();
     let tint = genome.tint_color();
 
+    // Determine growth stage for sprite path
+    use crate::visuals::evolution::GrowthStage;
+    let stage = GrowthStage::from_age_pub(mind.age_ticks);
+    let stage_subdir = stage.sprite_subdir();
+
     // Resolve the rig: convert normalized landmarks → pixel positions
     let resolved = template.rig.resolve(genome);
 
@@ -176,13 +197,28 @@ fn do_spawn_creature(
         handles: HashMap::new(),
     };
 
+    // Helper: resolve sprite path with stage fallback
+    // Tries: sprites/{species}/{stage}/{slot}_{mood}.png → sprites/{species}/{slot}_{mood}.png
+    let resolve_path = |slot: &str, mood: &str| -> Option<String> {
+        if let Some(subdir) = stage_subdir {
+            let stage_path = format!("sprites/{}/{}/{}_{}.png", template.species_dir, subdir, slot, mood);
+            if std::path::Path::new(&format!("assets/{stage_path}")).exists() {
+                return Some(stage_path);
+            }
+        }
+        let base_path = format!("sprites/{}/{}_{}.png", template.species_dir, slot, mood);
+        if std::path::Path::new(&format!("assets/{base_path}")).exists() {
+            return Some(base_path);
+        }
+        None
+    };
+
     // Preload all mood variants for mood-reactive parts
     let mood_keys = ["idle", "hungry", "tired", "lonely", "playful", "sick", "sleeping"];
     for part_def in &template.parts {
         if part_def.mood_reactive {
             for &mk in &mood_keys {
-                let path = format!("sprites/{}/{}_{}.png", template.species_dir, part_def.slot, mk);
-                if std::path::Path::new(&format!("assets/{path}")).exists() {
+                if let Some(path) = resolve_path(&part_def.slot, mk) {
                     let handle = asset_server.load(&path);
                     sprite_handles.handles.insert(
                         (part_def.slot.clone(), mk.to_string()),
@@ -191,8 +227,7 @@ fn do_spawn_creature(
                 }
             }
         } else {
-            let path = format!("sprites/{}/{}_idle.png", template.species_dir, part_def.slot);
-            if std::path::Path::new(&format!("assets/{path}")).exists() {
+            if let Some(path) = resolve_path(&part_def.slot, "idle") {
                 let handle = asset_server.load(&path);
                 sprite_handles.handles.insert(
                     (part_def.slot.clone(), "idle".to_string()),

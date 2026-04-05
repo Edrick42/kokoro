@@ -1,294 +1,250 @@
-//! Kokoro — Pylum (Highland Bird) Species Sprite Generator
+//! Kokoro — Pylum (Highland Bird) Sprite Generator
 //!
-//! Rounder egg-shaped body, wings, pointed beak, tail feathers.
-//! Warm golden palette.
+//! Stages: egg → cub → young → adult → elder
+//! No pixelization — full resolution with collage shading.
 //!
 //! Usage: cargo run --bin generate_pylum_sprites
 
+#[allow(dead_code)]
 mod sprite_common;
 
 use image::Rgba;
 use sprite_common::*;
 use std::path::{Path, PathBuf};
 
-// --- Color palette — warm bird tones ---
-const BODY: Rgba<u8> = Rgba([255, 220, 140, 255]);
-const BODY_HI: Rgba<u8> = Rgba([255, 235, 170, 255]);
-const BODY_SH: Rgba<u8> = Rgba([230, 190, 110, 255]);
-const WING_BASE: Rgba<u8> = Rgba([240, 200, 120, 255]);
-const WING_TIP: Rgba<u8> = Rgba([200, 160, 90, 255]);
-const OUTLINE: Rgba<u8> = Rgba([60, 45, 30, 255]);
-const PUPIL: Rgba<u8> = Rgba([30, 30, 45, 255]);
-const WHITE: Rgba<u8> = Rgba([255, 255, 255, 255]);
-const EYE_WHITE: Rgba<u8> = Rgba([250, 250, 255, 255]);
-const BEAK_COL: Rgba<u8> = Rgba([255, 160, 60, 255]);
-const BEAK_DARK: Rgba<u8> = Rgba([220, 130, 40, 255]);
-const PINK: Rgba<u8> = Rgba([240, 160, 165, 255]);
-const TEAR: Rgba<u8> = Rgba([140, 195, 250, 255]);
-
-fn out_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("assets")
-        .join("sprites")
-        .join("pylum")
-}
-
-// ---------------------------------------------------------------------------
-// Body — egg-shaped
-// ---------------------------------------------------------------------------
-
-fn gen_body(dir: &Path) {
-    let (w, h) = (48u32, 44u32);
-    let mut img = new_canvas(w, h);
-    let (cx, cy) = (w as f32 / 2.0, h as f32 / 2.0 + 2.0);
-
-    let body = ellipse_pixels(cx, cy, 18.0, 16.0);
-    for &(x, y) in &body {
-        let t = (y as f32 - (cy - 16.0)) / 32.0;
-        let c = if t < 0.3 {
-            lerp(BODY_HI, BODY, t / 0.3)
-        } else if t < 0.7 {
-            BODY
-        } else {
-            lerp(BODY, BODY_SH, (t - 0.7) / 0.3)
-        };
-        put(&mut img, x, y, c);
-    }
-
-    flood_outline(&mut img, &body, OUTLINE);
-    save(&img, "body_idle.png", dir);
-}
-
-// ---------------------------------------------------------------------------
-// Wings
-// ---------------------------------------------------------------------------
-
-fn gen_wing(dir: &Path, side: &str) {
-    let (w, h) = (22u32, 18u32);
-    let mut img = new_canvas(w, h);
-
-    let cx = if side == "left" {
-        w as f32 - 5.0
-    } else {
-        5.0
+macro_rules! col {
+    ($name:ident, $r:expr, $g:expr, $b:expr) => {
+        #[allow(dead_code)] const $name: Rgba<u8> = Rgba([$r, $g, $b, 255]);
     };
-    let pts = ellipse_pixels(cx, h as f32 / 2.0, 12.0, 7.0);
+}
+col!(BODY,      255, 220, 140);
+col!(BODY_HI,   255, 235, 170);
+col!(BODY_SH,   230, 190, 110);
+col!(WING_BASE, 240, 200, 120);
+col!(WING_TIP,  200, 160,  90);
+col!(OUTLINE,    60,  45,  30);
+col!(PUPIL,      30,  30,  45);
+col!(BEAK_COL,  255, 160,  60);
+col!(BEAK_DARK, 220, 130,  40);
+col!(PINK,      240, 160, 165);
+col!(TEAR,      140, 195, 250);
+col!(EGG_BASE,  240, 225, 190);
+col!(EGG_SPOT,  220, 200, 160);
 
-    for &(x, y) in &pts {
-        let t = if side == "left" {
-            ((cx - x as f32) / 12.0).clamp(0.0, 1.0)
+fn base_dir() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("assets").join("sprites").join("pylum")
+}
+fn effects_dir() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("assets").join("sprites").join("shared").join("effects")
+}
+
+// === EGG ===
+fn gen_egg(dir: &Path) {
+    let (w, h) = (180, 220);
+    let mut img = new_canvas(w as u32, h as u32);
+    let (cx, cy) = (90.0, 120.0);
+    let verts = vec![
+        (cx, cy - 85.0), (cx + 25.0, cy - 80.0), (cx + 50.0, cy - 55.0),
+        (cx + 55.0, cy - 15.0), (cx + 50.0, cy + 25.0), (cx + 35.0, cy + 60.0),
+        (cx + 15.0, cy + 75.0), (cx, cy + 80.0), (cx - 15.0, cy + 75.0),
+        (cx - 35.0, cy + 60.0), (cx - 50.0, cy + 25.0), (cx - 55.0, cy - 15.0),
+        (cx - 50.0, cy - 55.0), (cx - 25.0, cy - 80.0),
+    ];
+    smooth_shade(&mut img, &verts, (cx, cy), EGG_BASE, (-0.3, -1.0));
+    let shape = polygon_pixels(&verts);
+    // Speckles
+    for &(sx, sy, r) in &[(cx - 15.0, cy - 20.0, 8.0), (cx + 20.0, cy + 15.0, 6.0), (cx - 5.0, cy + 35.0, 5.0)] {
+        let spot = ellipse_pixels(sx, sy, r, r * 0.7);
+        for &(x, y) in &spot { if shape.contains(&(x, y)) { put(&mut img, x, y, EGG_SPOT); } }
+    }
+    flood_outline(&mut img, &shape, OUTLINE);
+    save_raw(&img, "body_idle.png", dir);
+}
+
+// === BODY GENERATORS ===
+fn gen_cub_body(dir: &Path) {
+    let (w, h) = (240, 240);
+    let mut img = new_canvas(w as u32, h as u32);
+    let (cx, cy) = (120.0, 110.0);
+    let verts = vec![
+        (cx, cy - 75.0), (cx + 45.0, cy - 65.0), (cx + 75.0, cy - 15.0),
+        (cx + 70.0, cy + 35.0), (cx + 40.0, cy + 65.0), (cx, cy + 70.0),
+        (cx - 40.0, cy + 65.0), (cx - 70.0, cy + 35.0), (cx - 75.0, cy - 15.0),
+        (cx - 45.0, cy - 65.0),
+    ];
+    smooth_shade(&mut img, &verts, (cx, cy), BODY, (-0.3, -1.0));
+    // Wing stubs
+    let wl = [(cx - 70.0, cy - 5.0), (cx - 85.0, cy + 10.0), (cx - 68.0, cy + 25.0)];
+    let wr = [(cx + 70.0, cy - 5.0), (cx + 85.0, cy + 10.0), (cx + 68.0, cy + 25.0)];
+    smooth_shade(&mut img, &wl, (cx - 75.0, cy + 10.0), WING_BASE, (-0.5, -1.0));
+    smooth_shade(&mut img, &wr, (cx + 75.0, cy + 10.0), WING_BASE, (0.5, -1.0));
+    // Feet
+    let fl = [(cx - 25.0, cy + 68.0), (cx - 8.0, cy + 68.0), (cx - 16.0, cy + 85.0)];
+    let fr = [(cx + 8.0, cy + 68.0), (cx + 25.0, cy + 68.0), (cx + 16.0, cy + 85.0)];
+    smooth_shade(&mut img, &fl, (cx - 16.0, cy + 76.0), BEAK_COL, (0.0, -1.0));
+    smooth_shade(&mut img, &fr, (cx + 16.0, cy + 76.0), BEAK_COL, (0.0, -1.0));
+
+    let body = polygon_pixels(&verts);
+    let all: Shape = body.iter().chain(&polygon_pixels(&wl)).chain(&polygon_pixels(&wr))
+        .chain(&polygon_pixels(&fl)).chain(&polygon_pixels(&fr)).copied().collect();
+    flood_outline(&mut img, &all, OUTLINE);
+    save_raw(&img, "body_idle.png", dir);
+}
+
+fn gen_adult_body(dir: &Path) {
+    let (w, h) = (320, 340);
+    let mut img = new_canvas(w as u32, h as u32);
+    let cx = 160.0;
+    // Head
+    let head = vec![
+        (cx, 15.0), (cx + 40.0, 20.0), (cx + 55.0, 50.0),
+        (cx + 45.0, 80.0), (cx, 90.0),
+        (cx - 45.0, 80.0), (cx - 55.0, 50.0), (cx - 40.0, 20.0),
+    ];
+    smooth_shade(&mut img, &head, (cx, 50.0), BODY, (-0.3, -1.0));
+    // Crest tuft on top
+    let tuft = [(cx - 5.0, 18.0), (cx + 5.0, 18.0), (cx + 3.0, 2.0), (cx - 3.0, 2.0)];
+    smooth_shade(&mut img, &tuft, (cx, 10.0), BODY_HI, (0.0, -1.0));
+    // Body — egg-shaped
+    let torso = vec![
+        (cx + 45.0, 85.0), (cx + 65.0, 120.0), (cx + 70.0, 170.0),
+        (cx + 55.0, 220.0), (cx + 25.0, 240.0),
+        (cx - 25.0, 240.0), (cx - 55.0, 220.0), (cx - 70.0, 170.0),
+        (cx - 65.0, 120.0), (cx - 45.0, 85.0),
+    ];
+    smooth_shade(&mut img, &torso, (cx, 160.0), BODY_SH, (-0.3, -1.0));
+    // Belly
+    let torso_shape = polygon_pixels(&torso);
+    let belly = ellipse_pixels(cx, 170.0, 40.0, 35.0);
+    for &(x, y) in &belly {
+        if torso_shape.contains(&(x, y)) {
+            let e = *img.get_pixel(x as u32, y as u32);
+            put(&mut img, x, y, lerp(e, BODY_HI, 0.3));
+        }
+    }
+    // Wings — large, angular
+    let wl = [(cx - 65.0, 100.0), (cx - 55.0, 90.0), (cx - 90.0, 140.0), (cx - 120.0, 160.0), (cx - 110.0, 130.0)];
+    let wr = [(cx + 55.0, 90.0), (cx + 65.0, 100.0), (cx + 110.0, 130.0), (cx + 120.0, 160.0), (cx + 90.0, 140.0)];
+    smooth_shade(&mut img, &wl, (cx - 85.0, 125.0), WING_BASE, (-0.5, -1.0));
+    smooth_shade(&mut img, &wr, (cx + 85.0, 125.0), WING_BASE, (0.5, -1.0));
+    // Legs — raptor
+    let ll = [(cx - 25.0, 235.0), (cx - 10.0, 235.0), (cx - 8.0, 290.0), (cx - 15.0, 310.0), (cx - 30.0, 310.0), (cx - 28.0, 290.0)];
+    let lr = [(cx + 10.0, 235.0), (cx + 25.0, 235.0), (cx + 28.0, 290.0), (cx + 30.0, 310.0), (cx + 15.0, 310.0), (cx + 8.0, 290.0)];
+    smooth_shade(&mut img, &ll, (cx - 18.0, 270.0), BEAK_COL, (-0.3, -1.0));
+    smooth_shade(&mut img, &lr, (cx + 18.0, 270.0), BEAK_COL, (0.3, -1.0));
+    // Tail
+    let tail = [(cx - 12.0, 235.0), (cx + 12.0, 235.0), (cx + 8.0, 330.0), (cx, 338.0), (cx - 8.0, 330.0)];
+    smooth_shade(&mut img, &tail, (cx, 285.0), WING_TIP, (0.0, -1.0));
+
+    let head_s = polygon_pixels(&head);
+    let all: Shape = head_s.iter().chain(&torso_shape).chain(&polygon_pixels(&tuft))
+        .chain(&polygon_pixels(&wl)).chain(&polygon_pixels(&wr))
+        .chain(&polygon_pixels(&ll)).chain(&polygon_pixels(&lr))
+        .chain(&polygon_pixels(&tail))
+        .copied().collect();
+    flood_outline(&mut img, &all, OUTLINE);
+    save_raw(&img, "body_idle.png", dir);
+}
+
+// === EYES (black diamonds) ===
+fn gen_eyes(dir: &Path, size: u32, hw: f32, hh: f32) {
+    for mood in ["idle", "happy", "hungry", "tired", "lonely", "playful", "sick"] {
+        let squint = mood == "tired" || mood == "sick";
+        let tear = mood == "lonely";
+        let h = if squint { hh * 0.5 } else { hh };
+        let mut img = new_canvas(size, size);
+        let c = size as f32 / 2.0;
+        px_set(&mut img, &diamond_pixels(c, c, hw, h), PUPIL);
+        if tear { let t = ellipse_pixels(c + hw + 2.0, c + hh * 0.3, 2.0, 3.0); px_set(&mut img, &t, TEAR); }
+        save_raw(&img, &format!("eye_left_{mood}.png"), dir);
+        save_raw(&flip_h(&img), &format!("eye_right_{mood}.png"), dir);
+    }
+    let mut closed = new_canvas(size, size / 2);
+    let c = size as f32 / 2.0;
+    px_set(&mut closed, &diamond_pixels(c, size as f32 / 4.0, hw, 2.0), OUTLINE);
+    save_raw(&closed, "eye_left_sleeping.png", dir);
+    save_raw(&flip_h(&closed), "eye_right_sleeping.png", dir);
+}
+
+// === BEAK ===
+fn gen_beak(dir: &Path, size: u32) {
+    let s = size as f32;
+    for mood in ["idle", "hungry", "tired", "lonely", "playful", "sick", "sleeping"] {
+        let mut img = new_canvas(size, size);
+        let cx = s / 2.0;
+        let cy = s / 2.0;
+        let open = mood == "hungry" || mood == "playful";
+        if open {
+            let upper = polygon_pixels(&[(cx - 4.0, cy - 4.0), (cx + 4.0, cy - 4.0), (cx, cy)]);
+            let lower = polygon_pixels(&[(cx - 3.0, cy + 2.0), (cx + 3.0, cy + 2.0), (cx, cy + 6.0)]);
+            px_set(&mut img, &upper, BEAK_COL);
+            px_set(&mut img, &lower, BEAK_DARK);
+            let all: Shape = upper.union(&lower).copied().collect();
+            flood_outline(&mut img, &all, OUTLINE);
         } else {
-            ((x as f32 - cx) / 12.0).clamp(0.0, 1.0)
-        };
-        let c = lerp(WING_BASE, WING_TIP, t);
-        put(&mut img, x, y, c);
-    }
-
-    flood_outline(&mut img, &pts, OUTLINE);
-    save(&img, &format!("wing_{side}_idle.png"), dir);
-}
-
-// ---------------------------------------------------------------------------
-// Eyes — round, expressive
-// ---------------------------------------------------------------------------
-
-struct PylumEye {
-    pupil_dx: i32,
-    lid_rows: i32,
-    sparkle: bool,
-    tear: bool,
-}
-
-impl Default for PylumEye {
-    fn default() -> Self {
-        PylumEye {
-            pupil_dx: 0,
-            lid_rows: 0,
-            sparkle: true,
-            tear: false,
+            let beak = polygon_pixels(&[(cx - 4.0, cy - 3.0), (cx + 4.0, cy - 3.0), (cx, cy + 5.0)]);
+            px_set(&mut img, &beak, BEAK_COL);
+            flood_outline(&mut img, &beak, OUTLINE);
         }
+        save_raw(&img, &format!("beak_{mood}.png"), dir);
     }
 }
 
-fn pylum_eye(p: &PylumEye) -> image::RgbaImage {
-    let (w, h) = (12u32, 12u32);
-    let mut img = new_canvas(w, h);
-    let (cx, cy) = (w as i32 / 2, h as i32 / 2);
-
-    let eye_pts = ellipse_pixels(cx as f32, cy as f32, 4.0, 4.0);
-    px_set(&mut img, &eye_pts, EYE_WHITE);
-    flood_outline(&mut img, &eye_pts, OUTLINE);
-
-    let pupil_pts = ellipse_pixels((cx + p.pupil_dx) as f32, cy as f32, 2.0, 2.0);
-    px_set(&mut img, &pupil_pts, PUPIL);
-
-    if p.sparkle {
-        px(&mut img, &[(cx - 1, cy - 2)], WHITE);
-    }
-    if p.tear {
-        px(&mut img, &[(cx, cy + 4), (cx, cy + 5)], TEAR);
-    }
-
-    for r in 0..p.lid_rows {
-        for x in (cx - 4)..=(cx + 4) {
-            if eye_pts.contains(&(x, cy - 4 + r)) {
-                put(&mut img, x, cy - 4 + r, OUTLINE);
-            }
-        }
-    }
-
-    img
+// === WINGS (standalone for rig) ===
+fn gen_wings(dir: &Path, size: u32) {
+    let s = size as f32;
+    let verts_l = vec![(s * 0.8, s * 0.2), (s * 0.9, s * 0.5), (s * 0.6, s * 0.8), (s * 0.1, s * 0.7), (s * 0.05, s * 0.4), (s * 0.4, s * 0.15)];
+    let mut img = new_canvas(size, size);
+    smooth_shade(&mut img, &verts_l, (s * 0.5, s * 0.5), WING_BASE, (-0.5, -0.8));
+    flood_outline(&mut img, &polygon_pixels(&verts_l), OUTLINE);
+    save_raw(&img, "wing_left_idle.png", dir);
+    save_raw(&flip_h(&img), "wing_right_idle.png", dir);
 }
 
-fn gen_eyes(dir: &Path) {
-    let moods: Vec<(&str, PylumEye)> = vec![
-        ("idle", PylumEye { sparkle: true, ..Default::default() }),
-        ("hungry", PylumEye { lid_rows: 1, ..Default::default() }),
-        ("tired", PylumEye { lid_rows: 3, sparkle: false, ..Default::default() }),
-        ("lonely", PylumEye { tear: true, ..Default::default() }),
-        ("playful", PylumEye { sparkle: true, ..Default::default() }),
-        ("sick", PylumEye { lid_rows: 2, sparkle: false, ..Default::default() }),
-        ("sleeping", PylumEye { lid_rows: 5, sparkle: false, ..Default::default() }),
-    ];
-
-    for (mood, params) in &moods {
-        let left = pylum_eye(params);
-        save(&left, &format!("eye_left_{mood}.png"), dir);
-        let right = flip_h(&left);
-        save(&right, &format!("eye_right_{mood}.png"), dir);
+// === TAIL ===
+fn gen_tail(dir: &Path, size: u32) {
+    let s = size as f32;
+    let mut img = new_canvas(size, (s * 1.5) as u32);
+    for (off, t) in [(-3.0_f32, 0.5), (0.0, 0.3), (3.0, 0.5)] {
+        let x = s / 2.0 + off;
+        let v = [(x - 2.0, 3.0), (x + 2.0, 3.0), (x + 1.0, s * 1.3), (x - 1.0, s * 1.3)];
+        let pts = polygon_pixels(&v);
+        px_set(&mut img, &pts, lerp(WING_BASE, WING_TIP, t));
+        flood_outline(&mut img, &pts, OUTLINE);
     }
+    save_raw(&img, "tail_idle.png", dir);
 }
-
-// ---------------------------------------------------------------------------
-// Beak (replaces mouth)
-// ---------------------------------------------------------------------------
-
-fn gen_beak(dir: &Path) {
-    let styles: Vec<(&str, &str)> = vec![
-        ("idle", "closed"),
-        ("hungry", "open"),
-        ("tired", "closed"),
-        ("lonely", "closed"),
-        ("playful", "open_wide"),
-        ("sick", "closed"),
-        ("sleeping", "closed"),
-    ];
-
-    for (mood, style) in &styles {
-        let (w, h) = (12u32, 10u32);
-        let mut img = new_canvas(w, h);
-        let cx = w as i32 / 2;
-
-        match *style {
-            "closed" => {
-                let mut pts = Shape::new();
-                for y in 3..7 {
-                    let span = (4 - (y - 3)).max(1);
-                    for x in (cx - span)..=(cx + span) {
-                        pts.insert((x, y));
-                    }
-                }
-                px_set(&mut img, &pts, BEAK_COL);
-                flood_outline(&mut img, &pts, OUTLINE);
-            }
-            "open" => {
-                let mut upper = Shape::new();
-                for y in 2..5 {
-                    let span = (4 - (y - 2)).max(1);
-                    for x in (cx - span)..=(cx + span) {
-                        upper.insert((x, y));
-                    }
-                }
-                px_set(&mut img, &upper, BEAK_COL);
-
-                let mut lower = Shape::new();
-                for y in 6..8 {
-                    let span = (3 - (y - 6)).max(1);
-                    for x in (cx - span)..=(cx + span) {
-                        lower.insert((x, y));
-                    }
-                }
-                px_set(&mut img, &lower, BEAK_DARK);
-
-                let all: Shape = upper.union(&lower).copied().collect();
-                flood_outline(&mut img, &all, OUTLINE);
-            }
-            "open_wide" => {
-                let mut upper = Shape::new();
-                for y in 1..4 {
-                    let span = (5 - (y - 1)).max(1);
-                    for x in (cx - span)..=(cx + span) {
-                        upper.insert((x, y));
-                    }
-                }
-                px_set(&mut img, &upper, BEAK_COL);
-
-                let mut lower = Shape::new();
-                for y in 5..9 {
-                    let span = (4 - (y - 5)).max(1);
-                    for x in (cx - span)..=(cx + span) {
-                        lower.insert((x, y));
-                    }
-                }
-                px_set(&mut img, &lower, BEAK_DARK);
-
-                // Pink mouth interior
-                let mut interior = Shape::new();
-                for x in (cx - 2)..=(cx + 2) {
-                    interior.insert((x, 4));
-                }
-                px_set(&mut img, &interior, PINK);
-
-                let all: Shape = upper.union(&lower).chain(&interior).copied().collect();
-                flood_outline(&mut img, &all, OUTLINE);
-            }
-            _ => {}
-        }
-
-        save(&img, &format!("beak_{mood}.png"), dir);
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Tail — three feathers
-// ---------------------------------------------------------------------------
-
-fn gen_tail(dir: &Path) {
-    let (w, h) = (16u32, 18u32);
-    let mut img = new_canvas(w, h);
-    let cx = w as i32 / 2;
-
-    for offset in [-3, 0, 3] {
-        let mut feather = Shape::new();
-        for y in 4..(h as i32 - 1) {
-            let span = (3 - (y - 10).abs() / 3).max(1);
-            for x in (cx + offset - span)..=(cx + offset + span) {
-                feather.insert((x, y));
-            }
-        }
-        let t_base = if offset == 0 { 0.3 } else { 0.5 };
-        let c = lerp(WING_BASE, WING_TIP, t_base);
-        px_set(&mut img, &feather, c);
-        flood_outline(&mut img, &feather, OUTLINE);
-    }
-
-    save(&img, "tail_idle.png", dir);
-}
-
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
 
 fn main() {
-    let dir = out_dir();
-    println!("Generating Pylum sprites → {}", dir.display());
+    let base = base_dir();
+    let egg = base.join("egg");
+    let cub = base.join("cub");
+    let young = base.join("young");
+    let adult = base.join("adult");
+    let elder = base.join("elder");
 
-    gen_body(&dir);
-    gen_wing(&dir, "left");
-    gen_wing(&dir, "right");
-    gen_eyes(&dir);
-    gen_beak(&dir);
-    gen_tail(&dir);
+    println!("Generating Pylum sprites (all stages)\n");
+
+    println!("=== Egg ==="); gen_egg(&egg);
+
+    println!("\n=== Cub ==="); gen_cub_body(&cub);
+    gen_eyes(&cub, 38, 14.0, 14.0); gen_beak(&cub, 24); gen_wings(&cub, 40); gen_tail(&cub, 18);
+
+    println!("\n=== Young ==="); gen_cub_body(&young);
+    gen_eyes(&young, 34, 12.0, 13.0); gen_beak(&young, 22); gen_wings(&young, 48); gen_tail(&young, 20);
+
+    println!("\n=== Adult ==="); gen_adult_body(&adult);
+    gen_eyes(&adult, 30, 10.0, 11.0); gen_beak(&adult, 24); gen_wings(&adult, 56); gen_tail(&adult, 22);
+
+    println!("\n=== Elder ==="); gen_adult_body(&elder);
+    gen_eyes(&elder, 30, 10.0, 11.0); gen_beak(&elder, 24); gen_wings(&elder, 56); gen_tail(&elder, 22);
+
+    // Delete old root sprites
+    for entry in std::fs::read_dir(&base).unwrap().flatten() {
+        if entry.path().extension().map(|e| e == "png").unwrap_or(false) {
+            std::fs::remove_file(entry.path()).ok();
+        }
+    }
 
     println!("\nDone!");
 }

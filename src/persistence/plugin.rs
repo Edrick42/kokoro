@@ -69,33 +69,43 @@ pub fn startup_load(mut commands: Commands) {
 
 /// Auto-saves every AUTOSAVE_INTERVAL ticks.
 fn autosave_system(
-    db:     Res<DbConnection>,
-    genome: Res<Genome>,
-    mind:   Res<Mind>,
+    db:         Res<DbConnection>,
+    genome:     Res<Genome>,
+    mind:       Res<Mind>,
+    collection: Option<Res<crate::creature::collection::CreatureCollection>>,
 ) {
     if mind.age_ticks % AUTOSAVE_INTERVAL == 0 && mind.age_ticks > 0 {
         let conn = db.0.lock().expect("DB lock poisoned");
         if let Err(e) = save::save_all(&conn, &genome, &mind) {
             error!("Auto-save failed: {e}");
-        } else {
-            debug!("Auto-saved at tick {}", mind.age_ticks);
         }
+        if let Some(collection) = &collection {
+            if let Err(e) = save::save_collection(&conn, collection) {
+                error!("Auto-save collection failed: {e}");
+            }
+        }
+        debug!("Auto-saved at tick {}", mind.age_ticks);
     }
 }
 
 /// Final save when the player closes the app.
 fn save_on_exit(
     mut exit_events: EventReader<AppExit>,
-    db:     Res<DbConnection>,
-    genome: Res<Genome>,
-    mind:   Res<Mind>,
+    db:         Res<DbConnection>,
+    genome:     Res<Genome>,
+    mind:       Res<Mind>,
+    collection: Option<Res<crate::creature::collection::CreatureCollection>>,
 ) {
     for _ in exit_events.read() {
         let conn = db.0.lock().expect("DB lock poisoned");
         if let Err(e) = save::save_all(&conn, &genome, &mind) {
             error!("Exit save failed: {e}");
-        } else {
-            info!("Saved on exit at tick {}", mind.age_ticks);
         }
+        if let Some(collection) = &collection {
+            if let Err(e) = save::save_collection(&conn, collection) {
+                error!("Exit save collection failed: {e}");
+            }
+        }
+        info!("Saved on exit at tick {}", mind.age_ticks);
     }
 }

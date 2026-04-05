@@ -4,6 +4,7 @@ use super::{Genome, Species};
 
 impl Genome {
     /// Creates a child genome by crossing two parent genomes with mutation.
+    #[allow(dead_code)]
     pub fn crossover(parent_a: &Genome, parent_b: &Genome, child_species: Species) -> Self {
         let mut rng = rand::rng();
 

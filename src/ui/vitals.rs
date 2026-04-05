@@ -114,7 +114,7 @@ fn update_vitals_panel(
     mut bpm_dot: Query<&mut BackgroundColor, (With<VitalsBpmDot>, Without<VitalsBreathingDot>)>,
     mut breath_dot: Query<&mut BackgroundColor, (With<VitalsBreathingDot>, Without<VitalsBpmDot>)>,
 ) {
-    let Ok((heartbeat, breathing)) = root_q.get_single() else { return };
+    let Ok((heartbeat, breathing)) = root_q.single() else { return };
 
     // Update BPM text
     if let Ok(mut text) = bpm_text.single_mut() {

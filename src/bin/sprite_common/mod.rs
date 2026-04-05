@@ -120,6 +120,7 @@ pub fn flip_h(img: &RgbaImage) -> RgbaImage {
 }
 
 /// Shade a shape with a vertical gradient (top=highlight, bottom=shadow).
+#[allow(dead_code)]
 pub fn shade_vertical(
     img: &mut RgbaImage,
     shape: &Shape,

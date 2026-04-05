@@ -15,6 +15,8 @@ use bevy::prelude::*;
 
 use crate::genome::{Genome, Species};
 use crate::mind::Mind;
+use crate::persistence::plugin::DbConnection;
+use crate::persistence::load;
 
 pub struct MultiCreaturePlugin;
 
@@ -51,15 +53,32 @@ pub struct SelectSpeciesEvent {
     pub species: Species,
 }
 
-/// On startup, create one creature of each species.
-/// The primary creature (from persistence) becomes Moluun.
-/// Pylum and Skael get fresh random genomes.
+/// On startup, load the creature collection from the database.
+/// If no saved collection exists (first run or pre-migration), create fresh creatures.
 fn init_collection(
     genome: Res<Genome>,
     mind: Res<Mind>,
+    db: Res<DbConnection>,
     mut collection: ResMut<CreatureCollection>,
 ) {
-    // Moluun — use the persisted genome/mind
+    // Try to load from database
+    let conn = db.0.lock().expect("DB lock poisoned");
+    if let Ok(Some(saved)) = load::load_collection(&conn) {
+        if saved.len() >= 2 {
+            info!("Loaded {} creatures from database", saved.len());
+            collection.creatures = saved;
+            collection.active_index = 0;
+
+            // Sync active creature to global resources
+            // (already handled by persistence plugin for slot 0)
+            return;
+        }
+    }
+    drop(conn);
+
+    info!("No saved collection — creating fresh creatures");
+
+    // Moluun — use the persisted genome/mind (from legacy single-creature save)
     collection.creatures.push(StoredCreature {
         name: "Moluun".to_string(),
         genome: genome.clone(),

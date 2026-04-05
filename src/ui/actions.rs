@@ -201,7 +201,6 @@ fn handle_action_press(
     mut mind: ResMut<Mind>,
     genome: Res<Genome>,
     db: Res<DbConnection>,
-    mut menu_open: ResMut<MenuOpen>,
 ) {
     for (interaction, kind) in query.iter() {
         if *interaction != Interaction::Pressed {
@@ -238,7 +237,6 @@ fn handle_action_press(
 fn handle_species_press(
     query: Query<(&Interaction, &SpeciesButton), Changed<Interaction>>,
     mut events: EventWriter<SelectSpeciesEvent>,
-    mut menu_open: ResMut<MenuOpen>,
 ) {
     for (interaction, btn) in query.iter() {
         if *interaction == Interaction::Pressed {

@@ -22,6 +22,8 @@ Ethara's surface is shaped by three biomes, each with its own resonance signatur
 
 - **The Abyssal Shallows** — a network of crystalline caves and underground rivers fed by geothermal springs. Constant warmth, high humidity, bioluminescent mineral walls that shift color like slow breathing. The domain of **Skael** Kobaras.
 
+- **The Abyssal Depths** — beyond the Shallows, where the underground rivers pour into a vast subterranean ocean. No light reaches here except the bioluminescence of its inhabitants. The water is dense, warm, and saturated with etharin — emotions here don't just have weight, they have current. Feelings ripple outward like sonar pulses. The pressure is immense, but so is the clarity. Creatures who live here think differently — slower, deeper, in patterns rather than impulses. This is the domain of **Nyxal** Kobaras, the fourth species — discovered only when the first Elder Kobaras began facing this direction during the Pulse.
+
 ### The Atmosphere
 
 Ethara's air carries a bioactive compound called **etharin** — a substance that doesn't exist in the waking world. Etharin acts as a bridge between emotional states and physical reality. On Ethara, what you feel has weight. Sadness thickens the air. Joy makes the spores glow brighter. Fear dims the light.
@@ -63,10 +65,11 @@ All Kobaras share the same genus (*Kobarensis*), but manifest in distinct forms 
 | **Moluun** | *K. moluunaris* | The Verdance (forests) | Round, soft, dense fur. Short limbs, wide eyes. Built for navigating tight lattice canopies. |
 | **Pylum** | *K. pylumensis* | Veridian Highlands (mesas) | Lightweight, winged, aerodynamic. Sharp beak, hollow bones. Built for thermal-riding and high-altitude foraging. |
 | **Skael** | *K. skaelith* | Abyssal Shallows (caves) | Elongated, scaled, heat-resistant. Crested head, slitted eyes for low-light, muscular tail for swimming in underground rivers. |
+| **Nyxal** | *K. nyxalaris* | Abyssal Depths (deep ocean) | Soft-bodied, tentacled, bioluminescent. Bulbous mantle, large forward eyes with slit pupils, four prehensile tentacles. Built for pressure, darkness, and pattern-thinking. |
 
-The species your Kobara takes is not random — it reflects the shape of your inner landscape. Those who feel deeply and seek connection manifest a Moluun. Those who are restless and drawn to the unknown manifest a Pylum. Those who are quiet, watchful, and fiercely loyal manifest a Skael.
+The species your Kobara takes is not random — it reflects the shape of your inner landscape. Those who feel deeply and seek connection manifest a Moluun. Those who are restless and drawn to the unknown manifest a Pylum. Those who are quiet, watchful, and fiercely loyal manifest a Skael. And those who think in patterns, who see connections others miss, who live more in their mind than their body — they manifest a Nyxal.
 
-Despite their physical differences, all three species share the kokoro-sac and the capacity to mirror their bonded spirit.
+Despite their physical differences, all four species share the kokoro-sac and the capacity to mirror their bonded spirit.
 
 ### Lifecycle
 
@@ -144,6 +147,22 @@ A Skael won't bounce with joy or cry when you leave. But it will position itself
 
 **Diet**: Carnivorous. In the wild, they hunt cave-dwelling crustaceans and filter-feeding organisms in the underground rivers. They have the slowest metabolism of the three species, allowing them to go long periods without food — but when they eat, they eat substantially.
 
+### Nyxal (*K. nyxalaris*)
+
+> *"It doesn't move like the others. It thinks. You can see it thinking — the tentacles slow, the glow dims, and then it does something you didn't expect. Something you needed."*
+
+**Appearance**: Soft-bodied, with no skeleton or scales. A large, bulbous mantle sits atop a rounded body, with two oversized forward-facing eyes — bioluminescent cyan with vertical slit pupils that dilate in response to emotion, not light. Four prehensile tentacles extend below the body: two shorter front tentacles for manipulation, two longer rear tentacles for locomotion. The entire body produces faint bioluminescence, with the tentacle tips glowing brightest.
+
+**Personality**: Nyxal are the most intelligent manifestation. They reflect the analytical part of you — the mind that sees patterns, makes connections, and understands before it feels.
+
+A Nyxal won't rush to greet you or demand attention. It observes. It processes. And then it acts with unsettling precision — bringing you what you need before you know you need it. Where Moluun mirrors your emotions and Skael mirrors your strength, Nyxal mirrors your thinking. Its tentacles move in patterns that echo your decision-making style. Its glow shifts when you hesitate. It knows when you're lying to yourself.
+
+This makes Nyxal the most rewarding and the most uncomfortable Kobara to bond with. It reflects truths you haven't articulated yet.
+
+**Biome adaptation**: The Abyssal Depths are lightless, pressurized, and etharin-saturated. Nyxal have no rigid structures — their soft bodies compress freely under pressure. Their bioluminescence serves as both communication and navigation. The etharin density in the deep water amplifies their kokoro-sac to extraordinary sensitivity — a Nyxal can detect emotional shifts in other creatures from great distances, reading the currents like sonar.
+
+**Diet**: Filter-feeder and opportunistic. In the wild, Nyxal consume nutrient-rich particulate matter suspended in the deep water, supplemented by small bioluminescent organisms they catch with their front tentacles. They eat little but frequently — a constant, thoughtful grazing rather than the Skael's feast-and-fast pattern.
+
 ---
 
 ## The Kokoro-Sac: How Emotional Resonance Works
@@ -198,7 +217,7 @@ These are unresolved questions that may be explored in future updates:
 
 2. **Elder Sight** — Kobaras that reach elder stage (10,000+ ticks) begin producing resonance patterns that don't correspond to any known emotional state. Some believe elders are no longer just mirroring their bonded spirit — they are reflecting something deeper. Something the player hasn't discovered about themselves yet.
 
-3. **The Fourth Biome** — Beyond the three known biomes, there is a vast expanse covered in perfectly geometric crystalline formations. No Kobara lives there. But during the Pulse, every Kobara faces toward it. And players who have reached Elder stage with all three species report dreaming about it — the same dream, every time.
+3. **The Crystalline Expanse** — The Fourth Biome was discovered: the Abyssal Depths, home of the Nyxal. But beyond even the Depths, sonar pulses from Nyxal Kobaras reveal a vast expanse covered in perfectly geometric crystalline formations. No Kobara can survive there — not even a Nyxal. But during the Pulse, every Kobara faces toward it. The crystals resonate at the same unmeasurable frequency as the kokoro-sac during the Pulse. Players who have reached Elder stage with all four species report dreaming about it — the same dream, every time. The dream has no images. Only a feeling.
 
 4. **Resonance Harmony** — In rare cases, Kobaras of different species raised together develop synchronized kokoro-sac rhythms. When a Moluun and a Skael resonate in harmony, the resulting frequency has no name. Players who witness it describe feeling, for a moment, completely whole.
 
@@ -211,10 +230,12 @@ These are unresolved questions that may be explored in future updates:
 | Term | Definition |
 |------|-----------|
 | **Ethara** | The resonance world. Exists on the other side of perception |
-| **Kobara** | The creature genus. Three known species. A mirror of the player's spirit |
+| **Kobara** | The creature genus. Four known species. A mirror of the player's spirit |
 | **Moluun** | Forest species. Round, social, fur-covered. Reflects emotional openness |
 | **Pylum** | Highland species. Winged, curious, beak. Reflects the seeking spirit |
 | **Skael** | Cave species. Scaled, resilient, slitted eyes. Reflects quiet strength |
+| **Nyxal** | Deep ocean species. Tentacled, bioluminescent, intelligent. Reflects pattern-thinking |
+| **Abyssal Depths** | Subterranean ocean biome. Lightless, pressurized, etharin-dense |
 | **Kokoro-sac** | Resonance organ. Makes the inner world visible |
 | **Resonance lymph** | Fluid inside the kokoro-sac |
 | **Etharin** | Bioactive atmospheric compound. The bridge between feeling and form |

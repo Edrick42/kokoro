@@ -41,6 +41,7 @@ pub struct PartSpriteHandles {
 /// Stores the resolved rig positions so other systems (like genome_visuals)
 /// can reference the rig-computed positions without re-resolving.
 #[derive(Resource)]
+#[allow(dead_code)]
 pub struct ResolvedRig {
     pub anchors: Vec<ResolvedAnchor>,
 }

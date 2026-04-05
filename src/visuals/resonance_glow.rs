@@ -16,7 +16,6 @@
 use std::f32::consts::TAU;
 use bevy::prelude::*;
 
-use crate::creature::species::CreatureRoot;
 use crate::mind::{Mind, MoodState};
 
 /// The kokoro-sac glow, attached as a child entity of CreatureRoot.

@@ -58,6 +58,7 @@ impl GrowthStage {
         }
     }
 
+    #[allow(dead_code)]
     pub fn label(&self) -> &str {
         match self {
             GrowthStage::Baby  => "Baby",

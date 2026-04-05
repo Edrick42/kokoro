@@ -164,6 +164,7 @@ impl MLP {
     }
 
     /// Returns the mood index with the highest probability.
+    #[allow(dead_code)]
     pub fn predict(&self, input: &[f32; INPUT_SIZE]) -> usize {
         let probs = self.forward(input);
         probs.iter()

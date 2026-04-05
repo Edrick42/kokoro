@@ -31,6 +31,7 @@ struct AccessoryState {
 
 /// Marks an accessory entity for cleanup if needed.
 #[derive(Component)]
+#[allow(dead_code)]
 pub struct Accessory {
     pub kind: AccessoryKind,
 }

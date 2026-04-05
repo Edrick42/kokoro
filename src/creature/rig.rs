@@ -40,6 +40,7 @@ use crate::genome::Genome;
 
 /// Which genome gene drives a particular displacement.
 #[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
 pub enum GeneTrait {
     Curiosity,
     Appetite,
@@ -77,6 +78,7 @@ pub struct GeneOffset {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
 pub enum Axis {
     X,
     Y,

@@ -25,9 +25,7 @@ const EYE_GLOW: Rgba<u8> = Rgba([40, 180, 200, 255]);
 const EYE_GLOW_HI: Rgba<u8> = Rgba([80, 220, 240, 255]);
 const TENTACLE: Rgba<u8> = Rgba([100, 65, 140, 255]);
 const TENTACLE_TIP: Rgba<u8> = Rgba([50, 170, 180, 255]);
-const PINK: Rgba<u8> = Rgba([200, 120, 180, 255]);
 const TEAR: Rgba<u8> = Rgba([100, 160, 220, 255]);
-const GREEN_SICK: Rgba<u8> = Rgba([120, 180, 110, 255]);
 
 fn out_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))

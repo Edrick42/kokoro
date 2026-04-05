@@ -100,6 +100,51 @@ fn load_mind(conn: &Connection) -> Result<Option<(Mind, i64)>> {
     }
 }
 
+/// Loads the full creature collection from the `creatures` table.
+/// Returns None if the table is empty (first run or pre-migration).
+pub fn load_collection(conn: &Connection) -> Result<Option<Vec<crate::creature::collection::StoredCreature>>> {
+    let mut stmt = conn.prepare(
+        "SELECT slot, name, species, curiosity, loneliness_sensitivity, appetite,
+                circadian, resilience, learning_rate, hue,
+                hunger, happiness, energy, health, mood, age_ticks
+         FROM creatures ORDER BY slot ASC",
+    )?;
+
+    let creatures: Vec<crate::creature::collection::StoredCreature> = stmt.query_map([], |row| {
+        let species_str: String = row.get(2)?;
+        let mood_str: String = row.get(14)?;
+        Ok(crate::creature::collection::StoredCreature {
+            name: row.get(1)?,
+            genome: Genome {
+                species: str_to_species(&species_str),
+                curiosity: row.get(3)?,
+                loneliness_sensitivity: row.get(4)?,
+                appetite: row.get(5)?,
+                circadian: row.get(6)?,
+                resilience: row.get(7)?,
+                learning_rate: row.get(8)?,
+                hue: row.get(9)?,
+            },
+            mind: Mind {
+                stats: VitalStats {
+                    hunger: row.get(10)?,
+                    happiness: row.get(11)?,
+                    energy: row.get(12)?,
+                    health: row.get(13)?,
+                },
+                mood: str_to_mood(&mood_str),
+                age_ticks: row.get(15)?,
+            },
+        })
+    })?.filter_map(|r| r.ok()).collect();
+
+    if creatures.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(creatures))
+    }
+}
+
 fn str_to_species(s: &str) -> Species {
     match s {
         "Moluun"  => Species::Moluun,

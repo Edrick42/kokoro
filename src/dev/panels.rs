@@ -300,7 +300,7 @@ fn draw_physics_panel(
     egui::CollapsingHeader::new("Physics & Vitals")
         .default_open(true)
         .show(ui, |ui| {
-            let Ok((body, breathing, heartbeat)) = physics_q.get_single() else {
+            let Ok((body, breathing, heartbeat)) = physics_q.single() else {
                 ui.label("No creature found");
                 return;
             };
@@ -337,7 +337,7 @@ fn draw_physics_panel(
             ui.add_space(4.0);
 
             // Resonance glow (kokoro-sac)
-            if let Ok(glow) = glow_q.get_single() {
+            if let Ok(glow) = glow_q.single() {
                 ui.label(format!(
                     "Kokoro-sac: {:.1} Hz | int {:.2}",
                     glow.frequency, glow.intensity

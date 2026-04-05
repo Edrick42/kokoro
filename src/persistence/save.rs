@@ -84,6 +84,41 @@ pub fn log_event(
     Ok(())
 }
 
+/// Saves the entire creature collection to the `creatures` table.
+pub fn save_collection(
+    conn: &Connection,
+    collection: &crate::creature::collection::CreatureCollection,
+) -> Result<()> {
+    for (i, creature) in collection.creatures.iter().enumerate() {
+        conn.execute(
+            "INSERT OR REPLACE INTO creatures
+             (slot, name, species, curiosity, loneliness_sensitivity, appetite,
+              circadian, resilience, learning_rate, hue,
+              hunger, happiness, energy, health, mood, age_ticks)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
+            params![
+                i as i64,
+                creature.name,
+                format!("{:?}", creature.genome.species),
+                creature.genome.curiosity,
+                creature.genome.loneliness_sensitivity,
+                creature.genome.appetite,
+                creature.genome.circadian,
+                creature.genome.resilience,
+                creature.genome.learning_rate,
+                creature.genome.hue,
+                creature.mind.stats.hunger,
+                creature.mind.stats.happiness,
+                creature.mind.stats.energy,
+                creature.mind.stats.health,
+                mood_to_str(&creature.mind.mood),
+                creature.mind.age_ticks,
+            ],
+        )?;
+    }
+    Ok(())
+}
+
 fn mood_to_str(mood: &MoodState) -> &'static str {
     match mood {
         MoodState::Happy    => "Happy",

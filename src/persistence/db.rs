@@ -66,6 +66,26 @@ fn migrate(conn: &Connection) -> Result<()> {
             hue                     REAL    NOT NULL
         );
 
+        -- Multi-creature storage: one row per creature slot (0-3)
+        CREATE TABLE IF NOT EXISTS creatures (
+            slot                    INTEGER PRIMARY KEY,
+            name                    TEXT    NOT NULL,
+            species                 TEXT    NOT NULL,
+            curiosity               REAL    NOT NULL,
+            loneliness_sensitivity  REAL    NOT NULL,
+            appetite                REAL    NOT NULL,
+            circadian               REAL    NOT NULL,
+            resilience              REAL    NOT NULL,
+            learning_rate           REAL    NOT NULL,
+            hue                     REAL    NOT NULL,
+            hunger                  REAL    NOT NULL DEFAULT 30.0,
+            happiness               REAL    NOT NULL DEFAULT 70.0,
+            energy                  REAL    NOT NULL DEFAULT 80.0,
+            health                  REAL    NOT NULL DEFAULT 100.0,
+            mood                    TEXT    NOT NULL DEFAULT 'Happy',
+            age_ticks               INTEGER NOT NULL DEFAULT 0
+        );
+
         -- Append-only event log — training data for Phase 4 neural net
         CREATE TABLE IF NOT EXISTS event_log (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -51,27 +51,27 @@
   - Lifetimes — what they are and when you need them
   - *Deep Dive: Why the crossover function needed standalone `fn` instead of closures*
 
-- [Chapter 7: Error Handling](part-1/ch07-errors.md)
+- [Chapter 7: Error Handling](part-1/ch07-errors.md) 🔮
   - Panics vs recoverable errors
   - `Result<T, E>` in depth
   - The `?` operator
   - Custom error types
   - *In Practice: Database operations and `rusqlite` error handling*
 
-- [Chapter 8: Collections and Generics](part-1/ch08-collections.md)
+- [Chapter 8: Collections and Generics](part-1/ch08-collections.md) 🔮
   - `Vec<T>`, `HashMap<K, V>`, `HashSet<T>`
   - Generics: writing code that works for many types
   - Trait bounds
   - *Build It: `CreatureCollection` and `PartSpriteHandles`*
 
-- [Chapter 9: Traits — Rust's Superpower](part-1/ch09-traits.md)
+- [Chapter 9: Traits — Rust's Superpower](part-1/ch09-traits.md) 🔮
   - Defining and implementing traits
   - Trait objects (`dyn Trait`) vs static dispatch
   - Common standard library traits: `Display`, `From`, `Into`
   - Operator overloading
   - *In Practice: Why `Genome` implements `Clone`, and how Bevy uses traits everywhere*
 
-- [Chapter 10: Modules and Project Organization](part-1/ch10-modules.md)
+- [Chapter 10: Modules and Project Organization](part-1/ch10-modules.md) 🔮
   - `mod`, `pub`, and visibility
   - File-based module hierarchy
   - `use` and re-exports
@@ -82,42 +82,42 @@
 
 ## Part II — Building the Game Core
 
-- [Chapter 11: Introduction to Bevy and ECS](part-2/ch11-bevy-intro.md)
+- [Chapter 11: Introduction to Bevy and ECS](part-2/ch11-bevy-intro.md) 🔮
   - What is ECS? Entities, Components, Systems
   - Why ECS over OOP for games
   - Creating a Bevy `App`
   - `DefaultPlugins` and the game window
   - *Build It: The minimal Kokoro window*
 
-- [Chapter 12: Components and Resources](part-2/ch12-components.md)
+- [Chapter 12: Components and Resources](part-2/ch12-components.md) 🔮
   - Components as plain data structs
   - Resources: global shared state
   - The `#[derive(Component)]` and `#[derive(Resource)]` macros
   - `Res<T>`, `ResMut<T>` — accessing resources in systems
   - *Build It: `Genome` and `Mind` as Resources*
 
-- [Chapter 13: Systems — Where Logic Lives](part-2/ch13-systems.md)
+- [Chapter 13: Systems — Where Logic Lives](part-2/ch13-systems.md) 🔮
   - System functions and their signatures
   - Queries: `Query<&T>`, `Query<(&A, &B)>`, filters
   - System ordering and schedules: `Startup`, `Update`
   - Change detection: `Changed<T>`, `Added<T>`
   - *Build It: The stat decay system and mood FSM*
 
-- [Chapter 14: The Creature's Genome](part-2/ch14-genome.md)
+- [Chapter 14: The Creature's Genome](part-2/ch14-genome.md) 🔮
   - Designing a genetic system
   - Gene ranges and species-specific defaults
   - Random generation with the `rand` crate
   - How genes influence behavior and appearance
   - *Build It: `Genome::random_for()` and species templates*
 
-- [Chapter 15: The Creature's Mind — Finite State Machine](part-2/ch15-mind-fsm.md)
+- [Chapter 15: The Creature's Mind — Finite State Machine](part-2/ch15-mind-fsm.md) 🔮
   - State machines in game design
   - Mood transitions based on vital stats
   - Critical states and priority systems
-  - Time-based stat decay with genome modulation
+  - Realistic time cycles: gradual transitions, no instant mood changes
   - *Build It: The complete `Mind` struct with `update_mood()` and `tick()`*
 
-- [Chapter 16: The World — Time and Environment](part-2/ch16-world.md)
+- [Chapter 16: The World — Time and Environment](part-2/ch16-world.md) 🔮
   - Game time vs real time
   - The tick system
   - Day/night cycles
@@ -128,41 +128,44 @@
 
 ## Part III — Intelligence and Evolution
 
-- [Chapter 17: Serialization — Saving and Loading](part-3/ch17-persistence.md)
+- [Chapter 17: Serialization — Saving and Loading](part-3/ch17-persistence.md) 🔮
   - The `serde` ecosystem
   - `Serialize` and `Deserialize` derives
   - Binary encoding with `bincode`
   - SQLite with `rusqlite`: schemas, queries, and transactions
+  - Database migrations: evolving schemas safely
   - *Build It: The complete persistence pipeline*
 
-- [Chapter 18: Neural Networks in Pure Rust](part-3/ch18-neural.md)
+- [Chapter 18: Neural Networks in Pure Rust](part-3/ch18-neural.md) 🔮
   - What is a neural network? (conceptual)
   - The MLP architecture: input → hidden → output
   - Xavier initialization and why it matters
   - Forward pass: matrix multiplication, ReLU, softmax
   - *Build It: The `MLP` struct with `forward()` and `predict()`*
 
-- [Chapter 19: Training the Mind](part-3/ch19-training.md)
+- [Chapter 19: Training the Mind](part-3/ch19-training.md) 🔮
   - Backpropagation and gradient descent
   - Cross-entropy loss for classification
   - Mini-batch training from event history
   - The FSM-Neural hybrid: veto system for critical states
+  - Learning preferences: creature develops tastes and refuses actions
   - *Build It: `train_step()`, `train_on_samples()`, and the mood override system*
 
-- [Chapter 20: Genetic Crossover and Mutation](part-3/ch20-genetics.md)
+- [Chapter 20: Genetic Crossover and Mutation](part-3/ch20-genetics.md) 🔮
   - Genetic algorithms: crossover, mutation, selection
   - Per-gene crossover with random parent selection
   - Mutation rate and bounded gene values
   - Species-specific gene ranges
   - *Build It: `Genome::crossover()` with mutation*
 
-- [Chapter 21: Multi-Creature Management](part-3/ch21-collection.md)
+- [Chapter 21: Multi-Creature Management](part-3/ch21-collection.md) 🔮
   - Managing multiple game entities with a collection
   - The active-creature pattern: swap resources, respawn visuals
   - Event-driven architecture: `SelectSpeciesEvent`
+  - Multi-creature persistence: saving and loading all creatures
   - *Build It: `CreatureCollection` and the switch system*
 
-- [Chapter 22: Events — Decoupled Communication](part-3/ch22-events.md)
+- [Chapter 22: Events — Decoupled Communication](part-3/ch22-events.md) 🔮
   - Bevy's event system: `EventWriter`, `EventReader`
   - Why events beat direct coupling
   - Event ordering and frame boundaries
@@ -172,21 +175,21 @@
 
 ## Part IV — Visuals, UI, and Polish
 
-- [Chapter 23: 2D Rendering in Bevy](part-4/ch23-rendering.md)
+- [Chapter 23: 2D Rendering in Bevy](part-4/ch23-rendering.md) 🔮
   - Sprites and sprite sheets
   - Procedural meshes: `Circle`, `Rectangle`
   - Materials and colors: HSL, sRGB
   - The transform hierarchy: parent/child entities
   - *Build It: Procedural mesh fallback creatures*
 
-- [Chapter 24: The Body Rig System](part-4/ch24-rig.md)
+- [Chapter 24: The Body Rig System](part-4/ch24-rig.md) 🔮
   - Proportional landmark positioning
   - Normalized coordinates → pixel offsets
   - Gene-driven offsets (curiosity → eye spacing)
   - Species-specific rigs
-  - *Build It: `BodyRig`, `moluun_rig()`, `pylum_rig()`, `skael_rig()`*
+  - *Build It: `BodyRig`, `moluun_rig()`, `pylum_rig()`, `skael_rig()`, `nyxal_rig()`*
 
-- [Chapter 25: Modular Sprite Composition](part-4/ch25-sprites.md)
+- [Chapter 25: Modular Sprite Composition](part-4/ch25-sprites.md) 🔮
   - Entity hierarchy for body parts
   - Sprite loading and fallback strategy
   - Mood-reactive parts: swapping sprites on state change
@@ -197,93 +200,195 @@
   - Why generate art with code (and why in Rust, not Python)
   - The contract: what the game engine expects (names, sizes, transparency)
   - The toolkit: `image` crate, HashSet shapes, flood outline, gradient shading
-  - Moluun: body shading, parameterized eyes with Default trait, 8 mouth variants
-  - Pylum: wings with directional gradient, triangle beak, tail feathers
-  - Skael: scale texture with step_by, slit pupils, horn crests, fanged snout
-  - Nyxal: deep-sea palette, bioluminescent eyes, tapered tentacles
+  - Moluun, Pylum, Skael, Nyxal: species-specific pixel art generation
   - Creating a new species: the complete step-by-step
   - Design principles for pixel art sprites
 
-- [Chapter 26: User Interface with Bevy UI](part-4/ch26-ui.md)
+- [Chapter 26: User Interface with Bevy UI](part-4/ch26-ui.md) 🔮
   - Bevy's UI system: `Node`, `Button`, flexbox layout
-  - Interaction handling: `Interaction` component
-  - Building a HUD: stat bars, icons
-  - Dynamic UI: the creature selector
-  - *Build It: Action buttons, stat display, species selector*
+  - Collapsible menus and modal panels
+  - Building a HUD: stat bars, vitals panel (BPM, breathing)
+  - Touch interaction: detecting where the player touches the creature
+  - *Build It: Action menu, stat display, vitals panel*
 
-- [Chapter 27: Animation and Organic Behavior](part-4/ch27-animation.md)
+- [Chapter 27: Animation and Organic Behavior](part-4/ch27-animation.md) 🔮
   - Eye blink system
   - Species-specific idle behaviors (ear twitch, wing flutter, tentacle undulation)
   - Breathing: mood-driven rhythmic scale oscillation
-  - Heartbeat: periodic pulse tied to health, irregular when sick
+  - Heartbeat: BPM tracking tied to health, irregular when sick
+  - Kokoro-sac resonance glow (lore-accurate frequencies)
   - Growth stages and visual evolution
-  - Accessories: milestone rewards
-  - *Build It: `AnimationPlugin`, `BreathingPlugin`, `SpeciesBehaviorPlugin`*
+  - *Build It: `AnimationPlugin`, `BreathingPlugin`, `SpeciesBehaviorPlugin`, `ResonanceGlowPlugin`*
 
-- [Chapter 27b: Physics for Virtual Creatures](part-4/ch27b-physics.md)
+- [Chapter 27b: Physics for Virtual Creatures](part-4/ch27b-physics.md) 🔮
   - Building a mini physics engine without external crates
   - Gravity, ground collision, and bounce
   - Buoyancy for aquatic creatures
   - Mood-triggered impulses (jump, stumble, slump)
-  - Transform ownership: preventing system conflicts
   - *Build It: `PhysicsPlugin` and `PhysicsBody`*
 
-- [Chapter 28: Plugins — Modular Architecture](part-4/ch28-plugins.md)
+- [Chapter 28: Plugins — Modular Architecture](part-4/ch28-plugins.md) 🔮
   - The Bevy Plugin trait
   - Designing self-contained plugins
   - Plugin ordering and dependencies
-  - When to split vs when to combine
   - Feature-gated plugins: Dev Mode with `#[cfg(feature)]`
   - *Deep Dive: How Kokoro's 15+ plugins compose into one App*
 
-- [Chapter 28b: Dev Mode — Building Debug Tools](part-4/ch28b-devmode.md)
+- [Chapter 28b: Dev Mode — Building Debug Tools](part-4/ch28b-devmode.md) 🔮
   - Feature flags in Cargo.toml
   - Runtime toggles with `DevModeState`
   - Bevy Gizmos for rig visualization
   - egui panels for real-time data inspection
-  - Conditional compilation: zero cost in release builds
-  - *Build It: `DevPlugin` with rig gizmos and data panels*
+  - Time manipulation, state overrides, cheat panels for testing
+  - *Build It: `DevPlugin` with rig gizmos, data panels, and dev cheats*
 
 ---
 
-## Part V — Advanced Rust and Beyond 🔮
+## Part V — Biological Simulation 🔮
 
-> *These chapters will be written as the project grows.*
+> *The heart of what makes Kokoro unique: real biology, not fantasy.*
 
-- [Chapter 29: Concurrency and Async](part-5/ch29-concurrency.md)
-  - Threads and `Send`/`Sync`
-  - `Mutex` and `Arc` — thread-safe shared state
-  - Async/await basics
-  - *In Practice: `DbConnection` wrapped in `Mutex` for thread safety*
+- [Chapter 29: Taxonomy — Classifying Life](part-5/ch29-taxonomy.md) 🔮
+  - Biological classification: kingdom, phylum, class, order
+  - Mapping Kobara species to real-world analogs (canine, amphibian, cephalopod, avian)
+  - How taxonomy drives game mechanics
+  - *Build It: `Taxonomy` enum and species classification system*
 
-- [Chapter 30: Performance and Optimization](part-5/ch30-performance.md)
+- [Chapter 30: The Egg Stage — Before Birth](part-5/ch30-egg-stage.md) 🔮
+  - Species-specific pre-birth: cells, eggs, roe
+  - Incubation mechanics: time, temperature, care
+  - Genome expression during development
+  - The moment of hatching
+  - *Build It: `EggState` component and incubation system*
+
+- [Chapter 31: Metabolism and Nutrition](part-5/ch31-metabolism.md) 🔮
+  - Metabolic rate: energy expenditure, fat storage, body temperature
+  - Nutrient types: protein, fiber, minerals, vitamins
+  - Food items with nutritional profiles
+  - Species dietary requirements (herbivore, carnivore, filter-feeder, omnivore)
+  - Overeating, malnutrition, and their effects
+  - *Build It: `Metabolism` component and `NutritionSystem`*
+
+- [Chapter 32: Skeleton, Muscles, and Movement](part-5/ch32-body-systems.md) 🔮
+  - Skeletal system: bones, joints, articulation
+  - Muscular system: strength, fatigue, recovery
+  - Nervous system: reflexes, coordination, learning
+  - How biology drives stats: strength, agility, flexibility
+  - Walking, swimming, flying animations from body structure
+  - *Build It: `BodySystems` component tree and movement system*
+
+- [Chapter 33: Natural Abilities](part-5/ch33-abilities.md) 🔮
+  - Abilities grounded in real biology (not fantasy)
+  - Electric sense (navigation, prey detection) — Nyxal
+  - Echolocation (cave navigation) — Skael
+  - Scent marking and pheromones — Moluun
+  - Thermal vision, UV sight — Pylum
+  - Venom, camouflage, regeneration — evolved traits with purpose
+  - *Build It: `Ability` trait and species-specific implementations*
+
+- [Chapter 34: Communication Between Creatures](part-5/ch34-communication.md) 🔮
+  - Communication channels: sound, movement, expression, scent, color
+  - Visual representation of invisible senses (scent clouds, sound waves)
+  - Species-specific communication styles
+  - Emotional broadcasting through the kokoro-sac
+  - *Build It: `CommunicationSystem` with visual feedback*
+
+- [Chapter 35: Hygiene and Self-Care](part-5/ch35-hygiene.md) 🔮
+  - Species-specific cleanliness: grooming, bathing, molting, ink-cleaning
+  - Hygiene stat and its effects on health and mood
+  - Social grooming between creatures
+  - *Build It: `HygieneSystem` and grooming behaviors*
+
+- [Chapter 36: Learning and Preferences](part-5/ch36-learning.md) 🔮
+  - Creatures develop individual tastes over time
+  - Food preferences: likes, dislikes, allergies
+  - Activity preferences: resist sleep, request play, refuse food
+  - Memory of player interactions
+  - Neural network personality emergence
+  - *Build It: `PreferenceSystem` with persistent memory*
+
+- [Chapter 37: Touch and Physical Interaction](part-5/ch37-touch.md) 🔮
+  - Click/touch detection on creature body parts
+  - Petting, scratching, tickling — different responses per species
+  - Comfort zones and sensitive areas
+  - Building trust through physical interaction
+  - *Build It: `TouchInteraction` system with body-part hit detection*
+
+---
+
+## Part VI — Testing and Quality 🔮
+
+- [Chapter 38: Unit Testing in Rust](part-6/ch38-unit-tests.md) 🔮
+  - `#[test]` and `#[cfg(test)]`
+  - Assertions: `assert!`, `assert_eq!`, `assert_ne!`
+  - Testing private functions
+  - Test organization: inline vs separate files
+  - *Build It: Tests for Genome, Mind FSM, Physics, Metabolism*
+
+- [Chapter 39: Integration Testing](part-6/ch39-integration-tests.md) 🔮
+  - The `tests/` directory
+  - Testing Bevy systems in isolation
+  - Database testing with temporary DBs
+  - Property-based testing for genetic algorithms
+  - *Build It: Full test suite for persistence, neural network, creature lifecycle*
+
+- [Chapter 40: Performance and Profiling](part-6/ch40-performance.md) 🔮
   - Profiling Rust code
   - Zero-cost abstractions in practice
   - Memory layout and cache friendliness
-  - When to use `Box`, `Rc`, `Arc`
+  - Bevy system ordering for performance
 
-- [Chapter 31: Testing](part-5/ch31-testing.md)
-  - Unit tests with `#[test]`
-  - Integration tests
-  - Testing game systems
-  - Property-based testing for genetic algorithms
+---
 
-- [Chapter 32: Cross-Platform Distribution](part-5/ch32-distribution.md)
+## Part VII — Full-Stack Rust Web 🔮
+
+> *Build a companion website for Kokoro — entirely in Rust.*
+
+- [Chapter 41: Web Backend with Axum](part-7/ch41-axum.md) 🔮
+  - Async Rust: `async/await`, Tokio runtime
+  - Axum fundamentals: routes, handlers, extractors
+  - JSON APIs with `serde`
+  - Middleware: CORS, logging, error handling
+  - *Build It: `kokoro-api` — health check, creature endpoints*
+
+- [Chapter 42: Authentication and User Profiles](part-7/ch42-auth.md) 🔮
+  - User registration and login
+  - Password hashing with `argon2`
+  - JWT tokens or session-based auth
+  - User profile storage
+  - *Build It: Auth system with login, register, profile*
+
+- [Chapter 43: Frontend with Leptos](part-7/ch43-leptos.md) 🔮
+  - Rust in the browser: WebAssembly
+  - Leptos signals and reactive UI
+  - Components, props, and events
+  - Server-side rendering (SSR)
+  - *Build It: Kobara viewer, lore browser, profile page*
+
+- [Chapter 44: Game ↔ Web Integration](part-7/ch44-integration.md) 🔮
+  - Exporting creature data from the game
+  - REST API for creature sync
+  - Real-time updates with WebSockets
+  - Community features: sharing, leaderboards
+  - *Build It: Sync pipeline from Bevy game to web dashboard*
+
+- [Chapter 45: Deployment](part-7/ch45-deployment.md) 🔮
   - Building for desktop (Windows, macOS, Linux)
-  - Mobile targets (Android, iOS)
-  - Web builds with WebAssembly
-  - Packaging and release
+  - Mobile targets (Android, iOS) with cargo-mobile2
+  - Web deployment: Docker, fly.io, Railway
+  - CI/CD with GitHub Actions
 
-- [Chapter 33: Full-Stack Rust — Building the Kokoro Website](part-5/ch33-website.md)
-  - Why full-stack Rust (backend + frontend)
-  - Backend: Axum or Actix-web for REST API
-  - Frontend: Leptos, Dioxus, or Yew for reactive UI
-  - Database: connecting SQLite creature data to the web
-  - User profiles, Kobara info pages, lore browser
-  - Community features: sharing creatures, leaderboards
-  - *Build It: A companion website where your Kobara lives online*
+---
 
-- [Chapter 34: The Rust Ecosystem](part-5/ch34-ecosystem.md)
+## Part VIII — Concurrency and Advanced Rust 🔮
+
+- [Chapter 46: Concurrency in Rust](part-8/ch46-concurrency.md) 🔮
+  - Threads and `Send`/`Sync`
+  - `Mutex` and `Arc` — thread-safe shared state
+  - Channels: `mpsc`, `crossbeam`
+  - *In Practice: `DbConnection` wrapped in `Mutex` for thread safety*
+
+- [Chapter 47: The Rust Ecosystem](part-8/ch47-ecosystem.md) 🔮
   - Crates.io and documentation
   - Useful crates for game development
   - The Rust community
@@ -297,3 +402,4 @@
 - [Appendix B: Bevy Cheat Sheet](appendices/appendix-b-bevy.md)
 - [Appendix C: Complete Kokoro Architecture](appendices/appendix-c-architecture.md)
 - [Appendix D: Glossary](appendices/appendix-d-glossary.md)
+- [Appendix E: Using NotebookLM to Study This Book](appendices/appendix-e-notebooklm.md) 🔮

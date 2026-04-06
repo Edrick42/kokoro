@@ -1,3 +1,4 @@
+mod audio;
 pub mod config;
 mod creature;
 #[cfg(feature = "dev")]
@@ -11,14 +12,17 @@ mod world;
 
 use bevy::prelude::*;
 
+use audio::SoundPlugin;
 use creature::{
     collection::MultiCreaturePlugin,
     egg::EggPlugin,
     physics::PhysicsPlugin,
     spawn::CreatureVisualsPlugin,
+    touch::TouchPlugin,
 };
 use mind::nutrition::NutritionPlugin;
 use mind::plugin::NeuralMindPlugin;
+use mind::preferences::PreferencePlugin;
 use persistence::plugin::PersistencePlugin;
 use ui::{
     actions::ActionsPlugin,
@@ -67,7 +71,7 @@ fn main() {
         // UI plugins
         .add_plugins((StatsPlugin, ActionsPlugin, VitalsPlugin))
         // Creature lifecycle — collection management + egg incubation
-        .add_plugins((MultiCreaturePlugin, EggPlugin))
+        .add_plugins((MultiCreaturePlugin, EggPlugin, TouchPlugin, PreferencePlugin, SoundPlugin))
         // Physics — gravity, collision, buoyancy
         .add_plugins(PhysicsPlugin)
         // Visual plugins — effects, animation, evolution, accessories, organic behavior

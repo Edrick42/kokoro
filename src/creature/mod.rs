@@ -6,3 +6,4 @@ pub mod reproduction;
 pub mod rig;
 pub mod spawn;
 pub mod species;
+pub mod touch;

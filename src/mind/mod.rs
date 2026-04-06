@@ -30,6 +30,7 @@ pub mod absence;
 pub mod neural;
 pub mod nutrition;
 pub mod plugin;
+pub mod preferences;
 pub mod training;
 
 /// The creature's current emotional and behavioural state.

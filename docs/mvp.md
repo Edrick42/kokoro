@@ -21,11 +21,13 @@ HATCH → CARE → BOND → GROW → SHARE
 | Feature | Status | Notes |
 |---------|--------|-------|
 | 4 species with unique behaviors | DONE | Moluun, Pylum, Skael, Nyxal |
-| Egg/birth stage per species | TODO | First thing the player sees |
-| Realistic time cycles | TODO | Gradual mood transitions, sleep takes time |
-| Nutrition system (3+ food types) | TODO | Not just "Feed" — protein, fruit, minerals |
-| Touch interaction (pet/scratch) | TODO | Core engagement — touching the creature |
-| Learning & preferences | TODO | Creature refuses food it dislikes, requests activities |
+| Egg/birth stage per species | DONE | Incubation ~3 days, tap to warm |
+| Realistic time cycles | DONE | Gradual transitions, mood cooldown, ~6 month lifespan |
+| Nutrition system (7 nutrients × 8 foods) | DONE | Real biology: protein, carbs, fat, water, minerals, vitamins, fiber |
+| Touch interaction (nervous system) | DONE | Sensitivity per body part (pleasure/pain/warmth), raycasting |
+| Learning & preferences | DONE | Food memory, refusal after 10x, creature requests |
+| Communication system (5 channels) | DONE | Vocal, visual, kinetic, chemical, tactile per species |
+| Complete lifecycle (death) | DONE | Aging, starvation, dehydration, neglect, care quality |
 | Physics + species animations | DONE | Gravity, bounce, buoyancy, idle behaviors |
 | Breathing + heartbeat vitals | DONE | Visible in UI panel |
 | Kokoro-sac glow | DONE | Emotional resonance visualization |
@@ -33,9 +35,11 @@ HATCH → CARE → BOND → GROW → SHARE
 | Species personality | DONE | Different stat impacts per species |
 | Persistence (all creatures saved) | DONE | SQLite, multi-creature |
 | Neural network learning | DONE | MLP learns owner patterns |
-| Clean UI (collapsible menu) | DONE | Minimal, not cluttered |
-| Growth stages with visuals | DONE | Baby → Elder with scale changes |
-| Sound effects | TODO | Ambient + creature sounds |
+| UI design system + animations | DONE | Animated buttons, hierarchical menu, food icons |
+| Growth stages with visuals | DONE | Egg → Cub → Young → Adult → Elder |
+| Config organized (0 magic numbers) | DONE | src/config/ with 9 submodules |
+| 30 unit tests | DONE | Genome, mind, nutrition, preferences, touch, lifecycle |
+| Sound infrastructure | DONE | VocalRepertoire, species learning limits, placeholder |
 | Background/environment art | TODO | Biome behind each species |
 
 ### Nice to Have (Post-MVP)

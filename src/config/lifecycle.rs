@@ -11,12 +11,13 @@ use crate::genome::Species;
 // ===================================================================
 
 /// Base lifespan in ticks per species. Can be extended by good care.
+/// 1 tick = 1 real second. Lifespans are 5-7+ months of real time.
 pub fn base_lifespan(species: &Species) -> u64 {
     match species {
-        Species::Moluun => 25_000,  // ~7 hours of real play
-        Species::Pylum  => 20_000,  // shorter, faster metabolism
-        Species::Skael  => 35_000,  // longest, slow metabolism
-        Species::Nyxal  => 28_000,  // moderate
+        Species::Moluun => 15_500_000,  // ~6 months
+        Species::Pylum  => 14_000_000,  // ~5.4 months (fast metabolism)
+        Species::Skael  => 19_000_000,  // ~7.3 months (slow metabolism)
+        Species::Nyxal  => 16_500_000,  // ~6.4 months
     }
 }
 

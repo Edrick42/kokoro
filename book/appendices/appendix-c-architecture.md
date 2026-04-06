@@ -9,7 +9,7 @@ kokoro/
 ├── docs/
 │   ├── lore.md                   # World bible: Ethara, 4 species, resonance
 │   ├── mvp.md                    # MVP feature checklist
-│   ├── monetization.md           # Revenue strategy
+│   ├── species-evolution-design.md # Visual progression per stage
 │   ├── next-steps.md             # Ordered task list
 │   ├── art-direction.md          # Low-poly style guide
 │   └── species-evolution-design.md # Visual progression per stage
@@ -25,6 +25,8 @@ kokoro/
 │       └── shared/effects/
 └── src/
     ├── main.rs                   # App entry, plugin orchestration
+    ├── audio/                    # Sound system
+    │   └── mod.rs                # SoundPlugin, VocalRepertoire, GameSound enum
     ├── config/                   # All tunable constants (no magic numbers)
     │   ├── mod.rs                # Re-exports
     │   ├── stats.rs              # Vital stats, FSM thresholds, decay rates
@@ -51,8 +53,10 @@ kokoro/
     ├── mind/                     # AI and emotional state
     │   ├── mod.rs                # Mind struct, MoodState, VitalStats, FSM
     │   ├── absence.rs            # Mirror Bond (absence awareness)
+    │   ├── lifecycle.rs           # Aging, death, care quality tracking
     │   ├── neural.rs             # MLP neural network (12→8→7, 167 params)
-    │   ├── nutrition.rs          # NutrientState, decay system, deficiency effects
+    │   ├── nutrition.rs          # NutrientState (7 nutrients), decay, deficiency
+    │   ├── preferences.rs        # Food memory, creature requests, refusal
     │   ├── plugin.rs             # Bevy integration, training schedule
     │   └── training.rs           # Training pipeline, event extraction
     ├── persistence/              # SQLite save/load
@@ -123,13 +127,14 @@ app.run();
 
 ## Growth Stages
 
-| Stage | Age (ticks) | Scale | Sprite Directory |
-|-------|-------------|-------|-----------------|
-| Egg | pre-birth | 0.4 | `{species}/egg/` |
-| Cub | 0–500 | 0.6 | `{species}/cub/` |
-| Young | 500–2,000 | 0.8 | `{species}/young/` |
-| Adult | 2,000–10,000 | 1.0 | `{species}/adult/` |
-| Elder | 10,000+ | 0.95 | `{species}/elder/` |
+| Stage | Age (ticks) | Real Time (~) | Scale | Sprite Directory |
+|-------|-------------|---------------|-------|-----------------|
+| Egg | incubation | ~3 days | 0.4 | `{species}/egg/` |
+| Cub | 0–1,200,000 | ~2 weeks | 0.6 | `{species}/cub/` |
+| Young | →3,800,000 | ~6 weeks | 0.8 | `{species}/young/` |
+| Adult | →8,500,000 | ~3.3 months | 1.0 | `{species}/adult/` |
+| Elder | 8,500,000+ | ~2-3 months more | 0.95 | `{species}/elder/` |
+| Death | species-dependent | ~6-7 months total | — | — |
 
 ## Genome — 8 Genes
 
@@ -154,6 +159,9 @@ All tunable game constants organized by domain — zero magic numbers in game lo
 | `physics.rs` | Gravity, bounce, friction, impulses, velocity thresholds |
 | `biology.rs` | Breathing rates, heartbeat BPM, resonance frequencies, growth stages, egg timing |
 | `nutrition.rs` | FoodType enum, nutrient profiles (7 nutrients × 8 foods), species decay rates |
+| `lifecycle.rs` | Lifespan per species (~6 months), aging, death conditions, care quality |
+| `communication.rs` | 5 communication channels (vocal/visual/kinetic/chemical/tactile) per species |
+| `nervous_system.rs` | Sensory sensitivity (pleasure/pain/warmth) per species × body part |
 | `timing.rs` | Tick interval, autosave, neural training schedule, circadian bonuses |
 | `absence.rs` | Mirror Bond time brackets (1min, 30min, 4h, 24h), reunion ticks |
 | `slots.rs` | Body part name constants (prevents typos) |

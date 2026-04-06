@@ -54,12 +54,13 @@ pub mod resonance {
 }
 
 pub mod growth {
-    pub const BABY_MAX: u64 = 500;
-    pub const CHILD_MAX: u64 = 2000;
-    pub const ADULT_MAX: u64 = 10000;
+    /// Age thresholds in ticks (1 tick = 1 real second).
+    pub const CUB_MAX: u64 = 1_200_000;     // Cub: ~14 days (2 weeks)
+    pub const YOUNG_MAX: u64 = 3_800_000;   // Young: ~44 days (~1.5 months)
+    pub const ADULT_MAX: u64 = 8_500_000;   // Adult: ~98 days (~3.3 months)
 
-    pub const BABY_SCALE: f32 = 0.6;
-    pub const CHILD_SCALE: f32 = 0.8;
+    pub const CUB_SCALE: f32 = 0.6;
+    pub const YOUNG_SCALE: f32 = 0.8;
     pub const ADULT_SCALE: f32 = 1.0;
     pub const ELDER_SCALE: f32 = 0.95;
 
@@ -67,6 +68,8 @@ pub mod growth {
 }
 
 pub mod egg {
-    pub const NATURAL_INCUBATION_TICKS: f32 = 120.0;
-    pub const TAP_BOOST: f32 = 0.05;
+    /// Natural incubation without interaction: ~3 days.
+    pub const NATURAL_INCUBATION_TICKS: f32 = 259_200.0; // 3 days in seconds
+    /// Each player tap adds ~0.5% progress.
+    pub const TAP_BOOST: f32 = 0.005;
 }

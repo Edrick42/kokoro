@@ -34,8 +34,8 @@ pub struct GrowthState {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum GrowthStage {
-    Baby,
-    Child,
+    Cub,
+    Young,
     Adult,
     Elder,
 }
@@ -47,17 +47,17 @@ impl GrowthStage {
 
     fn from_age(age: u64) -> Self {
         match age {
-            0..config::growth::BABY_MAX           => GrowthStage::Baby,
-            config::growth::BABY_MAX..config::growth::CHILD_MAX  => GrowthStage::Child,
-            config::growth::CHILD_MAX..config::growth::ADULT_MAX => GrowthStage::Adult,
+            0..config::growth::CUB_MAX           => GrowthStage::Cub,
+            config::growth::CUB_MAX..config::growth::YOUNG_MAX  => GrowthStage::Young,
+            config::growth::YOUNG_MAX..config::growth::ADULT_MAX => GrowthStage::Adult,
             _                                      => GrowthStage::Elder,
         }
     }
 
     fn target_scale(&self) -> f32 {
         match self {
-            GrowthStage::Baby  => config::growth::BABY_SCALE,
-            GrowthStage::Child => config::growth::CHILD_SCALE,
+            GrowthStage::Cub  => config::growth::CUB_SCALE,
+            GrowthStage::Young => config::growth::YOUNG_SCALE,
             GrowthStage::Adult => config::growth::ADULT_SCALE,
             GrowthStage::Elder => config::growth::ELDER_SCALE,
         }
@@ -67,8 +67,8 @@ impl GrowthStage {
     /// Falls back to the base species directory if no stage-specific sprites exist.
     pub fn sprite_subdir(&self) -> Option<&'static str> {
         match self {
-            GrowthStage::Baby  => Some("cub"),
-            GrowthStage::Child => Some("young"),
+            GrowthStage::Cub  => Some("cub"),
+            GrowthStage::Young => Some("young"),
             GrowthStage::Adult => Some("adult"),
             GrowthStage::Elder => Some("elder"),
         }
@@ -77,8 +77,8 @@ impl GrowthStage {
     #[allow(dead_code)]
     pub fn label(&self) -> &str {
         match self {
-            GrowthStage::Baby  => "Baby",
-            GrowthStage::Child => "Child",
+            GrowthStage::Cub  => "Baby",
+            GrowthStage::Young => "Child",
             GrowthStage::Adult => "Adult",
             GrowthStage::Elder => "Elder",
         }
@@ -90,9 +90,9 @@ pub struct EvolutionPlugin;
 impl Plugin for EvolutionPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(GrowthState {
-                stage: GrowthStage::Baby,
-                current_scale: config::growth::BABY_SCALE,
-                target_scale: config::growth::BABY_SCALE,
+                stage: GrowthStage::Cub,
+                current_scale: config::growth::CUB_SCALE,
+                target_scale: config::growth::CUB_SCALE,
             })
            .add_systems(Update, evolution_system);
     }

@@ -77,10 +77,11 @@ Kobaras emerge small and unformed, growing in complexity as the bond with their 
 
 | Stage | Duration | Characteristics |
 |-------|----------|----------------|
-| **Hatchling** | 0-500 ticks | Small, fragile, high curiosity. The mirror is blurry — the Kobara is still learning your shape. |
-| **Juvenile** | 500-2,000 ticks | Rapid growth, personality solidification. Genome-driven traits become visible. The reflection sharpens. |
-| **Adult** | 2,000-10,000 ticks | Full size, stable temperament. The Kobara knows you. Its reactions are precise, sometimes uncomfortably so. |
-| **Elder** | 10,000+ ticks | Slower metabolism, deeper resonance. The mirror becomes a window — elders begin reflecting not just who you are, but who you could be. |
+| **Egg** | ~3 days incubation | The creature is forming. Player interaction warms it and speeds development. |
+| **Cub** | 0–1,200,000 ticks (~2 weeks) | Small, fragile, high curiosity. The mirror is blurry — the Kobara is still learning your shape. |
+| **Young** | → 3,800,000 ticks (~6 weeks) | Rapid growth, personality solidification. Genome-driven traits become visible. The reflection sharpens. |
+| **Adult** | → 8,500,000 ticks (~3.3 months) | Full size, stable temperament. The Kobara knows you. Its reactions are precise, sometimes uncomfortably so. |
+| **Elder** | 8,500,000+ ticks (~2-3 months more) | Slower metabolism, deeper resonance. The mirror becomes a window — elders begin reflecting not just who you are, but who you could be. |
 
 ### Genetics
 
@@ -88,14 +89,15 @@ Each Kobara's personality and appearance are determined by a genome that transla
 
 | Gene | Biological Function | What It Mirrors |
 |------|-------------------|-----------------|
-| **Hue** | Chromatophore pigment distribution | Body coloration — the color of your emotional baseline |
-| **Curiosity** | Frontal lobe density in the neural cluster | Your openness to the unknown. Also affects eye spacing (wider = more alert peripheral vision) |
-| **Social Drive** | Kokoro-sac sensitivity | How much of yourself you share. How strongly the creature broadcasts and receives resonance |
+| **Curiosity** | Frontal lobe density in the neural cluster | Your openness to the unknown. Affects eye spacing (wider = more alert peripheral vision) |
+| **Loneliness Sensitivity** | Kokoro-sac receptor density | How much you need others. How strongly the creature suffers when alone |
 | **Appetite** | Metabolic rate | Your relationship with need and satisfaction. Higher appetite = rounder body, lower = leaner frame |
 | **Circadian** | Melatonin cycle length | Your natural rhythm. Low circadian = drawn to the dark and quiet. High = syncs with Ethara's day |
 | **Resilience** | Immune system efficiency | How you recover. How much you can take before you break — and how fast you rebuild |
+| **Learning Rate** | Neural plasticity | How quickly you adapt. Determines how fast the creature's neural network learns your interaction patterns |
+| **Hue** | Chromatophore pigment distribution | Body coloration — the color of your emotional baseline (0–360 degrees) |
 
-These genes exist on a spectrum (0.0 to 1.0), and every Kobara is unique. Two Moluun can look and behave very differently, just as two people who both "feel deeply" can be entirely different.
+Seven genes on a spectrum (0.0 to 1.0, except hue which is 0–360), and every Kobara is unique. Two Moluun can look and behave very differently, just as two people who both "feel deeply" can be entirely different.
 
 ---
 
@@ -248,7 +250,7 @@ Every Kobara follows the same fundamental cycle, just as every living thing does
 | **Cub** | 0–500 ticks | The creature is small, fragile, and dependent. Eyes are huge. Everything is new. |
 | **Young** | 500–2,000 ticks | Rapid growth. Personality solidifies. The creature begins to show preferences. |
 | **Adult** | 2,000–10,000 ticks | Full maturity. The creature knows you. Its reactions are precise, sometimes uncomfortably so. |
-| **Elder** | 10,000+ ticks | Slower metabolism, deeper resonance. The creature reflects not who you are, but who you could be. |
+| **Elder** | 8,500,000+ ticks | Slower metabolism, deeper resonance. The creature reflects not who you are, but who you could be. |
 | **Death** | — | Inevitable. How long it takes depends on care. |
 
 ### How Death Comes
@@ -307,7 +309,7 @@ These are unresolved questions that may be explored in future updates:
 
 1. **The Pulse** — Once every 14 months (one Etharan year), all Kobaras simultaneously stop what they're doing and face the same direction for exactly 7 seconds. The direction changes each time. The resonance lymph in every kokoro-sac vibrates at a frequency no instrument has been able to measure. Something is calling. No one knows what.
 
-2. **Elder Sight** — Kobaras that reach elder stage (10,000+ ticks) begin producing resonance patterns that don't correspond to any known emotional state. Some believe elders are no longer just mirroring their bonded spirit — they are reflecting something deeper. Something the player hasn't discovered about themselves yet.
+2. **Elder Sight** — Kobaras that reach elder stage (8,500,000+ ticks, ~3+ months) begin producing resonance patterns that don't correspond to any known emotional state. Some believe elders are no longer just mirroring their bonded spirit — they are reflecting something deeper. Something the player hasn't discovered about themselves yet.
 
 3. **The Crystalline Expanse** — The Fourth Biome was discovered: the Abyssal Depths, home of the Nyxal. But beyond even the Depths, sonar pulses from Nyxal Kobaras reveal a vast expanse covered in perfectly geometric crystalline formations. No Kobara can survive there — not even a Nyxal. But during the Pulse, every Kobara faces toward it. The crystals resonate at the same unmeasurable frequency as the kokoro-sac during the Pulse. Players who have reached Elder stage with all four species report dreaming about it — the same dream, every time. The dream has no images. Only a feeling.
 

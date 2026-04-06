@@ -18,6 +18,7 @@
 //! - Color shifts as the creature matures
 
 use bevy::prelude::*;
+use crate::config;
 use crate::mind::Mind;
 use crate::creature::species::CreatureRoot;
 
@@ -46,19 +47,19 @@ impl GrowthStage {
 
     fn from_age(age: u64) -> Self {
         match age {
-            0..500      => GrowthStage::Baby,
-            500..2000   => GrowthStage::Child,
-            2000..10000 => GrowthStage::Adult,
-            _           => GrowthStage::Elder,
+            0..config::growth::BABY_MAX           => GrowthStage::Baby,
+            config::growth::BABY_MAX..config::growth::CHILD_MAX  => GrowthStage::Child,
+            config::growth::CHILD_MAX..config::growth::ADULT_MAX => GrowthStage::Adult,
+            _                                      => GrowthStage::Elder,
         }
     }
 
     fn target_scale(&self) -> f32 {
         match self {
-            GrowthStage::Baby  => 0.6,
-            GrowthStage::Child => 0.8,
-            GrowthStage::Adult => 1.0,
-            GrowthStage::Elder => 0.95,
+            GrowthStage::Baby  => config::growth::BABY_SCALE,
+            GrowthStage::Child => config::growth::CHILD_SCALE,
+            GrowthStage::Adult => config::growth::ADULT_SCALE,
+            GrowthStage::Elder => config::growth::ELDER_SCALE,
         }
     }
 
@@ -90,8 +91,8 @@ impl Plugin for EvolutionPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(GrowthState {
                 stage: GrowthStage::Baby,
-                current_scale: 0.6,
-                target_scale: 0.6,
+                current_scale: config::growth::BABY_SCALE,
+                target_scale: config::growth::BABY_SCALE,
             })
            .add_systems(Update, evolution_system);
     }
@@ -116,7 +117,7 @@ fn evolution_system(
     }
 
     // Smoothly interpolate toward target scale
-    let speed = 0.5; // scale units per second
+    let speed = config::growth::SCALE_LERP_SPEED;
     let diff = growth.target_scale - growth.current_scale;
     if diff.abs() > 0.001 {
         let step = diff.signum() * speed * time.delta_secs();

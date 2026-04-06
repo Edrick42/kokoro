@@ -14,11 +14,7 @@ use bevy::prelude::*;
 
 use crate::genome::Species;
 
-/// How many ticks for natural incubation (no interaction).
-const NATURAL_INCUBATION_TICKS: f32 = 120.0;
-
-/// How much progress a single tap/click adds.
-const TAP_BOOST: f32 = 0.05;
+use crate::config;
 
 /// Tracks the incubation state of an unhatched creature.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -56,7 +52,7 @@ fn natural_incubation(
         return;
     }
 
-    let rate = 1.0 / NATURAL_INCUBATION_TICKS;
+    let rate = 1.0 / config::egg::NATURAL_INCUBATION_TICKS;
     creature.egg.progress = (creature.egg.progress + rate).min(1.0);
 
     if creature.egg.progress >= 1.0 {
@@ -79,7 +75,7 @@ fn handle_egg_tap(
             continue;
         }
 
-        creature.egg.progress = (creature.egg.progress + TAP_BOOST).min(1.0);
+        creature.egg.progress = (creature.egg.progress + config::egg::TAP_BOOST).min(1.0);
 
         if creature.egg.progress >= 1.0 {
             creature.egg.hatched = true;

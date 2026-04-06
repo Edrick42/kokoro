@@ -9,16 +9,17 @@ A struct groups related data together under a name:
 ```rust
 pub struct Genome {
     pub species: Species,
-    pub hue: f32,
     pub curiosity: f32,
     pub loneliness_sensitivity: f32,
     pub appetite: f32,
     pub circadian: f32,
     pub resilience: f32,
+    pub learning_rate: f32,
+    pub hue: f32,
 }
 ```
 
-This is directly from Kokoro's `src/genome/mod.rs`. Each field has a name and a type. The `pub` keyword makes the field accessible from outside the module.
+This is directly from Kokoro's `src/genome/mod.rs`. Each field has a name and a type — 8 genes that define the creature's DNA. The `pub` keyword makes the field accessible from outside the module.
 
 ### Creating Instances
 
@@ -215,12 +216,13 @@ Now the genome itself:
 #[derive(Debug, Clone, Resource)]
 pub struct Genome {
     pub species: Species,
-    pub hue: f32,                       // 0-360, body color
-    pub curiosity: f32,                 // 0-1, eye spacing
+    pub curiosity: f32,                 // 0-1, exploration tendency
     pub loneliness_sensitivity: f32,    // 0-1, social need
     pub appetite: f32,                  // 0-1, hunger rate
     pub circadian: f32,                 // 0-1, sleep preference
-    pub resilience: f32,                // 0-1, health recovery
+    pub resilience: f32,                // 0-1, emotional recovery
+    pub learning_rate: f32,             // 0-1, neural network speed
+    pub hue: f32,                       // 0-360, body color
 }
 ```
 

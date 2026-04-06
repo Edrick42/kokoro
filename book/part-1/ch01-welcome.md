@@ -29,12 +29,15 @@ We'll build our game using **Bevy**, a modern Rust game engine built on the Enti
 
 Here's what the finished project includes:
 
-- **Three species** — Moluun (round, friendly), Pylum (winged, curious), Skael (scaled, resilient)
-- **Genetic system** — Each creature has a unique genome that affects behavior, appearance, and stats
+- **Four species** — Moluun (round, friendly), Pylum (winged, curious), Skael (scaled, resilient), Nyxal (tentacled, intelligent)
+- **Genetic system** — Each creature has a unique genome (8 genes) that affects behavior, appearance, and stats
 - **Emotional AI** — A finite state machine combined with a neural network that learns your play patterns
+- **Physics** — Gravity, collision, buoyancy — creatures move organically in their world
+- **Biological systems** — Breathing, heartbeat, kokoro-sac resonance — visible signs of life
 - **Modular visuals** — Creatures assembled from body parts, with mood-reactive sprites and genome-driven variation
+- **Growth stages** — Egg → cub → young → adult → elder, each visually distinct
 - **Persistence** — SQLite database saves everything: stats, genome, neural weights, event history
-- **Visual evolution** — Creatures grow, gain accessories, and change appearance over their lifetime
+- **Dev mode** — Feature-gated debug tools with rig visualization and cheat panel
 
 And you'll build every piece of it, learning Rust along the way.
 

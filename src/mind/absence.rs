@@ -6,6 +6,7 @@
 
 use bevy::prelude::*;
 
+use crate::config;
 use crate::genome::Genome;
 use super::{Mind, MoodState};
 
@@ -22,21 +23,25 @@ pub struct AbsenceState {
 
 impl AbsenceState {
     pub fn new(seconds_away: u64) -> Self {
-        let reunion_ticks = if seconds_away > 60 { 5 } else { 0 };
+        let reunion_ticks = if seconds_away > config::absence::TRIVIAL {
+            config::absence::REUNION_TICKS
+        } else {
+            0
+        };
         Self {
             seconds_away,
             reunion_ticks,
-            acknowledged: seconds_away <= 60,
+            acknowledged: seconds_away <= config::absence::TRIVIAL,
         }
     }
 
     /// Human-readable absence description.
     pub fn description(&self) -> &'static str {
         match self.seconds_away {
-            0..=59 => "just now",
-            60..=1799 => "a few minutes",
-            1800..=14399 => "a while",
-            14400..=86399 => "many hours",
+            s if s < config::absence::TRIVIAL => "just now",
+            s if s < config::absence::SHORT   => "a few minutes",
+            s if s < config::absence::MEDIUM  => "a while",
+            s if s < config::absence::LONG    => "many hours",
             _ => "a long time",
         }
     }
@@ -49,7 +54,7 @@ pub fn apply_absence_effects(
     absence: Res<AbsenceState>,
 ) {
     let secs = absence.seconds_away;
-    if secs < 60 {
+    if secs < config::absence::TRIVIAL {
         return; // Less than a minute — no effect
     }
 
@@ -57,16 +62,16 @@ pub fn apply_absence_effects(
     let resilience_factor = 1.0 - genome.resilience * 0.5; // 0.5 to 1.0
     let loneliness_factor = 0.5 + genome.loneliness_sensitivity * 0.5; // 0.5 to 1.0
 
-    if secs < 1800 {
+    if secs < config::absence::SHORT {
         // 1-30 minutes: slight effects
         mind.stats.hunger = (mind.stats.hunger + 10.0 * resilience_factor).min(100.0);
         mind.stats.happiness = (mind.stats.happiness - 8.0 * loneliness_factor).max(0.0);
-    } else if secs < 14400 {
+    } else if secs < config::absence::MEDIUM {
         // 30 min - 4 hours: significant effects
         mind.stats.hunger = (mind.stats.hunger + 25.0 * resilience_factor).min(100.0);
         mind.stats.happiness = (mind.stats.happiness - 20.0 * loneliness_factor).max(0.0);
         mind.stats.energy = (mind.stats.energy - 10.0 * resilience_factor).max(0.0);
-    } else if secs < 86400 {
+    } else if secs < config::absence::LONG {
         // 4-24 hours: severe effects
         mind.stats.hunger = (mind.stats.hunger + 40.0 * resilience_factor).min(100.0);
         mind.stats.happiness = (mind.stats.happiness - 35.0 * loneliness_factor).max(0.0);
@@ -81,7 +86,7 @@ pub fn apply_absence_effects(
         mind.mood = MoodState::Sick;
     }
 
-    if secs >= 60 {
+    if secs >= config::absence::TRIVIAL {
         info!(
             "Absence: {} seconds ({}) — hunger +{:.0}, happiness -{:.0}",
             secs,

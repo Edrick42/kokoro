@@ -84,11 +84,12 @@ pub struct VitalStats {
 
 impl VitalStats {
     pub fn new() -> Self {
+        use crate::config::initial_stats;
         Self {
-            hunger:    30.0,
-            happiness: 70.0,
-            energy:    80.0,
-            health:    100.0,
+            hunger:    initial_stats::HUNGER,
+            happiness: initial_stats::HAPPINESS,
+            energy:    initial_stats::ENERGY,
+            health:    initial_stats::HEALTH,
         }
     }
 }
@@ -115,11 +116,7 @@ pub struct Mind {
     pub mood_cooldown: u32,
 }
 
-/// How many units of pending stats drain per tick.
-const DRAIN_RATE: f32 = 5.0;
-
-/// Minimum ticks between mood transitions.
-const MOOD_COOLDOWN_TICKS: u32 = 5;
+use crate::config;
 
 impl Mind {
     pub fn new() -> Self {
@@ -138,10 +135,10 @@ impl Mind {
     pub fn feed(&mut self, genome: &crate::genome::Genome) {
         use crate::genome::Species;
         let (hunger_relief, happiness_boost) = match genome.species {
-            Species::Moluun => (25.0, 12.0),
-            Species::Pylum  => (18.0, 5.0),
-            Species::Skael  => (35.0, 4.0),
-            Species::Nyxal  => (15.0, 8.0),
+            Species::Moluun => config::feed::MOLUUN,
+            Species::Pylum  => config::feed::PYLUM,
+            Species::Skael  => config::feed::SKAEL,
+            Species::Nyxal  => config::feed::NYXAL,
         };
         self.pending_hunger    -= hunger_relief;
         self.pending_happiness += happiness_boost;
@@ -151,10 +148,10 @@ impl Mind {
     pub fn play(&mut self, genome: &crate::genome::Genome) {
         use crate::genome::Species;
         let (happiness_boost, energy_cost, hunger_cost) = match genome.species {
-            Species::Moluun => (18.0, 8.0, 5.0),
-            Species::Pylum  => (15.0, 12.0, 8.0),
-            Species::Skael  => (8.0, 5.0, 3.0),
-            Species::Nyxal  => (12.0, 6.0, 4.0),
+            Species::Moluun => config::play::MOLUUN,
+            Species::Pylum  => config::play::PYLUM,
+            Species::Skael  => config::play::SKAEL,
+            Species::Nyxal  => config::play::NYXAL,
         };
         self.pending_happiness += happiness_boost;
         self.pending_energy    -= energy_cost;
@@ -166,15 +163,14 @@ impl Mind {
     pub fn sleep(&mut self, genome: &crate::genome::Genome) {
         use crate::genome::Species;
         let energy_restore = match genome.species {
-            Species::Moluun => 30.0,
-            Species::Pylum  => 22.0,
-            Species::Skael  => 38.0,
-            Species::Nyxal  => 28.0,
+            Species::Moluun => config::sleep::MOLUUN,
+            Species::Pylum  => config::sleep::PYLUM,
+            Species::Skael  => config::sleep::SKAEL,
+            Species::Nyxal  => config::sleep::NYXAL,
         };
         self.pending_energy += energy_restore;
-        // Force sleeping mood immediately for critical rest
         self.mood = MoodState::Sleeping;
-        self.mood_cooldown = 10; // Stay asleep for at least 10 ticks
+        self.mood_cooldown = config::mood::SLEEP_COOLDOWN_TICKS;
     }
 
     /// Pure FSM mood calculation — returns what the mood should be based on stats.
@@ -182,31 +178,33 @@ impl Mind {
         use rand::Rng;
         let mut rng = rand::rng();
 
+        use config::mood_thresholds as mt;
+
         let hunger_threshold = match genome.species {
-            crate::genome::Species::Skael  => 65.0,
-            crate::genome::Species::Pylum  => 85.0,
-            _ => 75.0,
+            crate::genome::Species::Skael  => mt::HUNGER_SKAEL,
+            crate::genome::Species::Pylum  => mt::HUNGER_PYLUM,
+            _ => mt::HUNGER_DEFAULT,
         };
         let playful_threshold = match genome.species {
-            crate::genome::Species::Pylum  => 70.0,
-            crate::genome::Species::Skael  => 90.0,
-            _ => 80.0,
+            crate::genome::Species::Pylum  => mt::PLAYFUL_PYLUM,
+            crate::genome::Species::Skael  => mt::PLAYFUL_SKAEL,
+            _ => mt::PLAYFUL_DEFAULT,
         };
 
-        if self.stats.energy < 15.0 {
+        if self.stats.energy < mt::ENERGY_SLEEP {
             MoodState::Sleeping
-        } else if self.stats.health < 30.0 {
+        } else if self.stats.health < mt::HEALTH_SICK {
             MoodState::Sick
         } else if self.stats.hunger > hunger_threshold {
             MoodState::Hungry
-        } else if self.stats.happiness < 25.0 {
-            if genome.loneliness_sensitivity > 0.6 {
+        } else if self.stats.happiness < mt::HAPPINESS_SAD {
+            if genome.loneliness_sensitivity > mt::LONELINESS_GENE_THRESHOLD {
                 MoodState::Lonely
             } else {
                 MoodState::Tired
             }
-        } else if self.stats.happiness > playful_threshold && self.stats.energy > 60.0 {
-            if genome.curiosity > 0.6 || rng.random_range(0.0f32..1.0) < genome.curiosity {
+        } else if self.stats.happiness > playful_threshold && self.stats.energy > mt::ENERGY_PLAYFUL {
+            if genome.curiosity > mt::CURIOSITY_GENE_THRESHOLD || rng.random_range(0.0f32..1.0) < genome.curiosity {
                 MoodState::Playful
             } else {
                 MoodState::Happy
@@ -226,10 +224,10 @@ impl Mind {
         self.drain_pending();
 
         // --- Natural stat decay ---
-        let hunger_rate = 0.05 + genome.appetite * 0.1;
+        let hunger_rate = config::stat_decay::HUNGER_BASE + genome.appetite * config::stat_decay::HUNGER_APPETITE_MULTIPLIER;
         self.stats.hunger    = (self.stats.hunger + hunger_rate).min(100.0);
-        self.stats.energy    = (self.stats.energy - 0.03).max(0.0);
-        self.stats.happiness = (self.stats.happiness - 0.02).max(0.0);
+        self.stats.energy    = (self.stats.energy - config::stat_decay::ENERGY_DECAY).max(0.0);
+        self.stats.happiness = (self.stats.happiness - config::stat_decay::HAPPINESS_DECAY).max(0.0);
 
         // --- Mood noise ---
         let mood_noise: f32 = rng.random_range(-1.0..1.0) * (1.0 - genome.resilience) * 2.0;
@@ -244,7 +242,7 @@ impl Mind {
             let force_critical = new_mood.is_critical() && !self.mood.is_critical();
             if new_mood != self.mood || force_critical {
                 self.mood = new_mood;
-                self.mood_cooldown = MOOD_COOLDOWN_TICKS;
+                self.mood_cooldown = config::mood::COOLDOWN_TICKS;
             }
         }
 
@@ -253,9 +251,12 @@ impl Mind {
 
     /// Drains pending stat changes at DRAIN_RATE per tick.
     fn drain_pending(&mut self) {
+        let rate = config::mood::DRAIN_RATE;
+        let eps = config::mood::PENDING_EPSILON;
+
         // Hunger
-        if self.pending_hunger.abs() > 0.1 {
-            let delta = self.pending_hunger.signum() * DRAIN_RATE.min(self.pending_hunger.abs());
+        if self.pending_hunger.abs() > eps {
+            let delta = self.pending_hunger.signum() * rate.min(self.pending_hunger.abs());
             self.stats.hunger = (self.stats.hunger + delta).clamp(0.0, 100.0);
             self.pending_hunger -= delta;
         } else {
@@ -263,8 +264,8 @@ impl Mind {
         }
 
         // Happiness
-        if self.pending_happiness.abs() > 0.1 {
-            let delta = self.pending_happiness.signum() * DRAIN_RATE.min(self.pending_happiness.abs());
+        if self.pending_happiness.abs() > eps {
+            let delta = self.pending_happiness.signum() * rate.min(self.pending_happiness.abs());
             self.stats.happiness = (self.stats.happiness + delta).clamp(0.0, 100.0);
             self.pending_happiness -= delta;
         } else {
@@ -272,8 +273,8 @@ impl Mind {
         }
 
         // Energy
-        if self.pending_energy.abs() > 0.1 {
-            let delta = self.pending_energy.signum() * DRAIN_RATE.min(self.pending_energy.abs());
+        if self.pending_energy.abs() > eps {
+            let delta = self.pending_energy.signum() * rate.min(self.pending_energy.abs());
             self.stats.energy = (self.stats.energy + delta).clamp(0.0, 100.0);
             self.pending_energy -= delta;
         } else {

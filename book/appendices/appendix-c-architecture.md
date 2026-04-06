@@ -5,93 +5,85 @@
 ```
 kokoro/
 ├── Cargo.toml                    # Dependencies, [features] dev = bevy_egui
-├── book/                         # This ebook
+├── book/                         # This ebook (47 chapters)
 ├── docs/
-│   └── lore.md                   # World bible: Ethara, Kobaras, resonance
+│   ├── lore.md                   # World bible: Ethara, 4 species, resonance
+│   ├── mvp.md                    # MVP feature checklist
+│   ├── monetization.md           # Revenue strategy
+│   ├── next-steps.md             # Ordered task list
+│   ├── art-direction.md          # Low-poly style guide
+│   └── species-evolution-design.md # Visual progression per stage
+├── kokoro-web/                   # Full-stack Rust companion website
+│   ├── api/                      # Axum REST API
+│   └── ui/                       # Leptos frontend (planned)
 ├── assets/
 │   └── sprites/
-│       ├── moluun/               # Forest mammal sprites (28 files)
-│       ├── pylum/                # Highland bird sprites (25 files)
-│       ├── skael/                # Cave reptile sprites (25 files)
-│       ├── nyxal/                # Abyssal squid sprites (20 files)
-│       └── shared/               # Effects, icons, UI elements
+│       ├── moluun/{egg,cub,young,adult,elder}/
+│       ├── pylum/{egg,cub,young,adult,elder}/
+│       ├── skael/{egg,cub,young,adult,elder}/
+│       ├── nyxal/{egg,cub,young,adult,elder}/
+│       └── shared/effects/
 └── src/
-    ├── main.rs                   # App entry, plugin registration
-    ├── bin/                      # Sprite generators (one per species)
-    │   ├── sprite_common/        # Shared pixel-art toolkit
-    │   ├── generate_moluun_sprites.rs
-    │   ├── generate_pylum_sprites.rs
-    │   ├── generate_skael_sprites.rs
-    │   └── generate_nyxal_sprites.rs
+    ├── main.rs                   # App entry, plugin orchestration
+    ├── config/                   # All tunable constants (no magic numbers)
+    │   ├── mod.rs                # Re-exports
+    │   ├── stats.rs              # Vital stats, FSM thresholds, decay rates
+    │   ├── species.rs            # Feed/play/sleep values per species
+    │   ├── physics.rs            # Gravity, bounce, friction, impulses
+    │   ├── biology.rs            # Breathing, heartbeat, resonance, growth, egg
+    │   ├── timing.rs             # Tick interval, autosave, neural, circadian
+    │   ├── absence.rs            # Mirror Bond time brackets
+    │   └── slots.rs              # Body part string constants
     ├── creature/                 # Creature lifecycle
     │   ├── mod.rs
     │   ├── collection.rs         # Multi-creature management (4 species)
+    │   ├── egg.rs                # Egg stage, incubation, hatching
     │   ├── physics.rs            # Mini physics: gravity, bounce, buoyancy
-    │   ├── reproduction.rs       # Breeding system (not yet wired)
+    │   ├── reproduction.rs       # Breeding system (future — mobile P2P)
     │   ├── rig.rs                # Body rig landmark system (4 rigs)
-    │   ├── spawn.rs              # Entity spawning + component wiring
+    │   ├── spawn.rs              # Entity spawning + stage-aware sprite loading
     │   └── species.rs            # Species templates and part definitions
     ├── genome/                   # Genetic blueprint
-    │   ├── mod.rs                # Genome struct, random generation
+    │   ├── mod.rs                # Genome struct (8 genes), random generation
     │   ├── species.rs            # Species enum (Moluun, Pylum, Skael, Nyxal)
     │   ├── crossover.rs          # Genetic crossover + mutation
     │   └── color.rs              # Genome → HSL body/tint color
     ├── mind/                     # AI and emotional state
     │   ├── mod.rs                # Mind struct, MoodState, VitalStats, FSM
+    │   ├── absence.rs            # Mirror Bond (absence awareness)
     │   ├── neural.rs             # MLP neural network (12→8→7, 167 params)
     │   ├── plugin.rs             # Bevy integration, training schedule
     │   └── training.rs           # Training pipeline, event extraction
     ├── persistence/              # SQLite save/load
     │   ├── mod.rs
-    │   ├── db.rs                 # Schema creation
-    │   ├── load.rs               # Load genome/mind from DB
-    │   ├── save.rs               # Save genome/mind/neural weights to DB
+    │   ├── db.rs                 # Schema creation + migrations
+    │   ├── load.rs               # Load genome/mind/collection from DB
+    │   ├── save.rs               # Save genome/mind/collection/neural to DB
     │   └── plugin.rs             # Startup load, periodic save, exit save
     ├── ui/                       # User interface
     │   ├── mod.rs
-    │   ├── actions.rs            # Feed/Play/Sleep + species buttons
-    │   ├── creature_selector.rs  # Species selector events
-    │   └── hud.rs                # Stat bar display
+    │   ├── actions.rs            # Collapsible "..." menu (Feed/Play/Sleep + species)
+    │   ├── hud.rs                # Stat bar display (top-left)
+    │   └── vitals.rs             # BPM + breathing rate panel (top-right)
     ├── visuals/                  # Graphics and animation
     │   ├── mod.rs
     │   ├── accessories.rs        # Milestone rewards (ribbon, scarf, crown)
     │   ├── animation.rs          # Eye blink system
-    │   ├── breathing.rs          # Breathing + heartbeat (scale oscillation)
+    │   ├── breathing.rs          # Breathing + heartbeat (scale oscillation + BPM)
     │   ├── effects.rs            # Floating mood effect sprites
-    │   ├── evolution.rs          # Growth stages (baby → elder)
+    │   ├── evolution.rs          # Growth stages (egg → elder)
     │   ├── genome_visuals.rs     # Genome → visual appearance (tint, scale)
     │   ├── mood_sync.rs          # Mood → sprite swaps
+    │   ├── resonance_glow.rs     # Kokoro-sac glow (pulsing circle)
     │   └── species_behavior.rs   # Per-species idle animations
     ├── dev/                      # Dev Mode (feature-gated: --features dev)
     │   ├── mod.rs                # DevPlugin, F12 toggle, DevModeState
     │   ├── rig_gizmos.rs         # Skeleton visualization with Bevy Gizmos
-    │   └── panels.rs             # egui panels: stats, genome, neural, physics
+    │   └── panels.rs             # egui panels: stats, genome, neural, physics, cheats
     └── world/                    # Environment
         ├── mod.rs                # Camera setup
         ├── daycycle.rs           # Day/night cycle (system clock)
         └── time_tick.rs          # Game tick system (1 tick = 1 second)
-```
-
-## Data Flow
-
-```
-┌─────────────┐     ┌─────────────┐     ┌──────────────┐
-│  SQLite DB  │────▶│ Persistence │────▶│ Genome, Mind │
-│ (on disk)   │     │   Plugin    │     │ (Resources)  │
-└─────────────┘     └─────────────┘     └──────┬───────┘
-                                               │
-          ┌────────────────┬───────────────────┼──────────────────┐
-          │                │                   │                  │
-          ▼                ▼                   ▼                  ▼
-   ┌────────────┐  ┌──────────────┐   ┌──────────────┐    ┌────────────┐
-   │  Physics   │  │  Mind Systems│   │   Visuals    │    │    UI      │
-   │  - Gravity │  │  - FSM mood  │   │  - Spawn     │    │  - HUD     │
-   │  - Bounce  │  │  - Neural net│   │  - Rig       │    │  - Buttons │
-   │  - Buoyancy│  │  - Stat decay│   │  - Mood sync │    │  - Selector│
-   └────────────┘  └──────────────┘   │  - Breathing │    └────────────┘
-                                      │  - Behaviors │
-                                      │  - Effects   │
-                                      └──────────────┘
 ```
 
 ## Plugin Registration Order
@@ -105,43 +97,63 @@ app.add_plugins(DefaultPlugins)              // Bevy built-ins
     .add_plugins(CreatureVisualsPlugin)      // 3. Spawn creature entities
     .add_plugins((DayCyclePlugin, TimeTickPlugin))  // 4. World systems
     .add_plugins(NeuralMindPlugin)           // 5. AI learning
-    .add_plugins((StatsPlugin, ActionsPlugin, CreatureSelectorPlugin))  // 6. UI
-    .add_plugins(MultiCreaturePlugin)        // 7. Collection management
+    .add_plugins((StatsPlugin, ActionsPlugin, VitalsPlugin))  // 6. UI
+    .add_plugins((MultiCreaturePlugin, EggPlugin))   // 7. Lifecycle
     .add_plugins(PhysicsPlugin)              // 8. Gravity, collision, buoyancy
     .add_plugins((EffectsPlugin, AnimationPlugin, EvolutionPlugin, AccessoriesPlugin))
-    .add_plugins((BreathingPlugin, SpeciesBehaviorPlugin))  // 9. Organic behavior
+    .add_plugins((BreathingPlugin, SpeciesBehaviorPlugin, ResonanceGlowPlugin))
     .add_systems(Update, (sync_mood_sprites, apply_genome_visuals));
 
 #[cfg(feature = "dev")]
-app.add_plugins(dev::DevPlugin);             // 10. Dev Mode (F12 toggle)
+app.add_plugins(dev::DevPlugin);             // Dev Mode (F12 toggle)
 
 app.run();
 ```
 
 ## The Four Species
 
-| Species | Habitat | Personality | Visual Style | Unique Parts |
-|---------|---------|------------|-------------|-------------|
-| **Moluun** | The Verdance (forest) | Friendly, social, emotional mirror | Round, soft, cool colors | Ears (twitch), simple eyes, mouth |
-| **Pylum** | Veridian Highlands | Curious, restless seeker | Winged, warm colors | Wings (flutter), beak, tail (sway) |
-| **Skael** | Abyssal Shallows (cave) | Resilient, quiet protector | Scaled, elongated | Crests, slitted eyes, snout, tail (sway) |
-| **Nyxal** | Abyssal Depths (deep sea) | Intelligent, adaptable | Tentacled, bioluminescent | 4 tentacles (undulate), mantle, glow eyes |
+| Species | Habitat | Body Plan | Unique Features |
+|---------|---------|-----------|-----------------|
+| **Moluun** | The Verdance (forest) | Bipedal, round | Ears (twitch), rosy cheeks, dormant lateral eyes |
+| **Pylum** | Veridian Highlands | Avian, winged | Wings (flutter), beak, tail feathers, tuft crest |
+| **Skael** | Abyssal Shallows (caves) | Reptilian, elongated | Crests/horns, slit-pupil eyes, snout, scaled tail |
+| **Nyxal** | Abyssal Depths (deep sea) | Cephalopod, tentacled | 4 tentacles (undulate), mantle, bioluminescent eyes |
 
-## Physics System
+## Growth Stages
 
-| Creature Type | Gravity | Ground | Bounce | Special |
-|---------------|---------|--------|--------|---------|
-| Land (Moluun, Pylum, Skael) | 400 px/s² | Y = -230 | 0.3 | Playful → jump, Sick → stumble |
-| Aquatic (Nyxal) | 0 | — | — | Buoyancy spring (strength 120) |
+| Stage | Age (ticks) | Scale | Sprite Directory |
+|-------|-------------|-------|-----------------|
+| Egg | pre-birth | 0.4 | `{species}/egg/` |
+| Cub | 0–500 | 0.6 | `{species}/cub/` |
+| Young | 500–2,000 | 0.8 | `{species}/young/` |
+| Adult | 2,000–10,000 | 1.0 | `{species}/adult/` |
+| Elder | 10,000+ | 0.95 | `{species}/elder/` |
 
-## Organic Behavior Systems
+## Genome — 8 Genes
 
-| System | What It Does | Driven By |
-|--------|-------------|-----------|
-| **Breathing** | Rhythmic body scale oscillation (0.12–0.40 Hz) | Mood state |
-| **Heartbeat** | Periodic scale pulse (50–80 BPM) | Health + mood, irregular when Sick |
-| **Species Behavior** | Per-species idle animations (ear twitch, wing flutter, tentacle undulation) | Species + elapsed time |
-| **Blink** | Periodic eye close (3-6s interval) | Timer-based |
+| Gene | Range | Behavior Effect | Visual Effect |
+|------|-------|----------------|---------------|
+| `curiosity` | 0.0–1.0 | More likely to enter Playful mood | Eye spacing |
+| `loneliness_sensitivity` | 0.0–1.0 | Lonely instead of Tired when unhappy | — |
+| `appetite` | 0.0–1.0 | Faster hunger growth | Body width |
+| `circadian` | 0.0–1.0 | Night owl vs early bird | — |
+| `resilience` | 0.0–1.0 | Faster emotional recovery | Eye height |
+| `learning_rate` | 0.0–1.0 | Neural network learns faster | — |
+| `hue` | 0.0–360.0 | — | Body/part tint color (HSL) |
+
+## Config Module (`src/config/`)
+
+All tunable game constants organized by domain — zero magic numbers in game logic:
+
+| Submodule | What It Contains |
+|-----------|-----------------|
+| `stats.rs` | Initial vitals, FSM thresholds (per species), decay rates, mood cooldown |
+| `species.rs` | Feed/play/sleep stat changes per species |
+| `physics.rs` | Gravity, bounce, friction, impulses, velocity thresholds |
+| `biology.rs` | Breathing rates, heartbeat BPM, resonance frequencies, growth stages, egg timing |
+| `timing.rs` | Tick interval, autosave, neural training schedule, circadian bonuses |
+| `absence.rs` | Mirror Bond time brackets (1min, 30min, 4h, 24h), reunion ticks |
+| `slots.rs` | Body part name constants (prevents typos) |
 
 ## Neural Network Architecture
 
@@ -166,34 +178,14 @@ Training: every 120 ticks, 5 epochs, max 200 samples
 Influence: 0% → 60% (grows logarithmically with sessions)
 ```
 
-## Gene → Behavior/Visual Mapping
-
-| Gene | Behavior Effect | Visual Effect | Rig Effect |
-|------|----------------|---------------|------------|
-| `hue` | — | Body/part tint color (HSL) | — |
-| `curiosity` | More likely to enter Playful mood | — | Wider eye spacing |
-| `loneliness_sensitivity` | Lonely instead of Tired when unhappy | — | — |
-| `appetite` | Faster hunger growth | Body width (rounder ↔ leaner) | Mouth/snout/tentacle position |
-| `circadian` | Night owl vs early bird happiness bonus | — | — |
-| `resilience` | Faster emotional recovery, less mood noise | — | Eye height, crest height |
-| `learning_rate` | Neural network learns faster (lr = gene * 0.01 + 0.005) | — | — |
-
 ## Dev Mode (`cargo run --features dev`)
 
-Toggle with **F12**. Shows:
-- **Rig Gizmos**: anchor dots (color-coded), connection lines, bounding box, gene offset arrows
-- **Stats Panel**: mood, hunger/happiness/energy/health bars, age, FSM vs NN comparison
-- **Genome Panel**: all gene values as progress bars, hue color swatch
-- **Neural Panel**: influence %, maturity, sessions, loss, live 7-mood prediction bars
-- **Physics Panel**: velocity, grounded state, buoyancy, breathing rate, BPM
+Toggle with **F12**. Panels:
 
-Compiles out completely when feature is off — zero impact on release builds.
-
-## Growth Stages
-
-| Stage | Age (ticks) | Scale | Description |
-|-------|-------------|-------|-------------|
-| Hatchling | 0–500 | 0.6 | Small, fragile, high curiosity |
-| Juvenile | 500–2,000 | 0.8 | Rapid growth, personality solidifying |
-| Adult | 2,000–10,000 | 1.0 | Full size, stable temperament |
-| Elder | 10,000+ | 0.95 | Deeper resonance, slower metabolism |
+| Panel | What It Shows |
+|-------|--------------|
+| **Stats** | Mood, hunger/happiness/energy/health bars, age, FSM vs NN comparison |
+| **Genome** | All 8 gene values as progress bars, hue color swatch |
+| **Neural** | Influence %, maturity, sessions, loss, live 7-mood prediction bars |
+| **Physics** | Velocity, grounded state, buoyancy, breathing rate, BPM, kokoro-sac Hz |
+| **Cheats** | Speed slider, skip time, max stats, force mood, hatch egg |

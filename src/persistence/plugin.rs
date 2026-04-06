@@ -15,6 +15,7 @@ use std::sync::Mutex;
 use bevy::prelude::*;
 use bevy::app::AppExit;
 
+use crate::config;
 use crate::genome::Genome;
 use crate::mind::Mind;
 use crate::mind::absence::{self, AbsenceState};
@@ -24,9 +25,6 @@ use super::{db, load, save};
 /// Wrapped in a Mutex because rusqlite::Connection is not Sync.
 #[derive(Resource)]
 pub struct DbConnection(pub Mutex<rusqlite::Connection>);
-
-/// How many ticks between auto-saves.
-const AUTOSAVE_INTERVAL: u64 = 60;
 
 pub struct PersistencePlugin;
 
@@ -74,7 +72,7 @@ fn autosave_system(
     mind:       Res<Mind>,
     collection: Option<Res<crate::creature::collection::CreatureCollection>>,
 ) {
-    if mind.age_ticks % AUTOSAVE_INTERVAL == 0 && mind.age_ticks > 0 {
+    if mind.age_ticks % config::AUTOSAVE_INTERVAL == 0 && mind.age_ticks > 0 {
         let conn = db.0.lock().expect("DB lock poisoned");
         if let Err(e) = save::save_all(&conn, &genome, &mind) {
             error!("Auto-save failed: {e}");

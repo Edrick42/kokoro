@@ -16,6 +16,7 @@
 use std::f32::consts::TAU;
 use bevy::prelude::*;
 
+use crate::config;
 use crate::mind::{Mind, MoodState};
 
 /// The kokoro-sac glow, attached as a child entity of CreatureRoot.
@@ -31,11 +32,11 @@ pub struct ResonanceGlow {
 impl ResonanceGlow {
     pub fn new() -> Self {
         Self {
-            frequency: 1.5,
-            intensity: 0.6,
+            frequency: config::resonance::FREQ_HAPPY,
+            intensity: config::resonance::INTENSITY_HAPPY,
             phase: 0.0,
-            target_frequency: 1.5,
-            target_intensity: 0.6,
+            target_frequency: config::resonance::FREQ_HAPPY,
+            target_intensity: config::resonance::INTENSITY_HAPPY,
         }
     }
 }
@@ -59,23 +60,23 @@ fn update_resonance_glow(
     for (mut glow, mut transform) in glow_q.iter_mut() {
         // Update targets from mood
         glow.target_frequency = match mind.mood {
-            MoodState::Sleeping => 0.3,
-            MoodState::Tired    => 0.8,
-            MoodState::Happy    => 1.5,
-            MoodState::Playful  => 2.0,
-            MoodState::Hungry   => 3.0,
-            MoodState::Lonely   => 4.0,
-            MoodState::Sick     => 5.0,
+            MoodState::Sleeping => config::resonance::FREQ_SLEEPING,
+            MoodState::Tired    => config::resonance::FREQ_TIRED,
+            MoodState::Happy    => config::resonance::FREQ_HAPPY,
+            MoodState::Playful  => config::resonance::FREQ_PLAYFUL,
+            MoodState::Hungry   => config::resonance::FREQ_HUNGRY,
+            MoodState::Lonely   => config::resonance::FREQ_LONELY,
+            MoodState::Sick     => config::resonance::FREQ_SICK,
         };
 
         glow.target_intensity = match mind.mood {
-            MoodState::Sleeping => 0.3,
-            MoodState::Happy    => 0.6,
-            MoodState::Tired    => 0.4,
-            MoodState::Hungry   => 0.7,
-            MoodState::Lonely   => 0.8,
-            MoodState::Playful  => 0.8,
-            MoodState::Sick     => 0.9,
+            MoodState::Sleeping => config::resonance::INTENSITY_SLEEPING,
+            MoodState::Happy    => config::resonance::INTENSITY_HAPPY,
+            MoodState::Tired    => config::resonance::INTENSITY_TIRED,
+            MoodState::Hungry   => config::resonance::INTENSITY_HUNGRY,
+            MoodState::Lonely   => config::resonance::INTENSITY_LONELY,
+            MoodState::Playful  => config::resonance::INTENSITY_PLAYFUL,
+            MoodState::Sick     => config::resonance::INTENSITY_SICK,
         };
 
         // Smooth interpolation
@@ -91,14 +92,15 @@ fn update_resonance_glow(
 
         // Sick irregularity: add jitter to create discordant feel
         let phase_val = if mind.mood == MoodState::Sick {
-            let jitter = (glow.phase * 3.7).sin() * 0.4;
+            let jitter = (glow.phase * config::resonance::SICK_JITTER_FREQ).sin()
+                * config::resonance::SICK_JITTER_AMP;
             (glow.phase + jitter).sin()
         } else {
             glow.phase.sin()
         };
 
         // Drive scale — glow expands and contracts with the resonance
-        let scale_factor = 1.0 + phase_val * 0.15 * glow.intensity;
+        let scale_factor = 1.0 + phase_val * config::resonance::SCALE_AMP * glow.intensity;
         transform.scale = Vec3::splat(scale_factor);
     }
 }

@@ -9,6 +9,7 @@ use std::f32::consts::TAU;
 use bevy::prelude::*;
 use rand::Rng;
 
+use crate::config;
 use crate::creature::species::{BodyPartSlot, CreatureRoot};
 use crate::mind::{Mind, MoodState};
 
@@ -26,10 +27,10 @@ impl BreathingState {
     pub fn new() -> Self {
         Self {
             phase: 0.0,
-            rate: 0.22,
-            amplitude: 0.012,
-            target_rate: 0.22,
-            target_amplitude: 0.012,
+            rate: config::breathing::DEFAULT_RATE,
+            amplitude: config::breathing::DEFAULT_AMPLITUDE,
+            target_rate: config::breathing::DEFAULT_RATE,
+            target_amplitude: config::breathing::DEFAULT_AMPLITUDE,
         }
     }
 }
@@ -47,11 +48,11 @@ pub struct HeartbeatState {
 impl HeartbeatState {
     pub fn new() -> Self {
         Self {
-            bpm: 72.0,
+            bpm: config::heartbeat::DEFAULT_BPM,
             irregularity: 0.0,
-            pulse_timer: 0.83,
+            pulse_timer: 60.0 / config::heartbeat::DEFAULT_BPM,
             pulse_active: 0.0,
-            target_bpm: 72.0,
+            target_bpm: config::heartbeat::DEFAULT_BPM,
         }
     }
 }
@@ -78,25 +79,31 @@ fn update_breathing_params(
 ) {
     for (mut breathing, mut heartbeat) in query.iter_mut() {
         breathing.target_rate = match mind.mood {
-            MoodState::Sleeping => 0.12,
-            MoodState::Tired | MoodState::Lonely => 0.18,
-            MoodState::Happy => 0.22,
-            MoodState::Hungry => 0.25,
-            MoodState::Sick => 0.30,
-            MoodState::Playful => 0.40,
+            MoodState::Sleeping => config::breathing::RATE_SLEEPING,
+            MoodState::Tired | MoodState::Lonely => config::breathing::RATE_TIRED,
+            MoodState::Happy => config::breathing::RATE_HAPPY,
+            MoodState::Hungry => config::breathing::RATE_HUNGRY,
+            MoodState::Sick => config::breathing::RATE_SICK,
+            MoodState::Playful => config::breathing::RATE_PLAYFUL,
         };
 
-        breathing.target_amplitude = 0.008 + (mind.stats.energy / 100.0) * 0.012;
+        breathing.target_amplitude = config::breathing::AMPLITUDE_BASE
+            + (mind.stats.energy / 100.0) * config::breathing::AMPLITUDE_ENERGY_FACTOR;
 
-        let base_bpm = 50.0 + (100.0 - mind.stats.health) * 0.3;
+        let base_bpm = config::heartbeat::BASE_BPM
+            + (100.0 - mind.stats.health) * config::heartbeat::HEALTH_BPM_FACTOR;
         heartbeat.target_bpm = base_bpm + match mind.mood {
-            MoodState::Playful => 15.0,
-            MoodState::Sleeping => -15.0,
-            MoodState::Sick => 8.0,
+            MoodState::Playful => config::heartbeat::BPM_PLAYFUL,
+            MoodState::Sleeping => config::heartbeat::BPM_SLEEPING,
+            MoodState::Sick => config::heartbeat::BPM_SICK,
             _ => 0.0,
         };
 
-        heartbeat.irregularity = if mind.mood == MoodState::Sick { 0.4 } else { 0.0 };
+        heartbeat.irregularity = if mind.mood == MoodState::Sick {
+            config::heartbeat::SICK_IRREGULARITY
+        } else {
+            0.0
+        };
     }
 }
 
@@ -117,7 +124,8 @@ fn breathing_system(
         }
 
         let breath_factor_x = 1.0 + breathing.phase.sin() * breathing.amplitude;
-        let breath_factor_y = 1.0 + breathing.phase.sin() * breathing.amplitude * 0.7;
+        let breath_factor_y = 1.0 + breathing.phase.sin() * breathing.amplitude
+            * config::breathing::Y_AMPLITUDE_RATIO;
 
         for child in children.iter() {
             if let Ok((slot, mut transform, base_scale)) = body_q.get_mut(child) {
@@ -143,15 +151,16 @@ fn heartbeat_timer_system(
         heartbeat.pulse_timer -= dt;
 
         if heartbeat.pulse_timer <= 0.0 {
-            let beat_interval = 60.0 / heartbeat.bpm.max(30.0);
+            let beat_interval = 60.0 / heartbeat.bpm.max(config::heartbeat::MIN_BPM);
             let jitter = if heartbeat.irregularity > 0.0 {
                 let mut rng = rand::rng();
-                rng.random_range(-1.0..1.0) * heartbeat.irregularity * 0.3
+                rng.random_range(-1.0..1.0) * heartbeat.irregularity
+                    * config::heartbeat::IRREGULARITY_JITTER
             } else {
                 0.0
             };
             heartbeat.pulse_timer = beat_interval + jitter;
-            heartbeat.pulse_active = 0.12;
+            heartbeat.pulse_active = config::heartbeat::PULSE_DURATION;
         }
 
         if heartbeat.pulse_active > 0.0 {

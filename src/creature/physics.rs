@@ -13,11 +13,8 @@ use rand::Rng;
 use crate::creature::species::CreatureRoot;
 use crate::mind::{Mind, MoodState};
 
-/// Ground plane Y position — well above the button row.
-/// Window is 700px tall (center=0, bottom=-350). Buttons occupy ~80px
-/// from bottom (-350 to -270). Creature center rests at -120, giving
-/// plenty of room for the body to be fully visible above the UI.
-pub const GROUND_Y: f32 = -60.0;
+/// Re-export ground Y from config for external use.
+pub use crate::config::physics::GROUND_Y;
 
 /// Physics state attached to each creature's root entity.
 #[derive(Component)]
@@ -36,13 +33,14 @@ pub struct PhysicsBody {
 impl PhysicsBody {
     /// Creates a physics body for land-dwelling creatures.
     pub fn land_creature(ground_y: f32) -> Self {
+        use crate::config::physics::land;
         Self {
             velocity: Vec2::ZERO,
-            gravity: 400.0,
+            gravity: land::GRAVITY,
             grounded: false,
             ground_y,
-            bounce_factor: 0.3,
-            friction: 0.85,
+            bounce_factor: land::BOUNCE_FACTOR,
+            friction: land::FRICTION,
             buoyant: false,
             buoyancy_target_y: 0.0,
             buoyancy_strength: 0.0,
@@ -51,16 +49,17 @@ impl PhysicsBody {
 
     /// Creates a physics body for aquatic creatures (buoyant, no gravity).
     pub fn aquatic_creature(float_y: f32) -> Self {
+        use crate::config::physics::aquatic;
         Self {
             velocity: Vec2::ZERO,
             gravity: 0.0,
             grounded: false,
-            ground_y: float_y - 100.0, // soft floor below float target
-            bounce_factor: 0.1,
-            friction: 0.92,
+            ground_y: float_y - aquatic::FLOOR_OFFSET,
+            bounce_factor: aquatic::BOUNCE_FACTOR,
+            friction: aquatic::FRICTION,
             buoyant: true,
             buoyancy_target_y: float_y,
-            buoyancy_strength: 120.0,
+            buoyancy_strength: aquatic::BUOYANCY_STRENGTH,
         }
     }
 }
@@ -94,21 +93,19 @@ fn physics_actions(
 
     let mut rng = rand::rng();
 
+    use crate::config::physics::impulse;
     for mut body in query.iter_mut() {
         match current {
             MoodState::Playful => {
-                // Jump!
-                let jump_force = rng.random_range(80.0..150.0);
-                body.velocity.y += jump_force;
+                let jump = rng.random_range(impulse::PLAYFUL_JUMP_MIN..impulse::PLAYFUL_JUMP_MAX);
+                body.velocity.y += jump;
                 body.grounded = false;
             }
             MoodState::Sleeping => {
-                // Slump down
-                body.velocity.y -= 30.0;
+                body.velocity.y += impulse::SLEEPING_SLUMP;
             }
             MoodState::Sick => {
-                // Random stumble
-                let stumble = rng.random_range(-50.0..50.0);
+                let stumble = rng.random_range(impulse::SICK_STUMBLE_MIN..impulse::SICK_STUMBLE_MAX);
                 body.velocity.x += stumble;
             }
             _ => {}
@@ -121,9 +118,11 @@ fn physics_step(
     time: Res<Time>,
     mut query: Query<(&mut Transform, &mut PhysicsBody), With<CreatureRoot>>,
 ) {
+    use crate::config::physics::{self as phys, threshold};
+
     let dt = time.delta_secs();
-    if dt <= 0.0 || dt > 0.2 {
-        return; // Skip on pause or huge frame spikes
+    if dt <= 0.0 || dt > phys::MAX_DT {
+        return;
     }
 
     for (mut transform, mut body) in query.iter_mut() {
@@ -131,7 +130,7 @@ fn physics_step(
         if body.buoyant {
             let displacement = body.buoyancy_target_y - transform.translation.y;
             body.velocity.y += displacement * body.buoyancy_strength * dt;
-            body.velocity.y *= 0.98_f32.powf(dt * 60.0); // damping
+            body.velocity.y *= phys::aquatic::DAMPING.powf(dt * 60.0);
         }
 
         // --- Gravity (land creatures) ---
@@ -147,8 +146,7 @@ fn physics_step(
         if transform.translation.y < body.ground_y {
             transform.translation.y = body.ground_y;
 
-            if body.velocity.y < -10.0 {
-                // Bounce
+            if body.velocity.y < threshold::BOUNCE_MIN {
                 body.velocity.y = -body.velocity.y * body.bounce_factor;
             } else {
                 body.velocity.y = 0.0;
@@ -157,21 +155,20 @@ fn physics_step(
         }
 
         // --- Leave ground if pushed up ---
-        if body.grounded && body.velocity.y > 1.0 {
+        if body.grounded && body.velocity.y > threshold::GROUNDED_MIN {
             body.grounded = false;
         }
 
         // --- Horizontal friction (framerate-independent) ---
         body.velocity.x *= body.friction.powf(dt * 60.0);
-        if body.velocity.x.abs() < 0.5 {
+        if body.velocity.x.abs() < threshold::FRICTION_STOP {
             body.velocity.x = 0.0;
         }
 
         // --- Keep creature on screen (soft walls) ---
-        let max_x = 160.0;
-        if transform.translation.x.abs() > max_x {
-            transform.translation.x = transform.translation.x.clamp(-max_x, max_x);
-            body.velocity.x = -body.velocity.x * 0.3;
+        if transform.translation.x.abs() > phys::MAX_X {
+            transform.translation.x = transform.translation.x.clamp(-phys::MAX_X, phys::MAX_X);
+            body.velocity.x = -body.velocity.x * phys::WALL_BOUNCE;
         }
     }
 }

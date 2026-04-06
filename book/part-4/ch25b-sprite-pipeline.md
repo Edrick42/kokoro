@@ -589,7 +589,7 @@ Generating Pylum sprites → assets/sprites/pylum
 Done!
 ```
 
-After running all three, the game automatically detects the sprites and uses them instead of procedural mesh fallbacks.
+After running all four generators, the game automatically detects the sprites and uses them instead of procedural mesh fallbacks. Each species generates sprites for all growth stages (egg, cub, young, adult, elder).
 
 ---
 

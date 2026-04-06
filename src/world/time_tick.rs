@@ -5,10 +5,7 @@
 //! time independently of rendering — useful for simulating day/night cycles later.
 
 use bevy::prelude::*;
-use crate::{genome::Genome, mind::Mind, world::daycycle::DayCycle};
-
-/// How many real-world seconds pass between game ticks.
-const TICK_INTERVAL: f32 = 1.0;
+use crate::{config, genome::Genome, mind::Mind, world::daycycle::DayCycle};
 
 #[derive(Resource)]
 struct TickTimer(Timer);
@@ -18,7 +15,7 @@ pub struct TimeTickPlugin;
 impl Plugin for TimeTickPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(TickTimer(Timer::from_seconds(
-            TICK_INTERVAL,
+            config::TICK_INTERVAL,
             TimerMode::Repeating,
         )))
         .add_systems(Update, tick_system);
@@ -41,10 +38,14 @@ fn tick_system(
         if let Some(cycle) = &day_cycle {
             use crate::world::daycycle::TimeOfDay;
             let bonus = match cycle.time_of_day {
-                TimeOfDay::Night   if genome.circadian < 0.3 =>  1.5,
-                TimeOfDay::Morning if genome.circadian > 0.7 =>  1.5,
-                TimeOfDay::Night   if genome.circadian > 0.7 => -1.0,
-                TimeOfDay::Morning if genome.circadian < 0.3 => -1.0,
+                TimeOfDay::Night   if genome.circadian < config::timing::circadian::NIGHT_OWL_THRESHOLD =>
+                    config::timing::circadian::PREFERRED_BONUS,
+                TimeOfDay::Morning if genome.circadian > config::timing::circadian::EARLY_BIRD_THRESHOLD =>
+                    config::timing::circadian::PREFERRED_BONUS,
+                TimeOfDay::Night   if genome.circadian > config::timing::circadian::EARLY_BIRD_THRESHOLD =>
+                    config::timing::circadian::NON_PREFERRED_PENALTY,
+                TimeOfDay::Morning if genome.circadian < config::timing::circadian::NIGHT_OWL_THRESHOLD =>
+                    config::timing::circadian::NON_PREFERRED_PENALTY,
                 _ => 0.0,
             };
             mind.stats.happiness = (mind.stats.happiness + bonus).clamp(0.0, 100.0);

@@ -7,11 +7,10 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::config;
 use crate::config::nutrition::{FoodType, NutrientProfile, self as nutr};
 use crate::creature::species::CreatureRoot;
 use crate::genome::Genome;
-use crate::mind::{Mind, VitalStats};
+use crate::mind::Mind;
 
 /// Tracks the creature's nutrient levels (all 0.0–100.0).
 #[derive(Component, Debug, Clone, Serialize, Deserialize)]
@@ -69,6 +68,7 @@ impl NutrientState {
     }
 
     /// Check if a specific nutrient is deficient.
+    #[allow(dead_code)]
     pub fn is_deficient(&self, nutrient: &str) -> bool {
         let val = match nutrient {
             "protein"  => self.protein,
@@ -110,7 +110,7 @@ fn nutrient_decay_system(
     mut mind: ResMut<Mind>,
     mut nutrient_q: Query<&mut NutrientState, With<CreatureRoot>>,
 ) {
-    let Ok(mut nutrients) = nutrient_q.get_single_mut() else { return };
+    let Ok(mut nutrients) = nutrient_q.single_mut() else { return };
 
     // Decay nutrients based on species biology
     let rates = nutr::species_decay(&genome.species);

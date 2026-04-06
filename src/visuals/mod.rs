@@ -1,5 +1,6 @@
 pub mod accessories;
 pub mod animation;
+pub mod background;
 pub mod breathing;
 pub mod effects;
 pub mod evolution;

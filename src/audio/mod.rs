@@ -13,6 +13,7 @@ use crate::mind::{Mind, MoodState};
 
 /// Sound categories.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[allow(dead_code)]
 pub enum GameSound {
     // Creature vocalizations
     CreatureHappy,
@@ -96,7 +97,7 @@ fn sound_on_mood_change(
 ) {
     if !mind.is_changed() { return; }
 
-    let Ok(rep) = repertoire_q.get_single() else { return };
+    let Ok(rep) = repertoire_q.single() else { return };
 
     let sound = match mind.mood {
         MoodState::Happy | MoodState::Playful => GameSound::CreatureHappy,
@@ -135,7 +136,7 @@ fn vocal_learning_system(
     // Learn a tiny bit each tick when awake and happy
     if mind.mood == MoodState::Sleeping { return; }
 
-    let Ok(mut rep) = repertoire_q.get_single_mut() else { return };
+    let Ok(mut rep) = repertoire_q.single_mut() else { return };
 
     let learn_amount = if mind.mood == MoodState::Playful {
         0.002 // learns fastest when playful

@@ -33,6 +33,7 @@ use ui::{
 use visuals::{
     accessories::AccessoriesPlugin,
     animation::AnimationPlugin,
+    background::BackgroundPlugin,
     breathing::BreathingPlugin,
     effects::EffectsPlugin,
     evolution::EvolutionPlugin,
@@ -76,7 +77,7 @@ fn main() {
         // Physics — gravity, collision, buoyancy
         .add_plugins(PhysicsPlugin)
         // Visual plugins — effects, animation, evolution, accessories, organic behavior
-        .add_plugins((EffectsPlugin, AnimationPlugin, EvolutionPlugin, AccessoriesPlugin))
+        .add_plugins((EffectsPlugin, AnimationPlugin, EvolutionPlugin, AccessoriesPlugin, BackgroundPlugin))
         .add_plugins((BreathingPlugin, SpeciesBehaviorPlugin, ResonanceGlowPlugin))
         // Visual update systems
         .add_systems(Update, (sync_mood_sprites, apply_genome_visuals));

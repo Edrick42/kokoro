@@ -11,12 +11,13 @@ use serde::{Deserialize, Serialize};
 use crate::config::nutrition::FoodType;
 use crate::creature::species::CreatureRoot;
 use crate::genome::Genome;
-use crate::mind::{Mind, MoodState};
+use crate::mind::Mind;
 use crate::mind::nutrition::is_preferred_food;
 
 /// Minimum feedings before an opinion forms.
 const OPINION_THRESHOLD: u32 = 5;
 /// Feedings before a strong preference (can refuse).
+#[allow(dead_code)]
 const STRONG_THRESHOLD: u32 = 10;
 /// Ticks between preference checks.
 const CHECK_INTERVAL: u64 = 30;
@@ -59,6 +60,7 @@ impl Default for PreferenceMemory {
 
 impl PreferenceMemory {
     /// Record a feeding event. Returns satisfaction level.
+    #[allow(dead_code)]
     pub fn record_feeding(&mut self, food: &FoodType, species: &crate::genome::Species) -> f32 {
         let key = food.event_key().to_string();
         let is_pref = is_preferred_food(species, food);
@@ -75,6 +77,7 @@ impl PreferenceMemory {
     }
 
     /// Check if creature will refuse this food.
+    #[allow(dead_code)]
     pub fn will_refuse(&self, food: &FoodType) -> bool {
         let key = food.event_key();
         if let Some(memory) = self.food_history.get(key) {
@@ -113,7 +116,7 @@ fn preference_check_system(
         return;
     }
 
-    let Ok(mut prefs) = pref_q.get_single_mut() else { return };
+    let Ok(mut prefs) = pref_q.single_mut() else { return };
 
     // Determine what the creature wants based on stats and preferences
     let request = if mind.stats.energy < 20.0 {

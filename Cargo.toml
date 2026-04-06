@@ -23,6 +23,9 @@ libc     = "0.2"
 
 # Sprite generation (only used by bin targets, not the game itself)
 image = { version = "0.25", default-features = false, features = ["png"] }
+# SVG generation and rendering for high-quality procedural sprites
+svg = "0.18"
+resvg = "0.44"
 
 # Small optimization in dev builds for your own code
 [profile.dev]

@@ -34,6 +34,7 @@ col!(EGG_SPOT,  220, 200, 160);
 fn base_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("assets").join("sprites").join("pylum")
 }
+#[allow(dead_code)]
 fn effects_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("assets").join("sprites").join("shared").join("effects")
 }

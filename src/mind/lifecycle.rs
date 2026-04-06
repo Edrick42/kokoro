@@ -16,7 +16,7 @@ use bevy::prelude::*;
 use crate::config::lifecycle as lc;
 use crate::creature::species::CreatureRoot;
 use crate::genome::Genome;
-use crate::mind::{Mind, MoodState};
+use crate::mind::Mind;
 use crate::mind::nutrition::NutrientState;
 
 /// Tracks the creature's lifecycle state.
@@ -37,6 +37,7 @@ pub struct LifecycleState {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum DeathCause {
     OldAge,
     Starvation,
@@ -96,6 +97,7 @@ impl Plugin for LifecyclePlugin {
 
 /// Event fired when the creature dies.
 #[derive(Event)]
+#[allow(dead_code)]
 pub struct DeathEvent {
     pub cause: DeathCause,
     pub age_ticks: u64,
@@ -104,25 +106,21 @@ pub struct DeathEvent {
 
 /// Applies aging effects: health decay and energy cap reduction in old age.
 fn aging_system(
-    mind: Res<Mind>,
-    genome: Res<Genome>,
-    mut lifecycle_q: Query<&mut LifecycleState, With<CreatureRoot>>,
-    mut mind_mut: ResMut<Mind>,
+    mut mind: ResMut<Mind>,
+    lifecycle_q: Query<&LifecycleState, With<CreatureRoot>>,
 ) {
-    let Ok(lifecycle) = lifecycle_q.get_single() else { return };
+    let Ok(lifecycle) = lifecycle_q.single() else { return };
     if !lifecycle.alive { return; }
 
     if lifecycle.is_elderly(mind.age_ticks) {
         let age_frac = lifecycle.age_fraction(mind.age_ticks);
         let severity = (age_frac - lc::AGING_START) / (1.0 - lc::AGING_START);
 
-        // Health decays in old age
-        mind_mut.stats.health = (mind_mut.stats.health - lc::AGING_HEALTH_DECAY * severity).max(0.0);
+        mind.stats.health = (mind.stats.health - lc::AGING_HEALTH_DECAY * severity).max(0.0);
 
-        // Energy cap reduces (can't be as energetic)
         let energy_cap = 100.0 * (1.0 - lc::AGING_ENERGY_CAP_REDUCTION * severity.min(1.0));
-        if mind_mut.stats.energy > energy_cap {
-            mind_mut.stats.energy = energy_cap;
+        if mind.stats.energy > energy_cap {
+            mind.stats.energy = energy_cap;
         }
     }
 }
@@ -133,7 +131,7 @@ fn starvation_system(
     mut lifecycle_q: Query<&mut LifecycleState, With<CreatureRoot>>,
     nutrient_q: Query<&NutrientState, With<CreatureRoot>>,
 ) {
-    let Ok(mut lifecycle) = lifecycle_q.get_single_mut() else { return };
+    let Ok(mut lifecycle) = lifecycle_q.single_mut() else { return };
     if !lifecycle.alive { return; }
 
     // Starvation: hunger at max for too long
@@ -147,7 +145,7 @@ fn starvation_system(
     }
 
     // Dehydration: water nutrient at 0
-    if let Ok(nutrients) = nutrient_q.get_single() {
+    if let Ok(nutrients) = nutrient_q.single() {
         if nutrients.water < 1.0 {
             mind.stats.health = (mind.stats.health - lc::DEHYDRATION_HEALTH_DECAY).max(0.0);
         }
@@ -157,11 +155,11 @@ fn starvation_system(
 /// Checks if the creature should die.
 fn death_check_system(
     mind: Res<Mind>,
-    genome: Res<Genome>,
+    _genome: Res<Genome>,
     mut lifecycle_q: Query<&mut LifecycleState, With<CreatureRoot>>,
     mut death_events: EventWriter<DeathEvent>,
 ) {
-    let Ok(mut lifecycle) = lifecycle_q.get_single_mut() else { return };
+    let Ok(mut lifecycle) = lifecycle_q.single_mut() else { return };
     if !lifecycle.alive { return; }
 
     // Health at zero → grace period then death
@@ -221,7 +219,7 @@ fn care_quality_system(
 ) {
     if mind.age_ticks % lc::CARE_CHECK_INTERVAL != 0 { return; }
 
-    let Ok(mut lifecycle) = lifecycle_q.get_single_mut() else { return };
+    let Ok(mut lifecycle) = lifecycle_q.single_mut() else { return };
     if !lifecycle.alive { return; }
 
     // Calculate care quality from current stats
@@ -230,7 +228,7 @@ fn care_quality_system(
     let energy_score = mind.stats.energy / 100.0;
     let hunger_score = 1.0 - (mind.stats.hunger / 100.0); // lower hunger = better
 
-    let nutrient_score = if let Ok(nutrients) = nutrient_q.get_single() {
+    let nutrient_score = if let Ok(nutrients) = nutrient_q.single() {
         nutrients.average_fullness() / 100.0
     } else {
         0.5

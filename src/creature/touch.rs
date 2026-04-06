@@ -11,10 +11,10 @@ use crate::config::nervous_system as nerv;
 use crate::creature::species::{BodyPartSlot, CreatureRoot};
 use crate::genome::Genome;
 use crate::mind::Mind;
-use crate::visuals::species_behavior::BasePosition;
 
 /// Event fired when the player touches a body part.
 #[derive(Event)]
+#[allow(dead_code)]
 pub struct TouchEvent {
     pub slot: String,
     pub pleasure: f32,
@@ -45,9 +45,9 @@ fn detect_touch(
         return;
     }
 
-    let Ok(window) = windows.get_single() else { return };
+    let Ok(window) = windows.single() else { return };
     let Some(cursor_pos) = window.cursor_position() else { return };
-    let Ok((camera, cam_transform)) = camera_q.get_single() else { return };
+    let Ok((camera, cam_transform)) = camera_q.single() else { return };
 
     // Convert screen position to world coordinates
     let Ok(world_pos) = camera.viewport_to_world_2d(cam_transform, cursor_pos) else { return };

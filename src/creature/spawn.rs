@@ -276,6 +276,12 @@ fn do_spawn_creature(
                 .or_else(|| sprite_handles.handles.get(&(part_def.slot.clone(), "idle".to_string())))
                 .cloned();
 
+            // If no sprite exists for this part (SVG pipeline generates body-only),
+            // skip non-body parts entirely — no fallback mesh needed.
+            if sprite_handle.is_none() && part_def.slot != "body" {
+                continue;
+            }
+
             let base_pos = BasePosition(Vec3::new(offset.x, offset.y, z_depth));
 
             // Genome-derived body scale for breathing composition

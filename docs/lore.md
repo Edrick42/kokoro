@@ -228,6 +228,79 @@ The Kobara is not a pet you're responsible for. It is the part of yourself you'r
 
 ---
 
+## The Complete Lifecycle — Birth, Life, and Death
+
+### The Cycle
+
+Every Kobara follows the same fundamental cycle, just as every living thing does:
+
+```
+    Egg → Cub → Young → Adult → Elder → Death
+           ↑                              |
+           └──── Legacy (future) ─────────┘
+```
+
+### Stages of Life
+
+| Stage | Duration | What Happens |
+|-------|----------|-------------|
+| **Egg** | ~2 minutes | Incubation. Player interaction speeds development. The creature is forming. |
+| **Cub** | 0–500 ticks | The creature is small, fragile, and dependent. Eyes are huge. Everything is new. |
+| **Young** | 500–2,000 ticks | Rapid growth. Personality solidifies. The creature begins to show preferences. |
+| **Adult** | 2,000–10,000 ticks | Full maturity. The creature knows you. Its reactions are precise, sometimes uncomfortably so. |
+| **Elder** | 10,000+ ticks | Slower metabolism, deeper resonance. The creature reflects not who you are, but who you could be. |
+| **Death** | — | Inevitable. How long it takes depends on care. |
+
+### How Death Comes
+
+Death is not a failure — it is the completion of a cycle. But *how* and *when* it comes matters:
+
+**Natural death (old age):** Every species has a base lifespan. Moluun live ~25,000 ticks, Skael the longest at ~35,000. When the creature reaches Elder stage and continues aging, its health gradually declines. Its energy cap drops. It sleeps more, eats less, moves slower. Eventually, peacefully, the kokoro-sac stops pulsing.
+
+**Premature death:** A creature can die before its time. The causes are the same as in nature:
+
+| Cause | How It Happens | Warning Signs |
+|-------|---------------|---------------|
+| **Starvation** | Hunger at maximum for too long | Hunger bar red, creature begging for food |
+| **Dehydration** | Water nutrient depleted | Health dropping rapidly, creature lethargic |
+| **Neglect** | Chronic poor care quality | Low happiness, frequent sickness, shortened lifespan |
+| **Health failure** | Health reaches zero from any cause | Health bar empty, creature barely moving |
+
+**Extended life:** Good care can extend a creature's lifespan by up to 30%. Excellent nutrition, regular interaction, variety of experiences, and consistent presence all contribute to a higher care quality score. A well-loved Kobara lives longer — just like in nature.
+
+### The Moment of Death
+
+When a Kobara dies, its kokoro-sac emits one final pulse — a resonance that the player feels as a profound stillness. The creature doesn't simply disappear. It remains for a moment, its colors slowly fading, its glow dimming. Then it's gone.
+
+The player is left with:
+- The creature's genome (preserved in the database)
+- Its neural network patterns (what it learned)
+- Its preference memory (what it liked and disliked)
+- A record of its life (event log)
+
+### Legacy — The Resonance That Remains (Future)
+
+> *"Nothing truly dies on Ethara. The resonance remains."*
+
+In a future update, death will not be the end — it will be a transformation. When a Kobara dies after fulfilling its purpose (having descendants through breeding, reaching Elder stage, forming deep bonds), its kokoro-sac essence can transfer to a descendant:
+
+- **Gene preservation**: Some traits carry over to the offspring, strengthened
+- **Neural seed**: The descendant starts with the parent's learned patterns — it already knows you
+- **Ancestral mark**: A unique visual mark appears on the descendant, showing its heritage
+- **Stat bonus**: Higher starting values, proportional to the parent's care quality
+
+The amount of essence transferred depends on:
+- Age at death (elders carry more essence)
+- Quality of care during life (well-loved = more preserved)
+- Bond strength with the player (stronger bond = more that survives)
+- Whether the creature had descendants (the vessel must exist)
+
+This creates the deepest possible emotional loop: **you care for a creature not just for itself, but for its children and their children.** The bond transcends a single lifetime.
+
+*This system requires breeding (mobile P2P communication) to function. For now, death is final.*
+
+---
+
 ## Open Mysteries
 
 These are unresolved questions that may be explored in future updates:

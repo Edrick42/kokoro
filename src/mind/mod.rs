@@ -27,6 +27,7 @@ use bevy::prelude::Resource;
 use serde::{Deserialize, Serialize};
 
 pub mod absence;
+pub mod lifecycle;
 pub mod neural;
 pub mod nutrition;
 pub mod plugin;

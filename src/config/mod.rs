@@ -8,6 +8,7 @@ pub mod species;
 pub mod physics;
 pub mod biology;
 pub mod communication;
+pub mod lifecycle;
 pub mod nervous_system;
 pub mod nutrition;
 pub mod timing;

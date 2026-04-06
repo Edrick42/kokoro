@@ -20,6 +20,7 @@ use creature::{
     spawn::CreatureVisualsPlugin,
     touch::TouchPlugin,
 };
+use mind::lifecycle::LifecyclePlugin;
 use mind::nutrition::NutritionPlugin;
 use mind::plugin::NeuralMindPlugin;
 use mind::preferences::PreferencePlugin;
@@ -71,7 +72,7 @@ fn main() {
         // UI plugins
         .add_plugins((StatsPlugin, ActionsPlugin, VitalsPlugin))
         // Creature lifecycle — collection management + egg incubation
-        .add_plugins((MultiCreaturePlugin, EggPlugin, TouchPlugin, PreferencePlugin, SoundPlugin))
+        .add_plugins((MultiCreaturePlugin, EggPlugin, TouchPlugin, PreferencePlugin, SoundPlugin, LifecyclePlugin))
         // Physics — gravity, collision, buoyancy
         .add_plugins(PhysicsPlugin)
         // Visual plugins — effects, animation, evolution, accessories, organic behavior

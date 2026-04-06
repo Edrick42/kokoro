@@ -27,6 +27,7 @@ use crate::creature::egg::{EggEntity, egg_color};
 use crate::creature::physics::{PhysicsBody, GROUND_Y};
 use crate::visuals::species_behavior::{BasePosition, SpeciesBehavior};
 use crate::audio::VocalRepertoire;
+use crate::mind::lifecycle::LifecycleState;
 use crate::mind::nutrition::NutrientState;
 use crate::mind::preferences::PreferenceMemory;
 use crate::visuals::breathing::{BreathingState, HeartbeatState, BaseBodyScale};
@@ -253,6 +254,7 @@ fn do_spawn_creature(
         NutrientState::default(),
         PreferenceMemory::default(),
         VocalRepertoire::new(&genome.species),
+        LifecycleState::new(&genome.species),
         SpeciesBehavior { species: genome.species.clone(), elapsed: 0.0 },
         BreathingState::new(),
         HeartbeatState::new(),

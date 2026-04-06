@@ -7,6 +7,7 @@ pub mod stats;
 pub mod species;
 pub mod physics;
 pub mod biology;
+pub mod nutrition;
 pub mod timing;
 pub mod absence;
 pub mod slots;

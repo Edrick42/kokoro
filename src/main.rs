@@ -17,6 +17,7 @@ use creature::{
     physics::PhysicsPlugin,
     spawn::CreatureVisualsPlugin,
 };
+use mind::nutrition::NutritionPlugin;
 use mind::plugin::NeuralMindPlugin;
 use persistence::plugin::PersistencePlugin;
 use ui::{
@@ -62,7 +63,7 @@ fn main() {
         // World systems
         .add_plugins((DayCyclePlugin, TimeTickPlugin))
         // Neural mind — learns owner interaction patterns
-        .add_plugins(NeuralMindPlugin)
+        .add_plugins((NeuralMindPlugin, NutritionPlugin))
         // UI plugins
         .add_plugins((StatsPlugin, ActionsPlugin, VitalsPlugin))
         // Creature lifecycle — collection management + egg incubation

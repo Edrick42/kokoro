@@ -52,6 +52,7 @@ kokoro/
     │   ├── mod.rs                # Mind struct, MoodState, VitalStats, FSM
     │   ├── absence.rs            # Mirror Bond (absence awareness)
     │   ├── neural.rs             # MLP neural network (12→8→7, 167 params)
+    │   ├── nutrition.rs          # NutrientState, decay system, deficiency effects
     │   ├── plugin.rs             # Bevy integration, training schedule
     │   └── training.rs           # Training pipeline, event extraction
     ├── persistence/              # SQLite save/load
@@ -62,8 +63,9 @@ kokoro/
     │   └── plugin.rs             # Startup load, periodic save, exit save
     ├── ui/                       # User interface
     │   ├── mod.rs
-    │   ├── actions.rs            # Collapsible "..." menu (Feed/Play/Sleep + species)
+    │   ├── actions.rs            # Collapsible "..." menu (food, play, sleep, species)
     │   ├── hud.rs                # Stat bar display (top-left)
+    │   ├── style.rs              # UI design system (colors, sizes, button animations)
     │   └── vitals.rs             # BPM + breathing rate panel (top-right)
     ├── visuals/                  # Graphics and animation
     │   ├── mod.rs
@@ -96,7 +98,7 @@ app.add_plugins(DefaultPlugins)              // Bevy built-ins
     .add_systems(Startup, setup_world)       // 2. Camera
     .add_plugins(CreatureVisualsPlugin)      // 3. Spawn creature entities
     .add_plugins((DayCyclePlugin, TimeTickPlugin))  // 4. World systems
-    .add_plugins(NeuralMindPlugin)           // 5. AI learning
+    .add_plugins((NeuralMindPlugin, NutritionPlugin))  // 5. AI + Nutrition
     .add_plugins((StatsPlugin, ActionsPlugin, VitalsPlugin))  // 6. UI
     .add_plugins((MultiCreaturePlugin, EggPlugin))   // 7. Lifecycle
     .add_plugins(PhysicsPlugin)              // 8. Gravity, collision, buoyancy
@@ -151,6 +153,7 @@ All tunable game constants organized by domain — zero magic numbers in game lo
 | `species.rs` | Feed/play/sleep stat changes per species |
 | `physics.rs` | Gravity, bounce, friction, impulses, velocity thresholds |
 | `biology.rs` | Breathing rates, heartbeat BPM, resonance frequencies, growth stages, egg timing |
+| `nutrition.rs` | FoodType enum, nutrient profiles (7 nutrients × 8 foods), species decay rates |
 | `timing.rs` | Tick interval, autosave, neural training schedule, circadian bonuses |
 | `absence.rs` | Mirror Bond time brackets (1min, 30min, 4h, 24h), reunion ticks |
 | `slots.rs` | Body part name constants (prevents typos) |

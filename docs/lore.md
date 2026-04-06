@@ -165,6 +165,25 @@ This makes Nyxal the most rewarding and the most uncomfortable Kobara to bond wi
 
 ---
 
+## Etharan Foods
+
+The food sources of Ethara are as unique as its creatures. Each biome produces distinct nourishment, and each contains a different balance of fundamental nutrients.
+
+| Food | Biome | Description |
+|------|-------|-------------|
+| **Verdance Berry** | The Verdance | Bioluminescent forest berry. Rich in carbohydrates and vitamins. Glows faintly when ripe. |
+| **Lattice Fruit** | The Verdance | Golden fruit from the canopy lattice. Balanced nutrition. The most common food source. |
+| **Thermal Seed** | Veridian Highlands | Hard-shelled seed formed around volcanic minerals. High protein and fat — fuel for flight. |
+| **Cave Crustacean** | Abyssal Shallows | Armored invertebrate from underground rivers. Extremely protein-dense. Skael delicacy. |
+| **Biolum Plankton** | Abyssal Depths | Microscopic luminous organisms. High water content and fat. The Depths' primary food source. |
+| **Root Tuber** | The Verdance | Starchy underground growth. Highest fiber and carbohydrate content. Filling but plain. |
+| **Spore Moss** | Multiple biomes | Vitamin and mineral-rich moss found near etharin-saturated rocks. Medicinal properties. |
+| **Crystal Water** | Multiple biomes | Mineral-infused water filtered through crystalline formations. Pure hydration. |
+
+Every Kobara needs a balance of seven fundamental nutrients: protein, carbohydrates, fat, water, minerals, vitamins, and fiber. A Kobara fed only one type of food will develop deficiencies — just like in real biology. The key to a healthy Kobara is variety, with emphasis on their species' preferred food source.
+
+---
+
 ## The Kokoro-Sac: How Emotional Resonance Works
 
 The kokoro-sac is a hollow, muscular organ roughly the size of a walnut, located between the lungs and the heart. It contains a fluid called **resonance lymph** — a suspension of etharin-sensitive cells that vibrate at specific frequencies in response to the creature's emotional state.

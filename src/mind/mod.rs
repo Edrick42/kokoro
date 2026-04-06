@@ -28,6 +28,7 @@ use serde::{Deserialize, Serialize};
 
 pub mod absence;
 pub mod neural;
+pub mod nutrition;
 pub mod plugin;
 pub mod training;
 
@@ -131,17 +132,20 @@ impl Mind {
         }
     }
 
-    /// Feed the creature. Queues gradual hunger relief and happiness boost.
-    pub fn feed(&mut self, genome: &crate::genome::Genome) {
-        use crate::genome::Species;
-        let (hunger_relief, happiness_boost) = match genome.species {
-            Species::Moluun => config::feed::MOLUUN,
-            Species::Pylum  => config::feed::PYLUM,
-            Species::Skael  => config::feed::SKAEL,
-            Species::Nyxal  => config::feed::NYXAL,
+    /// Feed the creature with a specific food type.
+    /// Nutrients are applied to the NutrientState component separately.
+    /// This method handles the happiness boost.
+    pub fn feed(&mut self, genome: &crate::genome::Genome, food: &crate::config::nutrition::FoodType) {
+        use crate::config::nutrition as nutr;
+        use crate::mind::nutrition::is_preferred_food;
+
+        let happiness = if is_preferred_food(&genome.species, food) {
+            nutr::PREFERRED_FOOD_HAPPINESS + nutr::BASE_FEED_HAPPINESS
+        } else {
+            nutr::BASE_FEED_HAPPINESS
         };
-        self.pending_hunger    -= hunger_relief;
-        self.pending_happiness += happiness_boost;
+
+        self.pending_happiness += happiness;
     }
 
     /// Play with the creature. Queues gradual happiness boost and energy/hunger costs.
@@ -293,30 +297,27 @@ mod tests {
     use crate::genome::{Genome, Species};
 
     #[test]
-    fn feed_queues_pending_not_instant() {
+    fn feed_queues_happiness_pending() {
         let genome = Genome::random_for(Species::Moluun);
         let mut mind = Mind::new();
-        mind.stats.hunger = 80.0;
 
-        let before = mind.stats.hunger;
-        mind.feed(&genome);
+        mind.feed(&genome, &crate::config::nutrition::FoodType::LatticeFruit);
 
-        // Stats should NOT have changed yet — only pending queued
-        assert_eq!(mind.stats.hunger, before);
-        assert!(mind.pending_hunger < 0.0);
+        // Happiness should be queued as pending, not applied instantly
+        assert!(mind.pending_happiness > 0.0);
     }
 
     #[test]
-    fn pending_drains_over_multiple_ticks() {
+    fn preferred_food_gives_more_happiness() {
         let genome = Genome::random_for(Species::Moluun);
-        let mut mind = Mind::new();
-        mind.stats.hunger = 80.0;
-        mind.feed(&genome); // queues -25 pending
+        let mut mind_pref = Mind::new();
+        let mut mind_other = Mind::new();
 
-        // After 1 tick, hunger should drop by DRAIN_RATE (5), not 25
-        mind.update_mood(&genome);
-        assert!(mind.stats.hunger < 80.0);
-        assert!(mind.stats.hunger > 70.0); // not all 25 drained yet
+        // Moluun prefers VerdanceBerry
+        mind_pref.feed(&genome, &crate::config::nutrition::FoodType::VerdanceBerry);
+        mind_other.feed(&genome, &crate::config::nutrition::FoodType::CaveCrustacean);
+
+        assert!(mind_pref.pending_happiness > mind_other.pending_happiness);
     }
 
     #[test]
@@ -345,17 +346,18 @@ mod tests {
     }
 
     #[test]
-    fn species_specific_feed_amounts() {
-        let mut mind_m = Mind::new();
-        let mut mind_s = Mind::new();
-        let genome_m = Genome::random_for(Species::Moluun);
-        let genome_s = Genome::random_for(Species::Skael);
+    fn species_preferred_food_match() {
+        use crate::mind::nutrition::is_preferred_food;
+        use crate::config::nutrition::FoodType;
 
-        mind_m.feed(&genome_m);
-        mind_s.feed(&genome_s);
+        // Each species has a preferred food
+        assert!(is_preferred_food(&Species::Moluun, &FoodType::VerdanceBerry));
+        assert!(is_preferred_food(&Species::Pylum,  &FoodType::ThermalSeed));
+        assert!(is_preferred_food(&Species::Skael,  &FoodType::CaveCrustacean));
+        assert!(is_preferred_food(&Species::Nyxal,  &FoodType::BiolumPlankton));
 
-        // Skael eats more (35 relief) than Moluun (25 relief)
-        assert!(mind_s.pending_hunger < mind_m.pending_hunger);
+        // Non-preferred
+        assert!(!is_preferred_food(&Species::Moluun, &FoodType::CaveCrustacean));
     }
 
     #[test]

@@ -214,10 +214,13 @@
 
 - [Chapter 26: User Interface with Bevy UI](part-4/ch26-ui.md) 🔮
   - Bevy's UI system: `Node`, `Button`, flexbox layout
-  - Collapsible menus and modal panels
+  - UI Design System: consistent colors, sizes, and animations (`ui/style.rs`)
+  - Animated buttons: hover grow, press squish, smooth transitions
+  - Collapsible menus and expandable panels
+  - Food selection with icon sprites
   - Building a HUD: stat bars, vitals panel (BPM, breathing)
   - Touch interaction: detecting where the player touches the creature
-  - *Build It: Action menu, stat display, vitals panel*
+  - *Build It: Action menu, food selector, stat display, vitals panel*
 
 - [Chapter 27: Animation and Organic Behavior](part-4/ch27-animation.md) 🔮
   - Eye blink system

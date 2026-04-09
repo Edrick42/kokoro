@@ -41,6 +41,7 @@ pub enum GrowthStage {
 }
 
 impl GrowthStage {
+    #[allow(dead_code)]
     pub fn from_age_pub(age: u64) -> Self {
         Self::from_age(age)
     }
@@ -63,8 +64,7 @@ impl GrowthStage {
         }
     }
 
-    /// Returns the sprite subdirectory for this growth stage.
-    /// Falls back to the base species directory if no stage-specific sprites exist.
+    #[allow(dead_code)]
     pub fn sprite_subdir(&self) -> Option<&'static str> {
         match self {
             GrowthStage::Cub  => Some("cub"),

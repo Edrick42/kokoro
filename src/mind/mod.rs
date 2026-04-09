@@ -59,6 +59,7 @@ impl MoodState {
         }
     }
 
+    #[allow(dead_code)]
     pub fn mood_key(&self) -> &str {
         match self {
             MoodState::Happy    => "idle",

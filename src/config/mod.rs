@@ -14,6 +14,7 @@ pub mod nutrition;
 pub mod timing;
 pub mod absence;
 pub mod slots;
+pub mod anatomy;
 
 // Re-export at top level so existing `crate::config::X` paths keep working.
 pub use stats::{initial_stats, mood_thresholds, stat_decay, mood};

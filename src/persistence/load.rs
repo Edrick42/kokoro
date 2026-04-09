@@ -3,6 +3,7 @@
 use rusqlite::{Connection, Result};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::creature::anatomy::AnatomyState;
 use crate::genome::{Genome, Species};
 use crate::mind::{Mind, MoodState, VitalStats};
 
@@ -117,11 +118,10 @@ pub fn load_collection(conn: &Connection) -> Result<Option<Vec<crate::creature::
     let creatures: Vec<crate::creature::collection::StoredCreature> = stmt.query_map([], |row| {
         let species_str: String = row.get(2)?;
         let mood_str: String = row.get(14)?;
-        Ok(crate::creature::collection::StoredCreature {
-            name: row.get(1)?,
-            egg: crate::creature::egg::EggData { progress: 1.0, hatched: true },
-            genome: Genome {
-                species: str_to_species(&species_str),
+        {
+            let species = str_to_species(&species_str);
+            let genome = Genome {
+                species: species.clone(),
                 curiosity: row.get(3)?,
                 loneliness_sensitivity: row.get(4)?,
                 appetite: row.get(5)?,
@@ -129,22 +129,29 @@ pub fn load_collection(conn: &Connection) -> Result<Option<Vec<crate::creature::
                 resilience: row.get(7)?,
                 learning_rate: row.get(8)?,
                 hue: row.get(9)?,
-            },
-            mind: Mind {
-                stats: VitalStats {
-                    hunger: row.get(10)?,
-                    happiness: row.get(11)?,
-                    energy: row.get(12)?,
-                    health: row.get(13)?,
+            };
+            let anatomy = AnatomyState::new_for(&species, &genome);
+            Ok(crate::creature::collection::StoredCreature {
+                name: row.get(1)?,
+                egg: crate::creature::egg::EggData { progress: 1.0, hatched: true },
+                anatomy,
+                mind: Mind {
+                    stats: VitalStats {
+                        hunger: row.get(10)?,
+                        happiness: row.get(11)?,
+                        energy: row.get(12)?,
+                        health: row.get(13)?,
+                    },
+                    mood: str_to_mood(&mood_str),
+                    age_ticks: row.get(15)?,
+                    pending_hunger: 0.0,
+                    pending_happiness: 0.0,
+                    pending_energy: 0.0,
+                    mood_cooldown: 0,
                 },
-                mood: str_to_mood(&mood_str),
-                age_ticks: row.get(15)?,
-                pending_hunger: 0.0,
-                pending_happiness: 0.0,
-                pending_energy: 0.0,
-                mood_cooldown: 0,
-            },
-        })
+                genome,
+            })
+        }
     })?.filter_map(|r| r.ok()).collect();
 
     if creatures.is_empty() {

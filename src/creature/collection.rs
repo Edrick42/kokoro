@@ -13,6 +13,7 @@
 
 use bevy::prelude::*;
 
+use crate::creature::anatomy::AnatomyState;
 use crate::genome::{Genome, Species};
 use crate::mind::Mind;
 use crate::creature::egg::EggData;
@@ -30,13 +31,14 @@ impl Plugin for MultiCreaturePlugin {
     }
 }
 
-/// A stored creature — genome + mind state + egg data.
+/// A stored creature — genome + mind state + egg data + anatomy.
 #[derive(Debug, Clone)]
 pub struct StoredCreature {
     pub name: String,
     pub genome: Genome,
     pub mind: Mind,
     pub egg: EggData,
+    pub anatomy: AnatomyState,
 }
 
 /// Holds all creatures the player has. Index 0 = Moluun, 1 = Pylum, 2 = Skael.
@@ -60,6 +62,7 @@ pub struct SelectSpeciesEvent {
 fn init_collection(
     genome: Res<Genome>,
     mind: Res<Mind>,
+    anatomy: Res<AnatomyState>,
     db: Res<DbConnection>,
     mut collection: ResMut<CreatureCollection>,
 ) {
@@ -80,36 +83,46 @@ fn init_collection(
 
     info!("No saved collection — creating fresh creatures");
 
-    // Moluun — use the persisted genome/mind (already hatched)
+    // Moluun — use the persisted genome/mind/anatomy (already hatched)
     collection.creatures.push(StoredCreature {
         name: "Moluun".to_string(),
         genome: genome.clone(),
         mind: mind.clone(),
         egg: EggData { progress: 1.0, hatched: true },
+        anatomy: anatomy.clone(),
     });
 
     // Pylum — starts as egg
+    let pylum_genome = Genome::random_for(Species::Pylum);
+    let pylum_anatomy = AnatomyState::new_for(&Species::Pylum, &pylum_genome);
     collection.creatures.push(StoredCreature {
         name: "Pylum".to_string(),
-        genome: Genome::random_for(Species::Pylum),
+        genome: pylum_genome,
         mind: Mind::new(),
         egg: EggData::default(),
+        anatomy: pylum_anatomy,
     });
 
     // Skael — starts as egg
+    let skael_genome = Genome::random_for(Species::Skael);
+    let skael_anatomy = AnatomyState::new_for(&Species::Skael, &skael_genome);
     collection.creatures.push(StoredCreature {
         name: "Skael".to_string(),
-        genome: Genome::random_for(Species::Skael),
+        genome: skael_genome,
         mind: Mind::new(),
         egg: EggData::default(),
+        anatomy: skael_anatomy,
     });
 
     // Nyxal — starts as egg
+    let nyxal_genome = Genome::random_for(Species::Nyxal);
+    let nyxal_anatomy = AnatomyState::new_for(&Species::Nyxal, &nyxal_genome);
     collection.creatures.push(StoredCreature {
         name: "Nyxal".to_string(),
-        genome: Genome::random_for(Species::Nyxal),
+        genome: nyxal_genome,
         mind: Mind::new(),
         egg: EggData::default(),
+        anatomy: nyxal_anatomy,
     });
 
     collection.active_index = 0;
@@ -121,6 +134,7 @@ fn handle_select_species(
     mut collection: ResMut<CreatureCollection>,
     mut genome: ResMut<Genome>,
     mut mind: ResMut<Mind>,
+    mut anatomy: ResMut<AnatomyState>,
 ) {
     for event in events.read() {
         // Find the creature of this species
@@ -140,6 +154,7 @@ fn handle_select_species(
         if let Some(current) = collection.creatures.get_mut(old_index) {
             current.genome = genome.clone();
             current.mind = mind.clone();
+            current.anatomy = anatomy.clone();
         }
 
         // Load target creature
@@ -147,6 +162,7 @@ fn handle_select_species(
         let creature = &collection.creatures[target_index];
         *genome = creature.genome.clone();
         *mind = creature.mind.clone();
+        *anatomy = creature.anatomy.clone();
 
         let name = creature.name.clone();
         let species = creature.genome.species.clone();

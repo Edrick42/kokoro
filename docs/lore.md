@@ -340,3 +340,57 @@ These are unresolved questions that may be explored in future updates:
 | **Mirror Bond** | The relationship between player and Kobara |
 | **Cluster** | A social group of Moluun (8-12 individuals) |
 | **Elder Sight** | Uncharted resonance patterns in aged Kobaras |
+
+---
+
+## Anatomy — The Physical Body
+
+Every Kobara has a physical body built in four interconnected layers: skeleton, joints, muscles, and skin. These layers influence each other — damage cascades through them, and care heals from the inside out.
+
+### Skeleton
+
+The skeletal system provides structural integrity. A Kobara's maximum health cannot exceed what its skeleton can support.
+
+**Moluun — Elastic Standard Skeleton**. Moluun bones are slightly elastic, adapted for squeezing through tight Verdance lattice canopy gaps. The ribcage can compress up to 15%, making Moluun resilient to falls but vulnerable to sustained crushing forces. Six bones: skull, spine, ribcage, pelvis, and two limb bones.
+
+**Pylum — Hollow Air-Bones**. Connected to the internal air-sac system (separate from the kokoro-sac), Pylum bones are filled with air chambers that reduce body weight by approximately 40% compared to a size-matched Moluun. This enables efficient thermal riding in the Highlands but comes at a cost — landing impacts that merely bruise a Moluun can fracture a Pylum's keel bone. Seven bones including specialized wing bones and a keel.
+
+**Skael — Dense Mineral Armor**. Skael bones are reinforced with crystalline mineral deposits absorbed from the cave systems they inhabit. Their skull density is 30% above baseline, and their bones repair faster than any other species thanks to constant mineral availability in their diet of cave crustaceans. Seven bones, with a powerful tail bone used for underwater propulsion.
+
+**Nyxal — Hydrostatic Pressure Frame**. Nyxal have no bones whatsoever. Their body shape is maintained by pressurized water in sealed internal chambers — a hydrostatic skeleton, like real-world octopi. When hydrated, a Nyxal is surprisingly firm and can exert considerable force through its tentacles. When dehydrated, it becomes limp and formless — a deeply distressing state that triggers immediate survival behaviors.
+
+### Joints
+
+Joints connect bones (or, for Nyxal, connect flexible body segments). Lubrication determines movement smoothness — dry joints cost extra energy and cause discomfort. Flexibility determines range of motion and directly affects whether a creature can play.
+
+Young Kobaras have exceptionally flexible joints (130% of adult baseline), which is why cubs tumble and roll so easily. Elder Kobaras lose flexibility irreversibly as joint tissue calcifies — this is visible in their increasingly deliberate, measured movements.
+
+### Muscles
+
+Muscle mass determines nutrient demand and force output. Well-conditioned muscles are energy-efficient — the creature moves with less effort. Atrophied muscles from neglect or malnutrition drain energy rapidly, creating a vicious cycle: the creature needs more food to move but can barely seek food.
+
+Muscles fatigue during waking hours and recover during sleep. This is why sleep is not optional — a Kobara that doesn't sleep will see progressive muscle degradation, leading to weakness, lethargy, and eventually the inability to play.
+
+### Skin
+
+Species-specific covering protects the body and mediates sensation:
+
+- **Fur** (Moluun) — insulating, soft, moderate protection. Dense micro-fur traps bioluminescent spores from the Verdance.
+- **Plumage** (Pylum) — lightweight feathers regulate temperature during altitude changes. Gradient coloration shifts with mood.
+- **Scales** (Skael) — not true scales but mineralized skin plates interlocking like chainmail, anchored by collagen fibers. They grow continuously, shedding from the tail tip. Dull, uneven scales signal poor mineral intake — experienced caretakers can diagnose a Skael's health at a glance.
+- **Membrane** (Nyxal) — thin, permeable skin that allows gas exchange with water. Contains chromatophores for color-changing communication and bioluminescent cells concentrated at tentacle tips.
+
+### Kokoro-Sac Integration
+
+The kokoro-sac — the resonance organ at the center of every Kobara — sits between lungs and heart, surrounded by the ribcage (or, in Nyxal, suspended in the mantle cavity). When ribcage integrity drops below 50%, the sac's resonance is physically dampened by structural instability. This manifests as reduced emotional responsiveness — happiness gains are reduced by approximately 20% until the ribcage heals.
+
+### The Anatomy Cascade
+
+Damage flows through layers:
+
+1. Bone breaks → connected joints lock up → connected muscles weaken
+2. Weak muscles → higher energy cost → creature needs more food
+3. More food needed + pain from injury → creature can't play → happiness drops
+4. Low happiness + high energy cost → potential starvation spiral
+
+Good care reverses this gradually. Proper nutrition → bones repair → joints loosen → muscles strengthen → the creature recovers. But anatomy takes time — it cannot be healed instantly. A week of neglect requires days of good care to undo.

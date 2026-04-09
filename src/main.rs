@@ -14,6 +14,7 @@ use bevy::prelude::*;
 
 use audio::SoundPlugin;
 use creature::{
+    anatomy::AnatomyPlugin,
     collection::MultiCreaturePlugin,
     egg::EggPlugin,
     physics::PhysicsPlugin,
@@ -39,6 +40,7 @@ use visuals::{
     evolution::EvolutionPlugin,
     genome_visuals::apply_genome_visuals,
     mood_sync::sync_mood_sprites,
+    pixel_creature::PixelCreaturePlugin,
     resonance_glow::ResonanceGlowPlugin,
     species_behavior::SpeciesBehaviorPlugin,
 };
@@ -72,13 +74,13 @@ fn main() {
         .add_plugins((NeuralMindPlugin, NutritionPlugin))
         // UI plugins
         .add_plugins((StatsPlugin, ActionsPlugin, VitalsPlugin))
-        // Creature lifecycle — collection management + egg incubation
-        .add_plugins((MultiCreaturePlugin, EggPlugin, TouchPlugin, PreferencePlugin, SoundPlugin, LifecyclePlugin))
+        // Creature lifecycle — collection management + egg incubation + anatomy
+        .add_plugins((MultiCreaturePlugin, EggPlugin, TouchPlugin, PreferencePlugin, SoundPlugin, LifecyclePlugin, AnatomyPlugin))
         // Physics — gravity, collision, buoyancy
         .add_plugins(PhysicsPlugin)
         // Visual plugins — effects, animation, evolution, accessories, organic behavior
         .add_plugins((EffectsPlugin, AnimationPlugin, EvolutionPlugin, AccessoriesPlugin, BackgroundPlugin))
-        .add_plugins((BreathingPlugin, SpeciesBehaviorPlugin, ResonanceGlowPlugin))
+        .add_plugins((BreathingPlugin, SpeciesBehaviorPlugin, ResonanceGlowPlugin, PixelCreaturePlugin))
         // Visual update systems
         .add_systems(Update, (sync_mood_sprites, apply_genome_visuals));
 

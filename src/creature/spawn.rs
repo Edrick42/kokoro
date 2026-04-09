@@ -1,66 +1,24 @@
-//! Creature visual spawning and lifecycle.
+//! Creature spawning and lifecycle.
 //!
-//! Each creature is spawned as a root entity with child entities for each
-//! body part. Positions come from the **body rig** — a proportional landmark
-//! system that resolves normalized coordinates into pixel offsets based on
-//! the creature's genome.
-//!
-//! Parts can be either sprite-based (if PNGs exist) or procedural mesh-based
-//! (as a fallback). The two can coexist.
-//!
-//! When the player switches creatures, the old visual entity is despawned
-//! and a new one is spawned from the new species' template.
-//!
-//! ## Asset path convention
-//!
-//! ```text
-//! assets/sprites/{species_dir}/{slot}_{mood_key}.png
-//! ```
+//! Spawns creature root entities with all gameplay components.
+//! Visual rendering is handled by PixelCreaturePlugin (runtime pixel art).
+//! When the player switches creatures, the old entity is despawned
+//! and a new one is created.
 
 use bevy::prelude::*;
-use std::collections::HashMap;
 
 use crate::genome::{Genome, Species};
 use crate::mind::Mind;
 use crate::creature::collection::CreatureCollection;
-use crate::creature::egg::{EggEntity, egg_color};
+use crate::creature::egg::EggEntity;
 use crate::creature::physics::{PhysicsBody, GROUND_Y};
-use crate::visuals::species_behavior::{BasePosition, SpeciesBehavior};
+use crate::visuals::species_behavior::SpeciesBehavior;
 use crate::audio::VocalRepertoire;
 use crate::mind::lifecycle::LifecycleState;
 use crate::mind::nutrition::NutrientState;
 use crate::mind::preferences::PreferenceMemory;
-use crate::visuals::breathing::{BreathingState, HeartbeatState, BaseBodyScale};
-use crate::visuals::resonance_glow::ResonanceGlow;
+use crate::visuals::breathing::{BreathingState, HeartbeatState};
 use super::species::*;
-use super::rig::ResolvedAnchor;
-
-/// Preloaded sprite handles for all (slot, mood_key) combinations.
-/// Used by the mood_sync system for fast sprite swaps without disk I/O.
-#[derive(Resource)]
-pub struct PartSpriteHandles {
-    /// Map of (slot, mood_key) → image handle.
-    pub handles: HashMap<(String, String), Handle<Image>>,
-}
-
-/// Stores the resolved rig positions so other systems (like genome_visuals)
-/// can reference the rig-computed positions without re-resolving.
-#[derive(Resource)]
-#[allow(dead_code)]
-pub struct ResolvedRig {
-    pub anchors: Vec<ResolvedAnchor>,
-}
-
-/// Tracks whether we checked if sprites loaded successfully.
-#[derive(Resource)]
-struct SpriteFallback {
-    timer: Timer,
-    resolved: bool,
-}
-
-/// Marker for fallback mesh entities (so we can despawn them selectively).
-#[derive(Component)]
-struct FallbackMesh;
 
 pub struct CreatureVisualsPlugin;
 
@@ -69,19 +27,15 @@ impl Plugin for CreatureVisualsPlugin {
         let registry = SpeciesRegistry::new();
         app.insert_resource(registry)
            .add_systems(Startup, spawn_creature)
-           .add_systems(Update, (respawn_on_switch, check_sprite_fallback));
+           .add_systems(Update, respawn_on_switch);
     }
 }
 
-/// Spawns the creature (or egg) as a root entity.
+/// Spawns the creature (or egg) at startup.
 fn spawn_creature(
     commands: Commands,
-    asset_server: Res<AssetServer>,
-    meshes: ResMut<Assets<Mesh>>,
-    materials: ResMut<Assets<ColorMaterial>>,
     genome: Res<Genome>,
     mind: Res<Mind>,
-    registry: Res<SpeciesRegistry>,
     collection: Res<CreatureCollection>,
 ) {
     let is_egg = collection.creatures
@@ -90,36 +44,33 @@ fn spawn_creature(
         .unwrap_or(false);
 
     if is_egg {
-        do_spawn_egg(commands, &asset_server, meshes, materials, &genome, &registry);
+        do_spawn_egg(commands, &genome);
     } else {
-        do_spawn_creature(commands, &asset_server, meshes, materials, &genome, &mind, &registry);
+        do_spawn_creature(commands, &genome, &mind);
     }
 }
 
-/// Checks if creature visuals need respawning (after a switch or hatch) and rebuilds them.
+/// Checks if creature visuals need respawning (after switch or hatch).
 fn respawn_on_switch(
     mut collection: ResMut<CreatureCollection>,
     root_q: Query<Entity, With<CreatureRoot>>,
     egg_q: Query<Entity, With<EggEntity>>,
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    meshes: ResMut<Assets<Mesh>>,
-    materials: ResMut<Assets<ColorMaterial>>,
+    commands: Commands,
     genome: Res<Genome>,
     mind: Res<Mind>,
-    registry: Res<SpeciesRegistry>,
 ) {
     if !collection.visuals_dirty {
         return;
     }
     collection.visuals_dirty = false;
 
-    // Despawn old creature and egg entities
+    // Despawn old entities
+    let mut cmds = commands;
     for entity in root_q.iter() {
-        commands.entity(entity).despawn();
+        cmds.entity(entity).despawn();
     }
     for entity in egg_q.iter() {
-        commands.entity(entity).despawn();
+        cmds.entity(entity).despawn();
     }
 
     let is_egg = collection.creatures
@@ -128,126 +79,43 @@ fn respawn_on_switch(
         .unwrap_or(false);
 
     if is_egg {
-        do_spawn_egg(commands, &asset_server, meshes, materials, &genome, &registry);
+        do_spawn_egg(cmds, &genome);
     } else {
-        do_spawn_creature(commands, &asset_server, meshes, materials, &genome, &mind, &registry);
+        do_spawn_creature(cmds, &genome, &mind);
     }
 }
 
-/// Spawns an egg entity when the active creature hasn't hatched yet.
+/// Spawns an egg entity (simple colored ellipse).
 fn do_spawn_egg(
     mut commands: Commands,
-    asset_server: &AssetServer,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
     genome: &Genome,
-    registry: &SpeciesRegistry,
 ) {
-    let template = registry.get(&genome.species);
-    let egg_path = format!("sprites/{}/egg/body_idle.png", template.species_dir);
-
-    if std::path::Path::new(&format!("assets/{egg_path}")).exists() {
-        // Use the generated egg sprite
-        commands.spawn((
-            EggEntity,
-            Sprite {
-                image: asset_server.load(&egg_path),
-                ..default()
-            },
-            Transform::from_xyz(0.0, GROUND_Y, 0.0).with_scale(Vec3::splat(0.4)),
-        ));
-    } else {
-        // Fallback to procedural mesh
-        let color = egg_color(&genome.species);
-        commands.spawn((
-            EggEntity,
-            Mesh2d(meshes.add(Ellipse::new(30.0, 38.0))),
-            MeshMaterial2d(materials.add(ColorMaterial::from(color))),
-            Transform::from_xyz(0.0, GROUND_Y, 0.0),
-        ));
-    }
+    let color = crate::creature::egg::egg_color(&genome.species);
+    commands.spawn((
+        EggEntity,
+        Sprite {
+            color,
+            custom_size: Some(Vec2::new(60.0, 80.0)),
+            ..default()
+        },
+        Transform::from_xyz(0.0, GROUND_Y, 0.0),
+    ));
 }
 
-/// Shared spawn logic used by both startup and respawn.
+/// Spawns the creature root entity with all gameplay components.
+/// Visual rendering (pixel art) is attached by PixelCreaturePlugin.
 fn do_spawn_creature(
     mut commands: Commands,
-    asset_server: &AssetServer,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
     genome: &Genome,
-    mind: &Mind,
-    registry: &SpeciesRegistry,
+    _mind: &Mind,
 ) {
-    let template = registry.get(&genome.species);
-    let mood_key = mind.mood.mood_key();
-    let body_color = genome.body_color();
-    let tint = genome.tint_color();
-
-    // Determine growth stage for sprite path
-    use crate::visuals::evolution::GrowthStage;
-    let stage = GrowthStage::from_age_pub(mind.age_ticks);
-    let stage_subdir = stage.sprite_subdir();
-
-    // Resolve the rig: convert normalized landmarks → pixel positions
-    let resolved = template.rig.resolve(genome);
-
-    // Build a lookup: slot name → resolved position + z_depth
-    let anchor_map: HashMap<String, &ResolvedAnchor> = resolved
-        .iter()
-        .map(|a| (a.slot.clone(), a))
-        .collect();
-
-    let mut sprite_handles = PartSpriteHandles {
-        handles: HashMap::new(),
-    };
-
-    // Helper: resolve sprite path with stage fallback
-    // Tries: sprites/{species}/{stage}/{slot}_{mood}.png → sprites/{species}/{slot}_{mood}.png
-    let resolve_path = |slot: &str, mood: &str| -> Option<String> {
-        if let Some(subdir) = stage_subdir {
-            let stage_path = format!("sprites/{}/{}/{}_{}.png", template.species_dir, subdir, slot, mood);
-            if std::path::Path::new(&format!("assets/{stage_path}")).exists() {
-                return Some(stage_path);
-            }
-        }
-        let base_path = format!("sprites/{}/{}_{}.png", template.species_dir, slot, mood);
-        if std::path::Path::new(&format!("assets/{base_path}")).exists() {
-            return Some(base_path);
-        }
-        None
-    };
-
-    // Preload all mood variants for mood-reactive parts
-    let mood_keys = ["idle", "hungry", "tired", "lonely", "playful", "sick", "sleeping"];
-    for part_def in &template.parts {
-        if part_def.mood_reactive {
-            for &mk in &mood_keys {
-                if let Some(path) = resolve_path(&part_def.slot, mk) {
-                    let handle = asset_server.load(&path);
-                    sprite_handles.handles.insert(
-                        (part_def.slot.clone(), mk.to_string()),
-                        handle,
-                    );
-                }
-            }
-        } else {
-            if let Some(path) = resolve_path(&part_def.slot, "idle") {
-                let handle = asset_server.load(&path);
-                sprite_handles.handles.insert(
-                    (part_def.slot.clone(), "idle".to_string()),
-                    handle,
-                );
-            }
-        }
-    }
-
     // Physics body: land creatures fall, aquatic creatures float
     let physics = match genome.species {
         Species::Nyxal => PhysicsBody::aquatic_creature(GROUND_Y + 80.0),
         _ => PhysicsBody::land_creature(GROUND_Y),
     };
 
-    // Spawn the root entity with all parts as children
+    // Spawn root entity — PixelCreaturePlugin will attach the visual sprite
     commands.spawn((
         CreatureRoot,
         physics,
@@ -260,156 +128,5 @@ fn do_spawn_creature(
         HeartbeatState::new(),
         Transform::default(),
         Visibility::Inherited,
-    )).with_children(|parent| {
-        for part_def in &template.parts {
-            let slot = BodyPartSlot(part_def.slot.clone());
-
-            // Get position from the resolved rig (or fall back to origin)
-            let (offset, z_depth) = anchor_map
-                .get(&part_def.slot)
-                .map(|a| (a.position, a.z_depth))
-                .unwrap_or((Vec2::ZERO, 0.0));
-
-            // Determine which sprite handle to use
-            let sprite_handle = sprite_handles.handles
-                .get(&(part_def.slot.clone(), mood_key.to_string()))
-                .or_else(|| sprite_handles.handles.get(&(part_def.slot.clone(), "idle".to_string())))
-                .cloned();
-
-            // If no sprite exists for this part (SVG pipeline generates body-only),
-            // skip non-body parts entirely — no fallback mesh needed.
-            if sprite_handle.is_none() && part_def.slot != "body" {
-                continue;
-            }
-
-            let base_pos = BasePosition(Vec3::new(offset.x, offset.y, z_depth));
-
-            // Genome-derived body scale for breathing composition
-            let body_scale_x = if part_def.slot == "body" {
-                1.1 - genome.appetite * 0.2
-            } else {
-                1.0
-            };
-
-            // Spawn sprite entity (hidden until fallback check confirms it loaded)
-            if let Some(handle) = sprite_handle {
-                let color = if part_def.tinted { tint } else { Color::WHITE };
-                let mut entity = parent.spawn((
-                    Sprite {
-                        image: handle,
-                        color,
-                        ..default()
-                    },
-                    Transform::from_xyz(offset.x, offset.y, z_depth)
-                        .with_scale(part_def.base_scale.extend(1.0)),
-                    Visibility::Hidden,
-                    slot.clone(),
-                    base_pos.clone(),
-                ));
-                if part_def.mood_reactive {
-                    entity.insert(MoodReactive);
-                }
-                if part_def.tinted {
-                    entity.insert(Tinted);
-                }
-                if part_def.slot == "body" {
-                    entity.insert(BaseBodyScale(Vec2::new(body_scale_x, 1.0)));
-                }
-            }
-
-            // Always spawn procedural mesh fallback
-            let mesh_color = part_def.fallback_color.unwrap_or(body_color);
-            let base_pos_fallback = BasePosition(Vec3::new(offset.x, offset.y, z_depth));
-            match &part_def.fallback_shape {
-                FallbackShape::Circle { radius } => {
-                    let mut entity = parent.spawn((
-                        Mesh2d(meshes.add(Circle::new(*radius))),
-                        MeshMaterial2d(materials.add(mesh_color)),
-                        Transform::from_xyz(offset.x, offset.y, z_depth),
-                        slot,
-                        FallbackMesh,
-                        base_pos_fallback,
-                    ));
-                    if part_def.slot == "body" {
-                        entity.insert(BaseBodyScale(Vec2::new(body_scale_x, 1.0)));
-                    }
-                }
-                FallbackShape::Rect { width, height } => {
-                    let mut entity = parent.spawn((
-                        Mesh2d(meshes.add(Rectangle::new(*width, *height))),
-                        MeshMaterial2d(materials.add(mesh_color)),
-                        Transform::from_xyz(offset.x, offset.y, z_depth),
-                        slot,
-                        FallbackMesh,
-                        base_pos_fallback,
-                    ));
-                    if part_def.slot == "body" {
-                        entity.insert(BaseBodyScale(Vec2::new(body_scale_x, 1.0)));
-                    }
-                }
-            }
-        }
-
-        // Kokoro-sac resonance glow — semi-transparent circle behind body
-        let glow_color = genome.body_color().with_alpha(0.15);
-        parent.spawn((
-            Mesh2d(meshes.add(Circle::new(55.0))),
-            MeshMaterial2d(materials.add(ColorMaterial::from(glow_color))),
-            Transform::from_xyz(0.0, 0.0, -0.5),
-            ResonanceGlow::new(),
-        ));
-    });
-
-    commands.insert_resource(sprite_handles);
-    commands.insert_resource(ResolvedRig { anchors: resolved });
-    commands.insert_resource(SpriteFallback {
-        timer: Timer::from_seconds(2.0, TimerMode::Once),
-        resolved: false,
-    });
-}
-
-/// After 2 seconds, checks which sprite parts actually loaded.
-fn check_sprite_fallback(
-    time: Res<Time>,
-    mut fallback: ResMut<SpriteFallback>,
-    sprite_handles: Res<PartSpriteHandles>,
-    images: Res<Assets<Image>>,
-    mut sprite_q: Query<(&BodyPartSlot, &mut Visibility), (With<Sprite>, Without<FallbackMesh>)>,
-    mesh_q: Query<(Entity, &BodyPartSlot), With<FallbackMesh>>,
-    mut commands: Commands,
-) {
-    if fallback.resolved {
-        return;
-    }
-    fallback.timer.tick(time.delta());
-    if !fallback.timer.finished() {
-        return;
-    }
-    fallback.resolved = true;
-
-    let mut loaded_slots = std::collections::HashSet::new();
-    for ((slot, _mood), handle) in &sprite_handles.handles {
-        if images.get(handle).is_some() {
-            loaded_slots.insert(slot.clone());
-        }
-    }
-
-    if loaded_slots.is_empty() {
-        info!("No part sprites found — keeping procedural mesh fallback for all parts");
-        return;
-    }
-
-    info!("Sprites loaded for parts: {:?} — switching those to sprite rendering", loaded_slots);
-
-    for (slot, mut vis) in sprite_q.iter_mut() {
-        if loaded_slots.contains(&slot.0) {
-            *vis = Visibility::Visible;
-        }
-    }
-
-    for (entity, slot) in mesh_q.iter() {
-        if loaded_slots.contains(&slot.0) {
-            commands.entity(entity).despawn();
-        }
-    }
+    ));
 }

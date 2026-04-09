@@ -21,11 +21,8 @@ rusqlite = { version = "0.31", features = ["bundled"] }
 # Local time offset for day/night cycle (Unix only, safe no-op on other platforms)
 libc     = "0.2"
 
-# Sprite generation (only used by bin targets, not the game itself)
+# Image buffer for runtime pixel art rendering
 image = { version = "0.25", default-features = false, features = ["png"] }
-# SVG generation and rendering for high-quality procedural sprites
-svg = "0.18"
-resvg = "0.44"
 
 # Small optimization in dev builds for your own code
 [profile.dev]

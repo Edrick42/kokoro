@@ -30,6 +30,7 @@ pub struct ResonanceGlow {
 }
 
 impl ResonanceGlow {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             frequency: config::resonance::FREQ_HAPPY,

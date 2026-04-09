@@ -77,8 +77,8 @@ impl GrowthStage {
     #[allow(dead_code)]
     pub fn label(&self) -> &str {
         match self {
-            GrowthStage::Cub  => "Baby",
-            GrowthStage::Young => "Child",
+            GrowthStage::Cub  => "Cub",
+            GrowthStage::Young => "Young",
             GrowthStage::Adult => "Adult",
             GrowthStage::Elder => "Elder",
         }

@@ -100,7 +100,8 @@ pub fn egg_name(species: &Species) -> &'static str {
     }
 }
 
-/// Returns the color for the egg of a species.
+/// Returns the color for the egg of a species (legacy, now using pixel art).
+#[allow(dead_code)]
 pub fn egg_color(species: &Species) -> Color {
     match species {
         Species::Moluun => Color::srgb(0.85, 0.75, 0.65),  // warm brown

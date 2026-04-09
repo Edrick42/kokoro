@@ -122,11 +122,7 @@ Cons: Inconsistent style, copyright concerns, hard to animate
 
 ### Alien Accents
 - Bioluminescent glow: cyan, magenta, soft green — always on specific organs/features
-- Eyes: each species has a distinct eye color tied to their biology
-  - Moluun: warm brown/amber (mammalian)
-  - Pylum: sharp yellow (raptor-like)
-  - Skael: golden/red (reptilian)
-  - Nyxal: bioluminescent cyan (deep-sea)
+- Eyes: all species share deep black eyes — a universal Kobara trait (etharin pigment adaptation). Dark bead-like eyes maximize contrast against any body color, enhancing expressiveness at pixel-art scale.
 
 ### Facet Shading Rules
 - Top facets: brightest (light from above)

@@ -64,8 +64,8 @@ All Kobaras share the same genus (*Kobarensis*), but manifest in distinct forms 
 |---------|---------------|-------|-----------|
 | **Moluun** | *K. moluunaris* | The Verdance (forests) | Round, soft, dense fur. Short limbs, wide eyes. Built for navigating tight lattice canopies. |
 | **Pylum** | *K. pylumensis* | Veridian Highlands (mesas) | Lightweight, winged, aerodynamic. Sharp beak, hollow bones. Built for thermal-riding and high-altitude foraging. |
-| **Skael** | *K. skaelith* | Abyssal Shallows (caves) | Elongated, scaled, heat-resistant. Crested head, slitted eyes for low-light, muscular tail for swimming in underground rivers. |
-| **Nyxal** | *K. nyxalaris* | Abyssal Depths (deep ocean) | Soft-bodied, tentacled, bioluminescent. Bulbous mantle, large forward eyes with slit pupils, four prehensile tentacles. Built for pressure, darkness, and pattern-thinking. |
+| **Skael** | *K. skaelith* | Abyssal Shallows (caves) | Elongated, scaled, heat-resistant. Crested head, dark deep-set eyes for low-light, muscular tail for swimming in underground rivers. |
+| **Nyxal** | *K. nyxalaris* | Abyssal Depths (deep ocean) | Soft-bodied, tentacled, bioluminescent. Bulbous mantle, large dark forward eyes with slit pupils, four prehensile tentacles. Built for pressure, darkness, and pattern-thinking. |
 
 The species your Kobara takes is not random — it reflects the shape of your inner landscape. Those who feel deeply and seek connection manifest a Moluun. Those who are restless and drawn to the unknown manifest a Pylum. Those who are quiet, watchful, and fiercely loyal manifest a Skael. And those who think in patterns, who see connections others miss, who live more in their mind than their body — they manifest a Nyxal.
 
@@ -99,9 +99,13 @@ Each Kobara's personality and appearance are determined by a genome that transla
 
 Seven genes on a spectrum (0.0 to 1.0, except hue which is 0–360), and every Kobara is unique. Two Moluun can look and behave very differently, just as two people who both "feel deeply" can be entirely different.
 
+### Universal Trait: Dark Eyes
+
+All Kobaras, regardless of species, have **deep black eyes**. This is one of the few traits that doesn't vary between individuals or species. Biologists on Ethara theorize this is an adaptation for the etharin-rich atmosphere — the pigment absorbs excess resonance radiation that would otherwise damage the retina. The practical effect: dark, bead-like eyes that contrast against every body color, creating the wide-eyed expressiveness that makes Kobaras so emotionally readable.
+
 ---
 
-## The Three Species — Detailed Profiles
+## The Four Species — Detailed Profiles
 
 ### Moluun (*K. moluunaris*)
 
@@ -139,7 +143,7 @@ They form intense one-on-one bonds. A bonded Pylum treats its player as a "flock
 
 > *"People think Skael are cold because they don't run up to you. They're not cold. They're watching. They're deciding. And once they decide — that's forever."*
 
-**Appearance**: Elongated body covered in interlocking micro-scales that shimmer in low light. A crested head with two dorsal ridges that flush with color during emotional states. Narrow, slitted eyes with golden irises — evolved for the dim bioluminescence of the underground caverns. A broad snout with visible nostrils. A thick, muscular tail used for propulsion in underground rivers.
+**Appearance**: Elongated body covered in interlocking micro-scales that shimmer in low light. A crested head with two dorsal ridges that flush with color during emotional states. Narrow, deep-set dark eyes — evolved for the dim bioluminescence of the underground caverns. The irises appear almost entirely black, with only the faintest golden ring visible in direct light. A broad snout with visible nostrils. A thick, muscular tail used for propulsion in underground rivers.
 
 **Personality**: Skael are the most resilient and independent manifestation. They reflect the quiet strength in you — the part that endures, observes, and protects without asking for recognition.
 
@@ -153,7 +157,7 @@ A Skael won't bounce with joy or cry when you leave. But it will position itself
 
 > *"It doesn't move like the others. It thinks. You can see it thinking — the tentacles slow, the glow dims, and then it does something you didn't expect. Something you needed."*
 
-**Appearance**: Soft-bodied, with no skeleton or scales. A large, bulbous mantle sits atop a rounded body, with two oversized forward-facing eyes — bioluminescent cyan with vertical slit pupils that dilate in response to emotion, not light. Four prehensile tentacles extend below the body: two shorter front tentacles for manipulation, two longer rear tentacles for locomotion. The entire body produces faint bioluminescence, with the tentacle tips glowing brightest.
+**Appearance**: Soft-bodied, with no skeleton or scales. A large, bulbous mantle sits atop a rounded body, with two oversized forward-facing eyes — deep black with vertical slit pupils that dilate in response to emotion, not light. In total darkness, the eyes appear to absorb what little light exists. Four prehensile tentacles extend below the body: two shorter front tentacles for manipulation, two longer rear tentacles for locomotion. The entire body produces faint bioluminescence, with the tentacle tips glowing brightest.
 
 **Personality**: Nyxal are the most intelligent manifestation. They reflect the analytical part of you — the mind that sees patterns, makes connections, and understands before it feels.
 

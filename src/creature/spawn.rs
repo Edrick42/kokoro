@@ -6,6 +6,9 @@
 //! and a new one is created.
 
 use bevy::prelude::*;
+use bevy::image::ImageSampler;
+use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
+use image::RgbaImage;
 
 use crate::genome::{Genome, Species};
 use crate::mind::Mind;
@@ -13,6 +16,7 @@ use crate::creature::collection::CreatureCollection;
 use crate::creature::egg::EggEntity;
 use crate::creature::physics::{PhysicsBody, GROUND_Y};
 use crate::visuals::species_behavior::SpeciesBehavior;
+use crate::visuals::pixel_creature;
 use crate::audio::VocalRepertoire;
 use crate::mind::lifecycle::LifecycleState;
 use crate::mind::nutrition::NutrientState;
@@ -34,6 +38,7 @@ impl Plugin for CreatureVisualsPlugin {
 /// Spawns the creature (or egg) at startup.
 fn spawn_creature(
     commands: Commands,
+    mut images: ResMut<Assets<Image>>,
     genome: Res<Genome>,
     mind: Res<Mind>,
     collection: Res<CreatureCollection>,
@@ -44,7 +49,7 @@ fn spawn_creature(
         .unwrap_or(false);
 
     if is_egg {
-        do_spawn_egg(commands, &genome);
+        do_spawn_egg(commands, &mut images, &genome);
     } else {
         do_spawn_creature(commands, &genome, &mind);
     }
@@ -56,6 +61,7 @@ fn respawn_on_switch(
     root_q: Query<Entity, With<CreatureRoot>>,
     egg_q: Query<Entity, With<EggEntity>>,
     commands: Commands,
+    mut images: ResMut<Assets<Image>>,
     genome: Res<Genome>,
     mind: Res<Mind>,
 ) {
@@ -79,23 +85,40 @@ fn respawn_on_switch(
         .unwrap_or(false);
 
     if is_egg {
-        do_spawn_egg(cmds, &genome);
+        do_spawn_egg(cmds, &mut images, &genome);
     } else {
         do_spawn_creature(cmds, &genome, &mind);
     }
 }
 
-/// Spawns an egg entity (simple colored ellipse).
+/// Spawns an egg entity with pixel art rendering.
 fn do_spawn_egg(
     mut commands: Commands,
+    images: &mut Assets<Image>,
     genome: &Genome,
 ) {
-    let color = crate::creature::egg::egg_color(&genome.species);
+    // Create pixel art egg
+    let mut buf = RgbaImage::new(64, 64);
+    pixel_creature::draw_egg(&mut buf, &genome.species);
+
+    let mut image = Image::new_fill(
+        Extent3d { width: 64, height: 64, depth_or_array_layers: 1 },
+        TextureDimension::D2,
+        &[0, 0, 0, 0],
+        TextureFormat::Rgba8UnormSrgb,
+        default(),
+    );
+    image.sampler = ImageSampler::nearest();
+    if let Some(ref mut data) = image.data {
+        data.copy_from_slice(buf.as_raw());
+    }
+    let handle = images.add(image);
+
     commands.spawn((
         EggEntity,
         Sprite {
-            color,
-            custom_size: Some(Vec2::new(60.0, 80.0)),
+            image: handle,
+            custom_size: Some(Vec2::new(64.0 * 5.0, 64.0 * 5.0)),
             ..default()
         },
         Transform::from_xyz(0.0, GROUND_Y, 0.0),

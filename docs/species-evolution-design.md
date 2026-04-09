@@ -24,14 +24,14 @@
 
 ### Jovem
 - Oval body, bigger arms, clawed paws
-- 4 active eyes (2 front amber + 2 smaller lateral violet)
+- 4 active eyes (2 front dark + 2 smaller lateral dark)
 - Pointy ears appearing with translucent membranes
 - Claws with suction pads
 - Vibe: teen fox
 
 ### Adulto
 - Upright biped, strong torso, muscular legs, functional arms with claws
-- 4 complete eyes (front amber, lateral violet) with different iris colors
+- 4 complete eyes (front dark, lateral dark) with different iris colors
 - Curved bone horns covered in moss/lichen (symbiosis — etharin antenna)
 - Bioluminescent fiber mane
 - Prehensile tail with sensory tip
@@ -80,20 +80,20 @@
 
 ### Filhote
 - Fat cylinder with short tail
-- 2 golden eyes + 2 infrared pit organs (red dots)
+- 2 dark eyes + 2 infrared pit organs (red dots)
 - Soft scales with faint bioluminescence
 - Vibe: chubby lizard
 
 ### Jovem
 - Elongating body, thick tail, semi-erect posture
-- 4 eyes (2 golden main + 2 IR lateral active)
+- 4 eyes (2 dark main + 2 IR lateral active)
 - Horns sprouting, dorsal plate starting
 - Initial tail spines
 - Vibe: young iguana
 
 ### Adulto
 - Quadruped/semi-erect, armored body, massive tail
-- 6 eyes (2 large front golden + 2 IR lateral + 2 tiny dorsal)
+- 6 eyes (2 large front dark + 2 IR lateral + 2 tiny dorsal)
 - Branching horns with luminous crystal veins
 - Armored dorsal plates
 - 4-way mandible jaw (Predator-style)
@@ -106,7 +106,7 @@
 ### Elder
 - Crystal from horns grows along spine
 - Scales fuse with stone
-- Eyes glow like lava
+- Eyes deepen to absolute black
 - Dorsal plate becomes continuous ridge
 - Vibe: becoming the cave itself
 
@@ -114,7 +114,7 @@
 
 ### Filhote
 - Translucent gelatinous ball (organs visible)
-- 2 large bioluminescent eyes
+- 2 large dark eyes
 - 2 short tentacles
 - Random color spots (uncontrolled chromatophores)
 - Vibe: baby squid
@@ -144,7 +144,7 @@
 - Brain visible pulsing with bioluminescence
 - Tentacles with rhythmic luminous rings
 - Chromatophores form mandalas
-- Eyes emit their own light
+- Eyes absorb all light — the deepest black on Ethara
 - Vibe: living nebula — pure luminous intelligence
 
 ## Implementation Notes

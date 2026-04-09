@@ -221,10 +221,18 @@ name = "kokoro-api"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "kokoro-shared",
  "serde",
  "serde_json",
  "tokio",
  "tower-http",
+]
+
+[[package]]
+name = "kokoro-shared"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

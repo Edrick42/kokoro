@@ -1,0 +1,8 @@
+[package]
+name = "kokoro-shared"
+version = "0.1.0"
+edition = "2021"
+description = "Shared types and data for the Kokoro game and web API"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }

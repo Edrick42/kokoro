@@ -41,9 +41,9 @@ struct MenuPanel;
 #[derive(Component)]
 struct FoodSubPanel;
 
-/// Marker for the description text of a food item (toggled on click).
+/// Marker for the description text of a food item (toggled on hover).
 #[derive(Component)]
-struct FoodDescription(FoodType);
+struct FoodDescription(#[allow(dead_code)] FoodType);
 
 // ===================================================================
 // State
@@ -358,6 +358,8 @@ fn handle_action_press(
     collection: Res<CreatureCollection>,
     mut egg_events: EventWriter<EggTapEvent>,
     mut state: ResMut<MenuState>,
+    bank: Res<crate::audio::SoundBank>,
+    mut commands: Commands,
 ) {
     for (interaction, kind) in query.iter() {
         if *interaction != Interaction::Pressed { continue; }
@@ -374,7 +376,7 @@ fn handle_action_press(
             ActionKind::Play => {
                 mind.play(&genome);
                 state.food_expanded = false;
-                info!("Player action: Play");
+                play_action_sound(&bank, crate::audio::ActionSound::Play, &mut commands);
                 let payload = build_event_payload(&mind.stats, &mind.mood, "played");
                 let conn = db.0.lock().expect("DB lock poisoned");
                 let _ = save::log_event(&conn, mind.age_ticks, "played", Some(&payload));
@@ -382,7 +384,7 @@ fn handle_action_press(
             ActionKind::Sleep => {
                 mind.sleep(&genome);
                 state.food_expanded = false;
-                info!("Player action: Sleep");
+                play_action_sound(&bank, crate::audio::ActionSound::Sleep, &mut commands);
                 let payload = build_event_payload(&mind.stats, &mind.mood, "slept");
                 let conn = db.0.lock().expect("DB lock poisoned");
                 let _ = save::log_event(&conn, mind.age_ticks, "slept", Some(&payload));
@@ -399,6 +401,8 @@ fn handle_food_press(
     collection: Res<CreatureCollection>,
     mut egg_events: EventWriter<EggTapEvent>,
     mut nutrient_q: Query<&mut crate::mind::nutrition::NutrientState, With<crate::creature::species::CreatureRoot>>,
+    bank: Res<crate::audio::SoundBank>,
+    mut commands: Commands,
 ) {
     for (interaction, food_btn) in query.iter() {
         if *interaction != Interaction::Pressed { continue; }
@@ -412,11 +416,23 @@ fn handle_food_press(
             nutrients.add_food(&food.nutrients());
         }
         mind.feed(&genome, &food);
+        play_action_sound(&bank, crate::audio::ActionSound::Eat, &mut commands);
 
-        info!("Fed: {}", food.full_name());
         let payload = build_event_payload(&mind.stats, &mind.mood, &format!("fed:{}", food.event_key()));
         let conn = db.0.lock().expect("DB lock poisoned");
         let _ = save::log_event(&conn, mind.age_ticks, "fed", Some(&payload));
+    }
+}
+
+/// Helper: plays an action sound from the SoundBank (silent if not loaded).
+fn play_action_sound(bank: &crate::audio::SoundBank, action: crate::audio::ActionSound, commands: &mut Commands) {
+    if let Some(handle) = bank.get(&crate::audio::SoundKey::Action(action)) {
+        commands.spawn((
+            AudioPlayer::new(handle),
+            PlaybackSettings::DESPAWN.with_volume(bevy::audio::Volume::Linear(
+                crate::config::audio::VOCAL_VOLUME,
+            )),
+        ));
     }
 }
 

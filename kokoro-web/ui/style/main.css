@@ -1,0 +1,364 @@
+/* Kokoro — Retro Game Boy Aesthetic for Web
+ *
+ * Same 6-color palette as the game, but refined for web:
+ * smoother transitions, readable body text, responsive grid.
+ */
+
+/* ===================================================================
+   PALETTE — CSS Custom Properties
+   =================================================================== */
+
+:root {
+    --cream: #D9C7AE;
+    --cream-light: #E8DBC8;
+    --cream-dark: #C4B198;
+    --near-black: #1B130D;
+    --gray: #404040;
+    --red: #D90D43;
+    --teal: #016970;
+    --teal-light: #028A93;
+    --gold: #D9A404;
+    --gold-light: #E8BD30;
+    --orange: #D96704;
+    --orange-light: #EB8830;
+
+    --font-pixel: 'Press Start 2P', monospace;
+    --font-body: 'IBM Plex Mono', 'Courier New', monospace;
+
+    --max-width: 960px;
+    --border: 2px solid var(--near-black);
+    --radius: 0px; /* flat retro rectangles */
+    --transition: all 0.2s ease;
+}
+
+/* ===================================================================
+   FONTS
+   =================================================================== */
+
+@font-face {
+    font-family: 'Press Start 2P';
+    src: url('/fonts/pixel.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* ===================================================================
+   BASE
+   =================================================================== */
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--cream);
+    color: var(--near-black);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+a {
+    color: var(--teal);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+a:hover {
+    color: var(--teal-light);
+}
+
+/* ===================================================================
+   TYPOGRAPHY
+   =================================================================== */
+
+h1, h2, h3, h4 {
+    font-family: var(--font-pixel);
+    line-height: 1.3;
+    margin-bottom: 0.5em;
+}
+
+h1 { font-size: 20px; }
+h2 { font-size: 14px; }
+h3 { font-size: 11px; }
+
+p { margin-bottom: 1em; }
+
+/* ===================================================================
+   LAYOUT
+   =================================================================== */
+
+.container {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+.page {
+    padding: 24px 0;
+}
+
+/* ===================================================================
+   NAVIGATION
+   =================================================================== */
+
+.nav {
+    background: var(--near-black);
+    padding: 12px 0;
+    border-bottom: 3px solid var(--gold);
+}
+
+.nav .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.nav-logo {
+    font-family: var(--font-pixel);
+    font-size: 16px;
+    color: var(--cream);
+}
+
+.nav-links {
+    display: flex;
+    gap: 16px;
+    list-style: none;
+}
+
+.nav-links a {
+    color: var(--cream);
+    font-family: var(--font-pixel);
+    font-size: 8px;
+    padding: 6px 12px;
+    border: var(--border);
+    border-color: var(--cream);
+    transition: var(--transition);
+}
+
+.nav-links a:hover {
+    background: var(--gray);
+    color: var(--cream);
+}
+
+/* ===================================================================
+   CARDS — species, biome, food
+   =================================================================== */
+
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin: 24px 0;
+}
+
+.card {
+    background: var(--cream-light);
+    border: var(--border);
+    padding: 16px;
+    transition: var(--transition);
+}
+
+.card:hover {
+    background: var(--cream-dark);
+    transform: translateY(-2px);
+}
+
+.card h3 {
+    margin-bottom: 8px;
+}
+
+.card p {
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* Species-specific card borders */
+.card--moluun { border-left: 4px solid var(--gold); }
+.card--pylum  { border-left: 4px solid var(--orange); }
+.card--skael  { border-left: 4px solid var(--teal); }
+.card--nyxal  { border-left: 4px solid var(--red); }
+
+/* ===================================================================
+   BUTTONS
+   =================================================================== */
+
+.btn {
+    display: inline-block;
+    font-family: var(--font-pixel);
+    font-size: 10px;
+    padding: 10px 20px;
+    background: var(--cream);
+    color: var(--near-black);
+    border: var(--border);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn:hover {
+    background: var(--gray);
+    color: var(--cream);
+    border-color: var(--cream);
+}
+
+.btn:active {
+    background: var(--near-black);
+    color: var(--cream);
+    transform: scale(0.95);
+}
+
+.btn--primary {
+    background: var(--teal);
+    color: var(--cream);
+    border-color: var(--teal);
+}
+
+.btn--primary:hover {
+    background: var(--teal-light);
+}
+
+/* ===================================================================
+   FORMS
+   =================================================================== */
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-family: var(--font-pixel);
+    font-size: 8px;
+    margin-bottom: 6px;
+    color: var(--near-black);
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px 12px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    background: var(--cream-light);
+    color: var(--near-black);
+    border: var(--border);
+    outline: none;
+    transition: var(--transition);
+}
+
+.form-group input:focus {
+    border-color: var(--teal);
+    background: white;
+}
+
+.auth-form {
+    max-width: 400px;
+    margin: 40px auto;
+    padding: 24px;
+    background: var(--cream-light);
+    border: var(--border);
+}
+
+.auth-form h2 {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+/* ===================================================================
+   HERO
+   =================================================================== */
+
+.hero {
+    text-align: center;
+    padding: 60px 0 40px;
+}
+
+.hero h1 {
+    font-size: 28px;
+    margin-bottom: 16px;
+}
+
+.hero p {
+    font-size: 16px;
+    color: var(--gray);
+    max-width: 600px;
+    margin: 0 auto 24px;
+}
+
+/* ===================================================================
+   SPECIES DETAIL
+   =================================================================== */
+
+.species-detail {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.species-header {
+    padding: 24px;
+    background: var(--cream-light);
+    border: var(--border);
+    margin-bottom: 24px;
+}
+
+.gene-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.gene-table th,
+.gene-table td {
+    padding: 8px 12px;
+    border: 1px solid var(--near-black);
+    text-align: left;
+}
+
+.gene-table th {
+    font-family: var(--font-pixel);
+    font-size: 8px;
+    background: var(--near-black);
+    color: var(--cream);
+}
+
+/* ===================================================================
+   FOOTER
+   =================================================================== */
+
+.footer {
+    background: var(--near-black);
+    color: var(--cream-dark);
+    padding: 16px 0;
+    margin-top: 40px;
+    text-align: center;
+    font-size: 12px;
+    border-top: 3px solid var(--gold);
+}
+
+.footer a {
+    color: var(--gold);
+}
+
+/* ===================================================================
+   RESPONSIVE
+   =================================================================== */
+
+@media (max-width: 768px) {
+    .card-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+    h1 { font-size: 18px; }
+    .hero { padding: 40px 0 24px; }
+    .hero h1 { font-size: 22px; }
+}
+
+@media (max-width: 480px) {
+    .card-grid {
+        grid-template-columns: 1fr;
+    }
+    .nav-links { gap: 8px; }
+    .nav-links a { font-size: 7px; padding: 4px 8px; }
+}

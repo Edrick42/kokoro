@@ -15,6 +15,7 @@ pub mod timing;
 pub mod absence;
 pub mod slots;
 pub mod anatomy;
+pub mod audio;
 pub mod ui;
 
 // Re-export at top level so existing `crate::config::X` paths keep working.

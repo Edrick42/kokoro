@@ -398,3 +398,53 @@ Damage flows through layers:
 4. Low happiness + high energy cost → potential starvation spiral
 
 Good care reverses this gradually. Proper nutrition → bones repair → joints loosen → muscles strengthen → the creature recovers. But anatomy takes time — it cannot be healed instantly. A week of neglect requires days of good care to undo.
+
+---
+
+## Sound — The Voice of Ethara
+
+Ethara is not a silent world. Every biome has its own ambient soundscape, every species its own voice, and the world itself has a rhythm — a slow, lofi pulse that fills the air like a second atmosphere.
+
+### Creature Voices
+
+Each Kobara has a vocal identity shaped by its species and age. Cubs sound high-pitched and fragile. Adults have full, resonant voices. Elders speak in deep, measured tones — slower, as if each sound carries the weight of experience.
+
+**Moluun** — warm and mammalian. Soft purrs when content, gentle whines when hungry, quiet chirps when curious. A Moluun cub's purr is barely audible — a vibration felt more than heard. An elder Moluun's purr resonates through the Verdance canopy like distant thunder.
+
+**Pylum** — bright and musical. Sharp chirps, melodic trills that cascade like falling water, and sharp screeches when startled. Pylum are the most vocal species — they learn new sounds faster than any other Kobara. A flock of adult Pylum singing at sunset is one of Ethara's most beautiful phenomena.
+
+**Skael** — sparse and deep. Low rumbles that travel through stone, dry hisses that echo in cave tunnels, and sharp clicks used for echolocation in the dark. Skael cubs are nearly silent — they learn stealth before speech. An elder Skael's rumble can vibrate crystals loose from cave walls.
+
+**Nyxal** — alien and ethereal. Long, haunting drones that pulse with bioluminescent rhythm, electronic-sounding clicks for sonar navigation, and deep pressure waves felt rather than heard. In the Abyssal Depths, sound travels differently — Nyxal voices carry for kilometers through etharin-saturated water.
+
+### The Sounds of Growth
+
+A Kobara's voice is one of the clearest markers of its age:
+
+| Stage | Vocal Character |
+|-------|----------------|
+| Cub | High-pitched, simple sounds, limited repertoire |
+| Young | Voice deepening, new sounds emerging, more confidence |
+| Adult | Full vocal range, learned sounds from interaction |
+| Elder | Deep, slow, deliberate — fewer sounds but each carries meaning |
+
+### Biome Ambiance
+
+Each biome fills the air with its own constant soundscape:
+
+- **The Verdance** — layered insect hums, distant spore-pop crackles, wind through lattice canopy, the deep resonance of tree-root networks vibrating
+- **Veridian Highlands** — high-altitude wind whistling across mesa formations, distant thermal updraft roars, mineral deposits chiming as they shift
+- **Abyssal Shallows** — cave drips echoing in vast chambers, underground river currents, crystalline harmonic resonance from the cave walls
+- **Abyssal Depths** — crushing silence punctuated by pressure groans, distant bioluminescent creature pulses, the ever-present low hum of etharin-saturated water
+
+### The Music of Ethara
+
+Ethara itself has a rhythm. The planet's etharin currents create a constant, low-frequency oscillation — a kind of planetary heartbeat that all living things unconsciously synchronize to. This manifests as a gentle, lofi soundtrack: atmospheric, relaxing, always present but never intrusive.
+
+Each biome has its own variation of this planetary music:
+- The Verdance plays warm, organic loops — like a forest breathing
+- The Highlands play airy, expansive melodies — like wind made into song
+- The Shallows play crystalline, echoing patterns — like water finding its way through stone
+- The Depths play deep, reverberating drones — like the heartbeat of the ocean floor
+
+The soundtrack is inspired by David Wise's compositions for Donkey Kong Country on the SNES — particularly the atmospheric, ambient quality of tracks like Aquatic Ambiance and Forest Interlude. Lofi, retro, deeply calming.

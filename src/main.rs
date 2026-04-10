@@ -3,6 +3,7 @@ pub mod config;
 mod creature;
 #[cfg(feature = "dev")]
 mod dev;
+mod game;
 mod genome;
 mod mind;
 mod persistence;
@@ -21,6 +22,7 @@ use creature::{
     spawn::CreatureVisualsPlugin,
     touch::TouchPlugin,
 };
+use game::state::GameStatePlugin;
 use mind::lifecycle::LifecyclePlugin;
 use mind::nutrition::NutritionPlugin;
 use mind::plugin::NeuralMindPlugin;
@@ -28,7 +30,10 @@ use mind::preferences::PreferencePlugin;
 use persistence::plugin::PersistencePlugin;
 use ui::{
     actions::ActionsPlugin,
+    auth_screen::AuthScreenPlugin,
+    death_screen::DeathScreenPlugin,
     hud::StatsPlugin,
+    title_screen::TitleScreenPlugin,
     vitals::VitalsPlugin,
 };
 use visuals::{
@@ -62,19 +67,23 @@ fn main() {
             }),
             ..default()
         }))
+        // Game state machine (Loading → TitleScreen → Auth → Gameplay)
+        .add_plugins(GameStatePlugin)
         // Retro font + palette (must load before UI plugins)
         .add_plugins(config::ui::RetroFontPlugin)
-        // Persistence runs first — loads (or creates) Genome and Mind resources
+        // Persistence — loads (or creates) Genome and Mind resources
         .add_plugins(PersistencePlugin)
         // Camera
         .add_systems(Startup, setup_world)
+        // Screen plugins (state-gated internally)
+        .add_plugins((TitleScreenPlugin, AuthScreenPlugin, DeathScreenPlugin))
         // Creature visuals — modular body part composition
         .add_plugins(CreatureVisualsPlugin)
         // World systems
         .add_plugins((DayCyclePlugin, TimeTickPlugin))
         // Neural mind — learns owner interaction patterns
         .add_plugins((NeuralMindPlugin, NutritionPlugin))
-        // UI plugins
+        // UI plugins (gameplay)
         .add_plugins((StatsPlugin, ActionsPlugin, VitalsPlugin))
         // Creature lifecycle — collection management + egg incubation + anatomy
         .add_plugins((MultiCreaturePlugin, EggPlugin, TouchPlugin, PreferencePlugin, SoundPlugin, LifecyclePlugin, AnatomyPlugin))

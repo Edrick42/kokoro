@@ -6,6 +6,7 @@
 pub mod server;
 pub mod routes;
 pub mod errors;
+pub mod auth;
 
 // Re-export server config at top level for convenience.
 pub use server::ADDR as SERVER_ADDR;

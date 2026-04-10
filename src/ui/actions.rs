@@ -37,9 +37,13 @@ struct MenuToggle;
 #[derive(Component)]
 struct MenuPanel;
 
-/// Sub-panel that shows food options (child of MenuPanel).
+/// Side panel that shows food options as a vertical list.
 #[derive(Component)]
 struct FoodSubPanel;
+
+/// Marker for the description text of a food item (toggled on click).
+#[derive(Component)]
+struct FoodDescription(FoodType);
 
 // ===================================================================
 // State
@@ -72,6 +76,7 @@ impl Plugin for ActionsPlugin {
                handle_action_press,
                handle_food_press,
                handle_species_press,
+               toggle_food_description,
                sync_visibility,
                animate_buttons,
                smooth_button_scale,
@@ -160,23 +165,32 @@ fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>, pixel_font
             spawn_action_btn(row, &font_md, ActionKind::Sleep, "Sleep");
         });
 
-        // Food sub-panel (hidden via Display::None so it takes no layout space)
-        panel.spawn((
-            FoodSubPanel,
-            Node {
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                column_gap: Val::Px(3.0),
-                flex_wrap: FlexWrap::Wrap,
-                row_gap: Val::Px(3.0),
-                display: Display::None,
-                ..default()
-            },
-        )).with_children(|row| {
-            for food in FoodType::ALL {
-                spawn_food_btn(row, *food, &asset_server, &font_sm);
-            }
-        });
+    });
+
+    // Food side panel — separate from the menu, positioned on the right side
+    commands.spawn((
+        FoodSubPanel,
+        Node {
+            position_type: PositionType::Absolute,
+            right: Val::Px(8.0),
+            top: Val::Px(80.0),
+            bottom: Val::Px(80.0),
+            width: Val::Px(180.0),
+            flex_direction: FlexDirection::Column,
+            row_gap: Val::Px(2.0),
+            padding: UiRect::all(Val::Px(4.0)),
+            border: UiRect::all(Val::Px(2.0)),
+            overflow: Overflow::scroll_y(),
+            display: Display::None,
+            ..default()
+        },
+        BackgroundColor(crate::config::ui::palette::PANEL_BG),
+        BorderColor(NEAR_BLACK),
+        BorderRadius::all(Val::Px(0.0)),
+    )).with_children(|panel| {
+        for food in FoodType::ALL {
+            spawn_food_row(panel, *food, &asset_server, &font_sm);
+        }
     });
 }
 
@@ -225,40 +239,65 @@ fn spawn_action_btn(parent: &mut ChildSpawnerCommands, font: &TextFont, kind: Ac
     ));
 }
 
-fn spawn_food_btn(parent: &mut ChildSpawnerCommands, food: FoodType, asset_server: &AssetServer, font: &TextFont) {
+/// Spawns a food row: [icon] [full name] — click to feed, acts as expandable item.
+fn spawn_food_row(parent: &mut ChildSpawnerCommands, food: FoodType, asset_server: &AssetServer, font: &TextFont) {
     let icon_path = format!("sprites/shared/food/{}.png", food.event_key());
     let has_icon = std::path::Path::new(&format!("assets/{icon_path}")).exists();
 
+    // Row container (button)
     parent.spawn((
-        Button, AnimatedButton, FoodBtn(food),
+        Button, FoodBtn(food),
         Node {
-            width: Val::Px(buttons::FOOD_SIZE), height: Val::Px(buttons::FOOD_SIZE),
+            width: Val::Percent(100.0),
             flex_direction: FlexDirection::Column,
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-            border: UiRect::all(Val::Px(buttons::BORDER_WIDTH)),
-            row_gap: Val::Px(1.0),
+            border: UiRect::all(Val::Px(1.0)),
+            padding: UiRect::all(Val::Px(3.0)),
             ..default()
         },
         BorderColor(NEAR_BLACK), BorderRadius::all(Val::Px(0.0)),
         BackgroundColor(CREAM),
-    )).with_children(|btn| {
-        if has_icon {
-            btn.spawn((
-                ImageNode::new(asset_server.load(&icon_path)),
-                Node { width: Val::Px(28.0), height: Val::Px(28.0), ..default() },
+    )).with_children(|row| {
+        // Top part: icon + name
+        row.spawn(Node {
+            flex_direction: FlexDirection::Row,
+            align_items: AlignItems::Center,
+            column_gap: Val::Px(4.0),
+            ..default()
+        }).with_children(|top| {
+            // Icon
+            if has_icon {
+                top.spawn((
+                    ImageNode::new(asset_server.load(&icon_path)),
+                    Node { width: Val::Px(20.0), height: Val::Px(20.0), ..default() },
+                ));
+            } else {
+                top.spawn((
+                    Node { width: Val::Px(20.0), height: Val::Px(20.0), ..default() },
+                    BackgroundColor(food.color()),
+                    BorderRadius::all(Val::Px(0.0)),
+                ));
+            }
+            // Full name
+            top.spawn((
+                Text::new(food.full_name().to_string()),
+                font.clone(),
+                TextColor(NEAR_BLACK),
             ));
-        } else {
-            btn.spawn((
-                Node { width: Val::Px(28.0), height: Val::Px(28.0), ..default() },
-                BackgroundColor(food.color()),
-                BorderRadius::all(Val::Px(0.0)),
-            ));
-        }
-        btn.spawn((
-            Text::new(food.label().to_string()),
+        });
+
+        // Description (hidden by default, toggled on hover)
+        row.spawn((
+            Text::new(food.description().to_string()),
             font.clone(),
             TextColor(NEAR_BLACK),
+            TextLayout::new_with_linebreak(LineBreak::WordBoundary),
+            FoodDescription(food),
+            Node {
+                display: Display::None,
+                margin: UiRect::top(Val::Px(4.0)),
+                padding: UiRect::bottom(Val::Px(4.0)),
+                ..default()
+            },
         ));
     });
 }
@@ -291,6 +330,23 @@ fn sync_visibility(
     // Food sub-panel uses Display::None/Flex so it doesn't take layout space when hidden
     for mut node in food_q.iter_mut() {
         node.display = if state.open && state.food_expanded { Display::Flex } else { Display::None };
+    }
+}
+
+/// Toggles food description visibility on hover over food rows.
+fn toggle_food_description(
+    food_q: Query<(&Interaction, &FoodBtn, &Children), Changed<Interaction>>,
+    mut desc_q: Query<&mut Node, With<FoodDescription>>,
+) {
+    for (interaction, _food_btn, children) in food_q.iter() {
+        for child in children.iter() {
+            if let Ok(mut node) = desc_q.get_mut(child) {
+                node.display = match interaction {
+                    Interaction::Hovered | Interaction::Pressed => Display::Flex,
+                    Interaction::None => Display::None,
+                };
+            }
+        }
     }
 }
 

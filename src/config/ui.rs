@@ -8,6 +8,7 @@
 //! | Name       | Hex       | Role                                    |
 //! |------------|-----------|----------------------------------------|
 //! | Cream      | `#D9C7AE` | Background, panel fills, button BG      |
+//! | Gray       | `#404040` | Button hover state (readable text)      |
 //! | Near Black | `#1B130D` | Text, borders, dark panels              |
 //! | Red        | `#D90D43` | Danger/vital, hunger, Nyxal body        |
 //! | Teal       | `#016970` | Cool accent, energy, Skael body         |
@@ -21,6 +22,7 @@ pub mod palette {
     use bevy::prelude::Color;
 
     pub const CREAM: Color      = Color::srgb(0.851, 0.780, 0.682);
+    pub const GRAY: Color       = Color::srgb(0.25, 0.25, 0.25);
     pub const NEAR_BLACK: Color = Color::srgb(0.106, 0.075, 0.051);
     pub const RED: Color        = Color::srgb(0.851, 0.051, 0.263);
     pub const TEAL: Color       = Color::srgb(0.004, 0.412, 0.439);

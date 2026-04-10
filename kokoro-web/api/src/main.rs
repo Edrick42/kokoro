@@ -3,20 +3,26 @@
 //! Layered architecture:
 //!   Router → Controllers → Services → kokoro-shared
 //!
-//! All data comes from kokoro-shared (single source of truth).
+//! All game data comes from kokoro-shared (single source of truth).
+//! User data is stored in a local SQLite database.
 
 mod constants;
 mod controllers;
+mod db;
 mod error;
 mod models;
 mod router;
 mod services;
 
+use std::sync::Arc;
 use constants::SERVER_ADDR;
 
 #[tokio::main]
 async fn main() {
-    let app = router::create_router();
+    // Initialize the user database (creates table if needed)
+    let db = Arc::new(db::Database::new("kokoro-users.db"));
+
+    let app = router::create_router(db);
 
     let listener = tokio::net::TcpListener::bind(SERVER_ADDR)
         .await

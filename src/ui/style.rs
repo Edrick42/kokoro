@@ -46,7 +46,7 @@ pub fn animate_buttons(
             }
             Interaction::Hovered => {
                 transform.scale = Vec3::ONE;
-                bg.0 = palette::NEAR_BLACK;
+                bg.0 = palette::GRAY;
                 border.0 = palette::CREAM;
             }
             Interaction::None => {

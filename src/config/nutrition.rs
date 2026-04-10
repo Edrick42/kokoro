@@ -135,6 +135,20 @@ impl FoodType {
         }
     }
 
+    /// Short description of the food for UI tooltips.
+    pub fn description(&self) -> &'static str {
+        match self {
+            FoodType::VerdanceBerry  => "Sweet forest berry. Rich in vitamins and carbs.",
+            FoodType::LatticeFruit   => "Canopy fruit with balanced nutrients.",
+            FoodType::ThermalSeed    => "Heat-resistant seed. High in protein and fat.",
+            FoodType::CaveCrustacean => "Cave-dwelling shellfish. Pure protein and minerals.",
+            FoodType::BiolumPlankton => "Glowing deep-sea plankton. Rich in fat and water.",
+            FoodType::RootTuber      => "Underground tuber. Heavy in carbs and fiber.",
+            FoodType::SporeMoss      => "Cave moss with spores. Packed with vitamins and minerals.",
+            FoodType::CrystalWater   => "Pure mineral water. Maximum hydration.",
+        }
+    }
+
     /// Event log key for this food type.
     pub fn event_key(&self) -> &'static str {
         match self {

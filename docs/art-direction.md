@@ -1,16 +1,30 @@
 # Kokoro — Art Direction
 
-> Visual style: Low-poly geometric with alien biology. Cute but anatomically grounded.
+> Visual style: Retro pixel art with a strict 6-color palette. Game Boy aesthetic meets biological simulation.
 
 ## Style Reference
 
-Inspired by low-poly indie games (like the geometric animal designs with flat-shaded facets).
+Inspired by Game Boy-era pixel art and Noita-style runtime rendering. Everything computed in Rust — no pre-made sprites, no external art tools.
+
 Key characteristics:
-- **Geometric shapes**: triangular/polygonal facets, no smooth curves
-- **Flat shading**: each facet has a single color with subtle gradients
-- **Strong silhouettes**: each species instantly recognizable from shadow alone
-- **Earthy + alien palette**: natural base colors with bioluminescent accents
-- **Slightly pixelated**: keeps the indie feel, not hyper-polished
+- **Pixel art**: 64×64 creature canvas, 16×16 effects, nearest-neighbor upscaling
+- **6-color palette**: Cream, Near Black, Red, Teal, Gold, Orange — all UI, creatures, and backgrounds use only these colors (with depth variations for lighter/darker shading)
+- **Flat rectangles**: no rounded corners, 2px borders, Game Boy button style
+- **Pixel font**: Press Start 2P for all text
+- **Strong silhouettes**: each species instantly recognizable by shape + color
+- **Runtime rendering**: every pixel computed from genome, species, mood, and growth stage
+- **Depth through value**: each species color has lighter (belly) and darker (accent) variants for visual volume
+
+## The Palette
+
+| Name | Hex | Creature | UI Role |
+|------|-----|----------|---------|
+| Cream | #D9C7AE | Belly highlights | Background, panels, button fills |
+| Near Black | #1B130D | All eyes, mouths | Text, borders, outlines |
+| Red | #D90D43 | Nyxal body | Danger, hunger stat |
+| Teal | #016970 | Skael body | Energy stat |
+| Gold | #D9A404 | Moluun body | Happiness stat |
+| Orange | #D96704 | Pylum body | Action accent |
 
 ## Body Plans (Anatomy-Grounded Alien Biology)
 

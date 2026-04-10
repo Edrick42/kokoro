@@ -83,8 +83,12 @@ impl Plugin for ActionsPlugin {
 // Setup
 // ===================================================================
 
-fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // Toggle "..."
+fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>, pixel_font: Res<crate::config::ui::PixelFont>) {
+    let font_lg = TextFont { font: pixel_font.0.clone(), font_size: fonts::LG, ..default() };
+    let font_sm = TextFont { font: pixel_font.0.clone(), font_size: fonts::SM, ..default() };
+    let font_md = TextFont { font: pixel_font.0.clone(), font_size: fonts::MD, ..default() };
+
+    // Toggle "..." — flat retro rectangle
     commands.spawn((
         Button, MenuToggle, AnimatedButton,
         Node {
@@ -95,61 +99,68 @@ fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
             width: Val::Px(56.0), height: Val::Px(30.0),
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
-            border: UiRect::all(Val::Px(BTN_BORDER_WIDTH)),
+            border: UiRect::all(Val::Px(buttons::BORDER_WIDTH)),
             ..default()
         },
-        BorderColor(BTN_BORDER),
-        BorderRadius::all(Val::Px(15.0)),
-        BackgroundColor(TOGGLE_BG),
+        BorderColor(NEAR_BLACK),
+        BorderRadius::all(Val::Px(0.0)),
+        BackgroundColor(CREAM),
     )).with_child((
         Text::new("..."),
-        TextFont { font_size: FONT_LG, ..default() },
-        TextColor(TOGGLE_TEXT),
+        font_lg.clone(),
+        TextColor(NEAR_BLACK),
     ));
 
-    // Main panel
+    // Main panel — flat, dark
     commands.spawn((
         MenuPanel,
         Node {
             position_type: PositionType::Absolute,
-            bottom: Val::Px(50.0),
-            left: Val::Px(0.0), right: Val::Px(0.0),
+            bottom: Val::Px(44.0),
+            // Center horizontally: auto margins on both sides
+            margin: UiRect::horizontal(Val::Auto),
+            left: Val::Px(0.0),
+            right: Val::Px(0.0),
+            // Shrink to content — don't stretch
+            width: Val::Auto,
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
-            row_gap: Val::Px(6.0),
-            padding: UiRect::all(Val::Px(10.0)),
+            row_gap: Val::Px(4.0),
+            padding: UiRect::all(Val::Px(4.0)),
+            border: UiRect::all(Val::Px(2.0)),
             ..default()
         },
-        BackgroundColor(PANEL_BG),
-        BorderRadius::all(Val::Px(PANEL_RADIUS)),
+        BackgroundColor(crate::config::ui::palette::PANEL_BG),
+        BorderColor(NEAR_BLACK),
+        BorderRadius::all(Val::Px(0.0)),
         Visibility::Hidden,
     )).with_children(|panel| {
-        // Species row
+        // Species row — each species gets its palette color
         panel.spawn(Node {
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
-            column_gap: Val::Px(BTN_GAP),
+            column_gap: Val::Px(buttons::GAP),
             ..default()
         }).with_children(|row| {
-            spawn_species_btn(row, Species::Moluun, "Moluun", Color::srgb(0.55, 0.75, 0.90));
-            spawn_species_btn(row, Species::Pylum,  "Pylum",  Color::srgb(0.90, 0.78, 0.45));
-            spawn_species_btn(row, Species::Skael,  "Skael",  Color::srgb(0.50, 0.75, 0.55));
-            spawn_species_btn(row, Species::Nyxal,  "Nyxal",  Color::srgb(0.45, 0.30, 0.70));
+            spawn_species_btn(row, &font_sm, Species::Moluun, "Moluun", GOLD);
+            spawn_species_btn(row, &font_sm, Species::Pylum,  "Pylum",  ORANGE);
+            spawn_species_btn(row, &font_sm, Species::Skael,  "Skael",  TEAL);
+            spawn_species_btn(row, &font_sm, Species::Nyxal,  "Nyxal",  RED);
         });
 
-        // Action row: Feed, Play, Sleep
+        // Action row — uniform cream buttons (Game Boy style)
         panel.spawn(Node {
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
-            column_gap: Val::Px(BTN_GAP),
+            column_gap: Val::Px(buttons::GAP),
             ..default()
         }).with_children(|row| {
-            spawn_action_btn(row, ActionKind::Feed,  "Feed",  Color::srgb(0.95, 0.65, 0.25));
-            spawn_action_btn(row, ActionKind::Play,  "Play",  Color::srgb(0.40, 0.80, 0.45));
-            spawn_action_btn(row, ActionKind::Sleep, "Sleep", Color::srgb(0.45, 0.55, 0.90));
+            spawn_action_btn(row, &font_md, ActionKind::Feed,  "Feed");
+            spawn_action_btn(row, &font_md, ActionKind::Play,  "Play");
+            spawn_action_btn(row, &font_md, ActionKind::Sleep, "Sleep");
         });
 
-        // Food sub-panel (hidden until Feed is clicked)
+        // Food sub-panel (hidden via Display::None so it takes no layout space)
         panel.spawn((
             FoodSubPanel,
             Node {
@@ -158,12 +169,12 @@ fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
                 column_gap: Val::Px(3.0),
                 flex_wrap: FlexWrap::Wrap,
                 row_gap: Val::Px(3.0),
+                display: Display::None,
                 ..default()
             },
-            Visibility::Hidden,
         )).with_children(|row| {
             for food in FoodType::ALL {
-                spawn_food_btn(row, *food, &asset_server);
+                spawn_food_btn(row, *food, &asset_server, &font_sm);
             }
         });
     });
@@ -173,78 +184,81 @@ fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
 // Button spawners
 // ===================================================================
 
-fn spawn_species_btn(parent: &mut ChildSpawnerCommands, species: Species, label: &str, color: Color) {
+fn spawn_species_btn(parent: &mut ChildSpawnerCommands, font: &TextFont, species: Species, label: &str, color: Color) {
+    // Species buttons use their species color as background
+    let text_color = if color == TEAL || color == RED { CREAM } else { NEAR_BLACK };
     parent.spawn((
-        Button, AnimatedButton, SpeciesBtn(species),
+        Button, AnimatedButton, ButtonRestColor(color), SpeciesBtn(species),
         Node {
-            width: Val::Px(70.0), height: Val::Px(BTN_HEIGHT),
+            width: Val::Px(70.0), height: Val::Px(buttons::HEIGHT),
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
-            border: UiRect::all(Val::Px(BTN_BORDER_WIDTH)),
+            border: UiRect::all(Val::Px(buttons::BORDER_WIDTH)),
             ..default()
         },
-        BorderColor(BTN_BORDER), BorderRadius::all(Val::Px(BTN_RADIUS)),
+        BorderColor(NEAR_BLACK), BorderRadius::all(Val::Px(0.0)),
         BackgroundColor(color),
     )).with_child((
         Text::new(label.to_string()),
-        TextFont { font_size: FONT_SM, ..default() },
-        TextColor(TEXT_PRIMARY),
+        font.clone(),
+        TextColor(text_color),
     ));
 }
 
-fn spawn_action_btn(parent: &mut ChildSpawnerCommands, kind: ActionKind, label: &str, color: Color) {
+fn spawn_action_btn(parent: &mut ChildSpawnerCommands, font: &TextFont, kind: ActionKind, label: &str) {
+    // Action buttons: cream bg, dark text (uniform Game Boy style)
     parent.spawn((
         Button, AnimatedButton, kind,
         Node {
-            width: Val::Px(80.0), height: Val::Px(BTN_HEIGHT + 4.0),
+            width: Val::Px(80.0), height: Val::Px(buttons::HEIGHT + 4.0),
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
-            border: UiRect::all(Val::Px(BTN_BORDER_WIDTH)),
+            border: UiRect::all(Val::Px(buttons::BORDER_WIDTH)),
             ..default()
         },
-        BorderColor(BTN_BORDER), BorderRadius::all(Val::Px(BTN_RADIUS)),
-        BackgroundColor(color),
+        BorderColor(NEAR_BLACK), BorderRadius::all(Val::Px(0.0)),
+        BackgroundColor(CREAM),
     )).with_child((
         Text::new(label.to_string()),
-        TextFont { font_size: FONT_MD, ..default() },
-        TextColor(TEXT_PRIMARY),
+        font.clone(),
+        TextColor(NEAR_BLACK),
     ));
 }
 
-fn spawn_food_btn(parent: &mut ChildSpawnerCommands, food: FoodType, asset_server: &AssetServer) {
+fn spawn_food_btn(parent: &mut ChildSpawnerCommands, food: FoodType, asset_server: &AssetServer, font: &TextFont) {
     let icon_path = format!("sprites/shared/food/{}.png", food.event_key());
     let has_icon = std::path::Path::new(&format!("assets/{icon_path}")).exists();
 
     parent.spawn((
         Button, AnimatedButton, FoodBtn(food),
         Node {
-            width: Val::Px(FOOD_BTN_SIZE), height: Val::Px(FOOD_BTN_SIZE),
+            width: Val::Px(buttons::FOOD_SIZE), height: Val::Px(buttons::FOOD_SIZE),
             flex_direction: FlexDirection::Column,
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
-            border: UiRect::all(Val::Px(BTN_BORDER_WIDTH)),
+            border: UiRect::all(Val::Px(buttons::BORDER_WIDTH)),
             row_gap: Val::Px(1.0),
             ..default()
         },
-        BorderColor(BTN_BORDER), BorderRadius::all(Val::Px(BTN_RADIUS)),
-        BackgroundColor(Color::srgba(0.12, 0.12, 0.16, 0.9)),
+        BorderColor(NEAR_BLACK), BorderRadius::all(Val::Px(0.0)),
+        BackgroundColor(CREAM),
     )).with_children(|btn| {
         if has_icon {
             btn.spawn((
                 ImageNode::new(asset_server.load(&icon_path)),
-                Node { width: Val::Px(BTN_ICON_SIZE), height: Val::Px(BTN_ICON_SIZE), ..default() },
+                Node { width: Val::Px(28.0), height: Val::Px(28.0), ..default() },
             ));
         } else {
             btn.spawn((
-                Node { width: Val::Px(BTN_ICON_SIZE), height: Val::Px(BTN_ICON_SIZE), ..default() },
+                Node { width: Val::Px(28.0), height: Val::Px(28.0), ..default() },
                 BackgroundColor(food.color()),
-                BorderRadius::all(Val::Px(4.0)),
+                BorderRadius::all(Val::Px(0.0)),
             ));
         }
         btn.spawn((
             Text::new(food.label().to_string()),
-            TextFont { font_size: 8.0, ..default() },
-            TextColor(TEXT_SECONDARY),
+            font.clone(),
+            TextColor(NEAR_BLACK),
         ));
     });
 }
@@ -268,14 +282,15 @@ fn handle_menu_toggle(
 fn sync_visibility(
     state: Res<MenuState>,
     mut panel_q: Query<&mut Visibility, (With<MenuPanel>, Without<FoodSubPanel>)>,
-    mut food_q: Query<&mut Visibility, (With<FoodSubPanel>, Without<MenuPanel>)>,
+    mut food_q: Query<&mut Node, (With<FoodSubPanel>, Without<MenuPanel>)>,
 ) {
     if !state.is_changed() { return; }
     for mut vis in panel_q.iter_mut() {
         *vis = if state.open { Visibility::Visible } else { Visibility::Hidden };
     }
-    for mut vis in food_q.iter_mut() {
-        *vis = if state.open && state.food_expanded { Visibility::Visible } else { Visibility::Hidden };
+    // Food sub-panel uses Display::None/Flex so it doesn't take layout space when hidden
+    for mut node in food_q.iter_mut() {
+        node.display = if state.open && state.food_expanded { Display::Flex } else { Display::None };
     }
 }
 

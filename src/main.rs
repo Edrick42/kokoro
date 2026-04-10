@@ -62,6 +62,8 @@ fn main() {
             }),
             ..default()
         }))
+        // Retro font + palette (must load before UI plugins)
+        .add_plugins(config::ui::RetroFontPlugin)
         // Persistence runs first — loads (or creates) Genome and Mind resources
         .add_plugins(PersistencePlugin)
         // Camera

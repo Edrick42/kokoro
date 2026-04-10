@@ -1,13 +1,11 @@
-//! Vital signs panel — displays heartbeat and breathing as a medical-style monitor.
+//! Vital signs panel — heartbeat and breathing in retro style.
 //!
-//! A small panel in the top-right corner showing:
-//! - Heart icon + BPM value (pulses red on each beat)
-//! - Lungs icon + breaths/min value
-//!
-//! The panel is always visible and updates in real time.
+//! Top-right panel showing BPM (red) and breathing rate (teal).
+//! Flat panel, pixel font, palette colors only.
 
 use bevy::prelude::*;
 
+use crate::config::ui::{palette, fonts, PixelFont};
 use crate::creature::species::CreatureRoot;
 use crate::visuals::breathing::{BreathingState, HeartbeatState};
 
@@ -20,24 +18,19 @@ impl Plugin for VitalsPlugin {
     }
 }
 
-/// Marker for the BPM text.
-#[derive(Component)]
-struct VitalsBpm;
+#[derive(Component)] struct VitalsBpm;
+#[derive(Component)] struct VitalsBpmDot;
+#[derive(Component)] struct VitalsBreathing;
+#[derive(Component)] struct VitalsBreathingDot;
 
-/// Marker for the BPM pulse dot.
-#[derive(Component)]
-struct VitalsBpmDot;
+fn setup_vitals_panel(mut commands: Commands, pixel_font: Res<PixelFont>) {
+    let font = TextFont {
+        font: pixel_font.0.clone(),
+        font_size: fonts::MD,
+        ..default()
+    };
 
-/// Marker for the breathing rate text.
-#[derive(Component)]
-struct VitalsBreathing;
-
-/// Marker for the breathing pulse dot.
-#[derive(Component)]
-struct VitalsBreathingDot;
-
-fn setup_vitals_panel(mut commands: Commands) {
-    // Panel — top right
+    // Flat dark panel — top right
     commands.spawn((
         Node {
             position_type: PositionType::Absolute,
@@ -46,10 +39,12 @@ fn setup_vitals_panel(mut commands: Commands) {
             padding: UiRect::axes(Val::Px(10.0), Val::Px(6.0)),
             flex_direction: FlexDirection::Column,
             row_gap: Val::Px(6.0),
+            border: UiRect::all(Val::Px(2.0)),
             ..default()
         },
-        BackgroundColor(Color::srgba(0.05, 0.05, 0.1, 0.75)),
-        BorderRadius::all(Val::Px(8.0)),
+        BackgroundColor(palette::PANEL_BG),
+        BorderColor(palette::NEAR_BLACK),
+        BorderRadius::all(Val::Px(0.0)),
     )).with_children(|panel| {
         // Heart rate row
         panel.spawn(Node {
@@ -58,22 +53,21 @@ fn setup_vitals_panel(mut commands: Commands) {
             column_gap: Val::Px(6.0),
             ..default()
         }).with_children(|row| {
-            // Pulse dot
+            // Pulse dot (square, retro)
             row.spawn((
                 Node {
                     width: Val::Px(8.0),
                     height: Val::Px(8.0),
                     ..default()
                 },
-                BackgroundColor(Color::srgb(0.9, 0.2, 0.25)),
-                BorderRadius::all(Val::Px(4.0)),
+                BackgroundColor(palette::RED),
+                BorderRadius::all(Val::Px(0.0)),
                 VitalsBpmDot,
             ));
-            // BPM text
             row.spawn((
                 Text::new("-- BPM"),
-                TextFont { font_size: 13.0, ..default() },
-                TextColor(Color::srgb(0.9, 0.3, 0.3)),
+                font.clone(),
+                TextColor(palette::RED),
                 VitalsBpm,
             ));
         });
@@ -85,22 +79,20 @@ fn setup_vitals_panel(mut commands: Commands) {
             column_gap: Val::Px(6.0),
             ..default()
         }).with_children(|row| {
-            // Pulse dot
             row.spawn((
                 Node {
                     width: Val::Px(8.0),
                     height: Val::Px(8.0),
                     ..default()
                 },
-                BackgroundColor(Color::srgb(0.3, 0.7, 0.9)),
-                BorderRadius::all(Val::Px(4.0)),
+                BackgroundColor(palette::TEAL),
+                BorderRadius::all(Val::Px(0.0)),
                 VitalsBreathingDot,
             ));
-            // Breathing text
             row.spawn((
                 Text::new("-- br/min"),
-                TextFont { font_size: 13.0, ..default() },
-                TextColor(Color::srgb(0.4, 0.75, 0.95)),
+                font.clone(),
+                TextColor(palette::TEAL),
                 VitalsBreathing,
             ));
         });
@@ -116,33 +108,31 @@ fn update_vitals_panel(
 ) {
     let Ok((heartbeat, breathing)) = root_q.single() else { return };
 
-    // Update BPM text
     if let Ok(mut text) = bpm_text.single_mut() {
         *text = Text::new(format!("{:.0} BPM", heartbeat.bpm));
     }
 
-    // Update breathing text (convert Hz to breaths per minute)
     if let Ok(mut text) = breath_text.single_mut() {
         let breaths_per_min = breathing.rate * 60.0;
         *text = Text::new(format!("{:.0} br/min", breaths_per_min));
     }
 
-    // Pulse the heart dot on each beat
+    // Pulse the heart dot — brighter RED on beat, darker between beats
     if let Ok(mut bg) = bpm_dot.single_mut() {
         if heartbeat.pulse_active > 0.0 {
-            let t = (heartbeat.pulse_active / 0.12).max(0.0);
-            bg.0 = Color::srgb(1.0, 0.1 + t * 0.3, 0.15 + t * 0.2);
+            bg.0 = palette::CREAM; // flash cream on pulse
         } else {
-            bg.0 = Color::srgb(0.5, 0.15, 0.15);
+            bg.0 = palette::RED;
         }
     }
 
-    // Pulse the breathing dot on inhale peak
+    // Pulse the breathing dot — brighter on inhale
     if let Ok(mut bg) = breath_dot.single_mut() {
         let inhale = breathing.phase.sin().max(0.0);
-        let r = 0.2 + inhale * 0.15;
-        let g = 0.4 + inhale * 0.35;
-        let b = 0.6 + inhale * 0.35;
-        bg.0 = Color::srgb(r, g, b);
+        if inhale > 0.5 {
+            bg.0 = palette::CREAM; // flash cream on inhale peak
+        } else {
+            bg.0 = palette::TEAL;
+        }
     }
 }

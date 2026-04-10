@@ -26,9 +26,6 @@ use self::muscles::MuscleSystem;
 use self::joints::JointSystem;
 use self::skin::SkinLayer;
 
-// Re-export key types for convenience.
-pub use skeleton::SkeletonType as SkeletonTypeExport;
-pub use skin::SkinCovering;
 
 /// Complete anatomy state for one creature.
 #[derive(Resource, Debug, Clone, Serialize, Deserialize)]

@@ -1,9 +1,10 @@
-//! HUD plugin — displays the creature's vital stats and current mood on screen.
+//! HUD plugin — displays the creature's vital stats and mood.
 //!
-//! Each stat row has a pixel art icon, a label, and a value. All rows sit
-//! inside a semi-transparent dark panel for contrast against any background.
+//! Icons-first display with pixel font values. Retro Game Boy style.
 
 use bevy::prelude::*;
+use crate::config::ui::{palette, fonts, PixelFont};
+use crate::config::ui::stats as stat_colors;
 use crate::mind::Mind;
 
 pub struct StatsPlugin;
@@ -15,41 +16,49 @@ impl Plugin for StatsPlugin {
     }
 }
 
-// Marker components — one per HUD line to allow independent queries
 #[derive(Component)] struct HudMood;
 #[derive(Component)] struct HudHunger;
 #[derive(Component)] struct HudHappiness;
 #[derive(Component)] struct HudEnergy;
 
-fn setup_hud(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let font = TextFont { font_size: 16.0, ..default() };
+fn setup_hud(mut commands: Commands, asset_server: Res<AssetServer>, pixel_font: Res<PixelFont>) {
+    let font = TextFont {
+        font: pixel_font.0.clone(),
+        font_size: fonts::MD,
+        ..default()
+    };
 
-    // Dark semi-transparent panel behind all stats
     commands.spawn((
         Node {
             position_type: PositionType::Absolute,
             top: Val::Px(8.0),
             left: Val::Px(8.0),
-            padding: UiRect::all(Val::Px(10.0)),
+            padding: UiRect::all(Val::Px(6.0)),
             flex_direction: FlexDirection::Column,
-            row_gap: Val::Px(6.0),
+            row_gap: Val::Px(4.0),
+            border: UiRect::all(Val::Px(2.0)),
             ..default()
         },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.6)),
-        BorderRadius::all(Val::Px(8.0)),
+        BackgroundColor(palette::PANEL_BG),
+        BorderColor(palette::NEAR_BLACK),
+        BorderRadius::all(Val::Px(0.0)),
     )).with_children(|panel| {
-        // Mood row
-        spawn_stat_row(panel, &asset_server, &font, "sprites/shared/icons/mood.png", Color::WHITE, HudMood);
-        // Hunger row
-        spawn_stat_row(panel, &asset_server, &font, "sprites/shared/icons/hunger.png", Color::srgb(1.0, 0.6, 0.2), HudHunger);
-        // Happiness row
-        spawn_stat_row(panel, &asset_server, &font, "sprites/shared/icons/happiness.png", Color::srgb(0.4, 1.0, 0.5), HudHappiness);
-        // Energy row
-        spawn_stat_row(panel, &asset_server, &font, "sprites/shared/icons/energy.png", Color::srgb(0.4, 0.7, 1.0), HudEnergy);
+        // Mood — text only (no icon)
+        panel.spawn((
+            Text::new(""),
+            font.clone(),
+            TextColor(palette::NEAR_BLACK),
+            HudMood,
+        ));
+
+        // Stats — icon + value
+        spawn_icon_row(panel, &asset_server, &font, "sprites/shared/icons/hunger.png", stat_colors::HUNGER, HudHunger);
+        spawn_icon_row(panel, &asset_server, &font, "sprites/shared/icons/happiness.png", stat_colors::HAPPINESS, HudHappiness);
+        spawn_icon_row(panel, &asset_server, &font, "sprites/shared/icons/energy.png", stat_colors::ENERGY, HudEnergy);
     });
 }
 
-fn spawn_stat_row<M: Component>(
+fn spawn_icon_row<M: Component>(
     parent: &mut ChildSpawnerCommands,
     asset_server: &Res<AssetServer>,
     font: &TextFont,
@@ -60,20 +69,19 @@ fn spawn_stat_row<M: Component>(
     parent.spawn(Node {
         flex_direction: FlexDirection::Row,
         align_items: AlignItems::Center,
-        column_gap: Val::Px(6.0),
+        column_gap: Val::Px(4.0),
         ..default()
     }).with_children(|row| {
-        // Icon
+        // Icon (small, retro)
         row.spawn((
             ImageNode::new(asset_server.load(icon_path)),
             Node {
-                width: Val::Px(20.0),
-                height: Val::Px(20.0),
+                width: Val::Px(16.0),
+                height: Val::Px(16.0),
                 ..default()
             },
         ));
-
-        // Text label + value
+        // Value
         row.spawn((
             Text::new(""),
             font.clone(),
@@ -94,12 +102,12 @@ fn update_hud(
         *t = Text::new(format!("{}", mind.mood.label()));
     }
     if let Ok(mut t) = q_hunger.single_mut() {
-        *t = Text::new(format!("{:.0}%", mind.stats.hunger));
+        *t = Text::new(format!("{:.0}", mind.stats.hunger));
     }
     if let Ok(mut t) = q_happiness.single_mut() {
-        *t = Text::new(format!("{:.0}%", mind.stats.happiness));
+        *t = Text::new(format!("{:.0}", mind.stats.happiness));
     }
     if let Ok(mut t) = q_energy.single_mut() {
-        *t = Text::new(format!("{:.0}%", mind.stats.energy));
+        *t = Text::new(format!("{:.0}", mind.stats.energy));
     }
 }

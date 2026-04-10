@@ -1,17 +1,27 @@
-//! Biome background — each species has a distinct environment behind it.
+//! Biome background with day/night cycle — retro palette.
 //!
-//! Procedural gradient backgrounds that change when the player switches species.
-//! Colors reflect each biome's atmosphere from the lore:
-//! - Verdance (Moluun): deep greens, bioluminescent spore glow
-//! - Highlands (Pylum): warm amber sky, rocky mesas
-//! - Shallows (Skael): dark teal caves, crystal shimmer
-//! - Depths (Nyxal): deep indigo ocean, bioluminescent specks
+//! Combines two layers:
+//! 1. **Species biome** — each species tints the background toward its palette color
+//! 2. **Time of day** — morning is bright cream, sunset is warm orange,
+//!    night is deep near-black, afternoon is the neutral base
+//!
+//! All colors derived from the 6-color retro palette with brightness shifts.
+//!
+//! ## Color flow
+//!
+//! ```text
+//! Morning   → bright cream (CREAM lightened)
+//! Afternoon → base cream + species tint
+//! Sunset    → warm (CREAM → ORANGE blend)
+//! Night     → dark (CREAM → NEAR_BLACK blend) + species tint
+//! ```
 
 use bevy::prelude::*;
 
+use crate::config::ui::palette;
 use crate::genome::{Genome, Species};
+use crate::world::daycycle::{DayCycle, TimeOfDay};
 
-/// Marker for the background entity.
 #[derive(Component)]
 struct BiomeBackground;
 
@@ -24,25 +34,68 @@ impl Plugin for BackgroundPlugin {
     }
 }
 
-/// Returns the background color for a species' biome.
-fn biome_color(species: &Species) -> Color {
+/// Species tint color from palette.
+fn species_tint(species: &Species) -> Color {
     match species {
-        // Verdance: deep forest, bioluminescent
-        Species::Moluun => Color::srgb(0.06, 0.12, 0.08),
-        // Highlands: warm amber sky at dusk
-        Species::Pylum  => Color::srgb(0.14, 0.10, 0.06),
-        // Shallows: dark teal cave
-        Species::Skael  => Color::srgb(0.05, 0.10, 0.12),
-        // Depths: deep indigo ocean
-        Species::Nyxal  => Color::srgb(0.04, 0.04, 0.10),
+        Species::Moluun => palette::GOLD,
+        Species::Pylum  => palette::ORANGE,
+        Species::Skael  => palette::TEAL,
+        Species::Nyxal  => palette::RED,
     }
 }
 
-fn spawn_background(mut commands: Commands, genome: Res<Genome>) {
+/// Computes the background color from species + time of day.
+///
+/// The base is always CREAM, shifted by time of day (brightness)
+/// and tinted by species (hue).
+fn background_color(species: &Species, time: &TimeOfDay) -> Color {
+    let tint = species_tint(species);
+
+    // Time-of-day base: how light or dark the scene is
+    let time_base = match time {
+        // Morning: bright — cream lightened (blend toward white)
+        TimeOfDay::Morning => blend(palette::CREAM, Color::srgb(0.95, 0.92, 0.88), 0.3),
+        // Afternoon: neutral cream — the default
+        TimeOfDay::Afternoon => palette::CREAM,
+        // Sunset: warm — cream blended toward orange
+        TimeOfDay::Sunset => blend(palette::CREAM, palette::ORANGE, 0.25),
+        // Night: dark — cream blended heavily toward near-black
+        TimeOfDay::Night => blend(palette::CREAM, palette::NEAR_BLACK, 0.65),
+    };
+
+    // Apply species tint on top of time base
+    let tint_amount = match time {
+        TimeOfDay::Night => 0.20, // stronger tint at night (species glow)
+        _ => 0.12,                // subtle during day
+    };
+
+    blend(time_base, tint, tint_amount)
+}
+
+fn blend(a: Color, b: Color, t: f32) -> Color {
+    let a = a.to_srgba();
+    let b = b.to_srgba();
+    Color::srgb(
+        a.red   + (b.red   - a.red)   * t,
+        a.green + (b.green - a.green) * t,
+        a.blue  + (b.blue  - a.blue)  * t,
+    )
+}
+
+fn spawn_background(
+    mut commands: Commands,
+    genome: Res<Genome>,
+    cycle: Res<DayCycle>,
+) {
+    let color = background_color(&genome.species, &cycle.time_of_day);
+
+    // Also set ClearColor so window edges match
+    commands.insert_resource(ClearColor(color));
+
     commands.spawn((
         BiomeBackground,
         Sprite {
-            color: biome_color(&genome.species),
+            color,
             custom_size: Some(Vec2::new(800.0, 1400.0)),
             ..default()
         },
@@ -50,15 +103,19 @@ fn spawn_background(mut commands: Commands, genome: Res<Genome>) {
     ));
 }
 
-/// Updates background color when species changes.
+/// Updates background when species or time of day changes.
 fn update_background(
     genome: Res<Genome>,
+    cycle: Res<DayCycle>,
+    mut clear: ResMut<ClearColor>,
     mut bg_q: Query<&mut Sprite, With<BiomeBackground>>,
 ) {
-    if !genome.is_changed() { return; }
+    if !genome.is_changed() && !cycle.is_changed() { return; }
 
-    let target = biome_color(&genome.species);
+    let color = background_color(&genome.species, &cycle.time_of_day);
+    clear.0 = color;
+
     for mut sprite in bg_q.iter_mut() {
-        sprite.color = target;
+        sprite.color = color;
     }
 }

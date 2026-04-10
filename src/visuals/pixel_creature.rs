@@ -130,43 +130,62 @@ struct Palette {
     egg_spot: Rgba<u8>,  // egg pattern spots
 }
 
+// Palette colors derived from the 6-color retro palette.
+// Each species gets a base color, with lighter (belly) and darker (accent/shadow)
+// variations computed for depth. Eyes always NEAR_BLACK.
+//
+// Retro palette:
+//   CREAM      = (217, 199, 174)  #D9C7AE
+//   NEAR_BLACK = (27, 19, 13)     #1B130D
+//   RED        = (217, 13, 67)    #D90D43
+//   TEAL       = (1, 105, 112)    #016970
+//   GOLD       = (217, 164, 4)    #D9A404
+//   ORANGE     = (217, 103, 4)    #D96704
+
+const NEAR_BLACK_PX: Rgba<u8> = Rgba([27, 19, 13, 255]);
+const CREAM_PX: Rgba<u8> = Rgba([217, 199, 174, 255]);
+
 fn palette(species: &Species) -> Palette {
     match species {
+        // Moluun = GOLD base, lighter gold belly, darker gold accent
         Species::Moluun => Palette {
-            body:       Rgba([140, 215, 240, 255]),
-            body_light: Rgba([180, 235, 250, 255]),
-            eye:        Rgba([15, 15, 20, 255]),
-            mouth:      Rgba([30, 30, 40, 255]),
-            accent:     Rgba([120, 195, 225, 255]),
-            egg:        Rgba([220, 200, 180, 255]),
-            egg_spot:   Rgba([170, 220, 235, 255]),
+            body:       Rgba([217, 164, 4, 255]),     // GOLD
+            body_light: Rgba([230, 195, 80, 255]),    // lighter gold (belly)
+            eye:        NEAR_BLACK_PX,
+            mouth:      NEAR_BLACK_PX,
+            accent:     Rgba([170, 128, 3, 255]),     // darker gold (ears)
+            egg:        CREAM_PX,
+            egg_spot:   Rgba([217, 164, 4, 255]),     // gold spots on cream egg
         },
+        // Pylum = ORANGE base, lighter orange belly, darker orange accent
         Species::Pylum => Palette {
-            body:       Rgba([245, 210, 130, 255]),
-            body_light: Rgba([255, 235, 175, 255]),
-            eye:        Rgba([15, 15, 20, 255]),
-            mouth:      Rgba([240, 150, 55, 255]),
-            accent:     Rgba([230, 190, 110, 255]),
-            egg:        Rgba([235, 225, 200, 255]),
-            egg_spot:   Rgba([180, 140, 80, 255]),
+            body:       Rgba([217, 103, 4, 255]),     // ORANGE
+            body_light: Rgba([235, 150, 60, 255]),    // lighter orange (belly)
+            eye:        NEAR_BLACK_PX,
+            mouth:      Rgba([170, 80, 3, 255]),      // darker orange (beak)
+            accent:     Rgba([180, 85, 3, 255]),      // darker orange (wings)
+            egg:        CREAM_PX,
+            egg_spot:   Rgba([217, 103, 4, 255]),     // orange speckles on cream
         },
+        // Skael = TEAL base, lighter teal belly, darker teal accent
         Species::Skael => Palette {
-            body:       Rgba([110, 170, 120, 255]),
-            body_light: Rgba([145, 200, 150, 255]),
-            eye:        Rgba([15, 15, 20, 255]),
-            mouth:      Rgba([75, 95, 75, 255]),
-            accent:     Rgba([150, 95, 75, 255]),
-            egg:        Rgba([160, 180, 160, 255]),
-            egg_spot:   Rgba([100, 140, 110, 255]),
+            body:       Rgba([1, 105, 112, 255]),     // TEAL
+            body_light: Rgba([40, 140, 145, 255]),    // lighter teal (belly)
+            eye:        NEAR_BLACK_PX,
+            mouth:      NEAR_BLACK_PX,
+            accent:     Rgba([1, 75, 80, 255]),       // darker teal (crests)
+            egg:        Rgba([1, 105, 112, 255]),     // teal egg
+            egg_spot:   NEAR_BLACK_PX,                // dark veins
         },
+        // Nyxal = RED base, NEAR_BLACK belly (deep-sea), darker red accent
         Species::Nyxal => Palette {
-            body:       Rgba([90, 55, 125, 255]),
-            body_light: Rgba([115, 80, 150, 255]),
-            eye:        Rgba([15, 15, 20, 255]),
-            mouth:      Rgba([15, 15, 30, 255]),
-            accent:     Rgba([95, 60, 135, 255]),
-            egg:        Rgba([70, 50, 100, 180]),
-            egg_spot:   Rgba([50, 170, 190, 200]),
+            body:       Rgba([217, 13, 67, 255]),     // RED
+            body_light: Rgba([140, 10, 45, 255]),     // darker red (deep belly)
+            eye:        NEAR_BLACK_PX,
+            mouth:      NEAR_BLACK_PX,
+            accent:     Rgba([170, 10, 52, 255]),     // darker red (tentacles)
+            egg:        Rgba([217, 13, 67, 180]),     // translucent red
+            egg_spot:   CREAM_PX,                     // cream spots
         },
     }
 }
@@ -177,7 +196,7 @@ fn elder_palette(species: &Species) -> Palette {
     Palette {
         body:       fade(base.body, 0.3),
         body_light: fade(base.body_light, 0.3),
-        eye:        base.eye,   // eyes always black, all species
+        eye:        NEAR_BLACK_PX, // eyes always black, all species
         mouth:      fade(base.mouth, 0.2),
         accent:     fade(base.accent, 0.3),
         egg:        base.egg,
@@ -339,32 +358,128 @@ fn draw_egg_nyxal(img: &mut RgbaImage, p: &Palette, cx: i32) {
 }
 
 // ===================================================================
-// CUB — Kindchenschema: 70:30 head:body, huge eyes, no appendages
+// CUB — Kindchenschema: 70:30 head:body, huge eyes, tiny species features
 // ===================================================================
-// This is the ORIGINAL design — maximum cuteness, pure round blob + eyes.
+// Maximum cuteness but each species is distinguishable by its signature feature.
 
 fn draw_cub(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32) {
     let p = palette(species);
-    let by = 24; // body center Y
-    let br = 18; // body radius — body IS the head
 
-    // Body (no appendages for cubs — just a round blob)
+    match species {
+        Species::Moluun => draw_cub_moluun(img, &p, cx, mood),
+        Species::Pylum  => draw_cub_pylum(img, &p, cx, mood),
+        Species::Skael  => draw_cub_skael(img, &p, cx, mood),
+        Species::Nyxal  => draw_cub_nyxal(img, &p, cx, mood),
+    }
+}
+
+fn draw_cub_moluun(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
+    let by = 24;
+    let br = 18;
+
+    // Small round ears (signature Moluun feature, even as cub)
+    fill_circle(img, cx - 10, by - 14, 5, p.accent);
+    fill_circle(img, cx + 10, by - 14, 5, p.accent);
+
+    // Body
     fill_circle(img, cx, by, br, p.body);
-
-    // Belly
     fill_circle(img, cx, by + 5, 12, p.body_light);
 
-    // Tiny stub feet (minimal, just resting bumps)
+    // Tiny stub feet
     fill_rect(img, cx - 8, by + br - 3, 6, 5, p.body);
     fill_rect(img, cx + 3, by + br - 3, 6, 5, p.body);
 
-    // HUGE eyes (6x6) placed low — peak Kindchenschema
+    // HUGE eyes (6x6)
     draw_eyes(img, cx, by + 1, 6, 4, mood, p.eye);
 
     // Tiny mouth
     if *mood != MoodState::Sleeping {
         fill_rect(img, cx - 1, by + 10, 3, 2, p.mouth);
     }
+}
+
+fn draw_cub_pylum(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
+    let by = 24;
+    let br = 17;
+
+    // Tiny wing nubs
+    fill_rect(img, cx - br + 2, by - 1, 3, 6, p.accent);
+    fill_rect(img, cx + br - 4, by - 1, 3, 6, p.accent);
+
+    // Body
+    fill_circle(img, cx, by, br, p.body);
+    fill_circle(img, cx, by + 5, 11, p.body_light);
+
+    // Tiny tuft on top
+    fill_rect(img, cx - 1, by - br, 3, 3, p.body);
+
+    // Stub feet
+    fill_rect(img, cx - 6, by + br - 3, 5, 4, p.accent);
+    fill_rect(img, cx + 2, by + br - 3, 5, 4, p.accent);
+
+    // HUGE eyes
+    draw_eyes(img, cx, by + 1, 6, 4, mood, p.eye);
+
+    // Beak — always visible (birds have beaks even sleeping), NEAR_BLACK for max contrast
+    fill_rect(img, cx - 2, by + 9, 5, 3, NEAR_BLACK_PX);
+    fill_rect(img, cx - 1, by + 12, 3, 2, NEAR_BLACK_PX);
+}
+
+fn draw_cub_skael(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
+    let by = 24;
+    let br = 17;
+
+    // Small horns — pointy triangles (reptile identity)
+    // Left horn: 3px wide at base, narrows to 1px tip
+    fill_rect(img, cx - 8, by - br + 2, 4, 2, p.accent);
+    fill_rect(img, cx - 7, by - br,     2, 2, p.accent);
+    put(img, cx - 7, by - br - 2, p.accent);
+    // Right horn
+    fill_rect(img, cx + 5, by - br + 2, 4, 2, p.accent);
+    fill_rect(img, cx + 6, by - br,     2, 2, p.accent);
+    put(img, cx + 7, by - br - 2, p.accent);
+
+    // Body
+    fill_circle(img, cx, by, br, p.body);
+    fill_circle(img, cx, by + 5, 11, p.body_light);
+
+    // Short tapered tail (wider at base, narrows to tip)
+    fill_rect(img, cx - 2, by + br - 2, 5, 3, p.accent);
+    fill_rect(img, cx - 1, by + br + 1, 3, 2, p.accent);
+    put(img, cx, by + br + 3, p.accent);
+
+    // Stub feet
+    fill_rect(img, cx - 8, by + br - 3, 6, 5, p.body);
+    fill_rect(img, cx + 3, by + br - 3, 6, 5, p.body);
+
+    // HUGE eyes
+    draw_eyes(img, cx, by + 1, 6, 4, mood, p.eye);
+
+    // Tiny snout
+    if *mood != MoodState::Sleeping {
+        fill_rect(img, cx - 2, by + 9, 4, 2, p.mouth);
+    }
+}
+
+fn draw_cub_nyxal(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
+    let by = 20;
+    let br = 16;
+
+    // Small mantle bump (signature Nyxal feature)
+    fill_circle(img, cx, by - 6, 6, p.accent);
+
+    // 4 tentacle nubs — spread out
+    fill_rect(img, cx - 12, by + br - 3, 3, 10, p.accent);  // outer left
+    fill_rect(img, cx - 5,  by + br - 2, 3, 12, p.accent);  // inner left
+    fill_rect(img, cx + 3,  by + br - 2, 3, 12, p.accent);  // inner right
+    fill_rect(img, cx + 10, by + br - 3, 3, 10, p.accent);  // outer right
+
+    // Body (on top of tentacle bases)
+    fill_circle(img, cx, by, br, p.body);
+    fill_circle(img, cx, by + 4, 10, p.body_light);
+
+    // HUGE eyes
+    draw_eyes(img, cx, by + 1, 6, 4, mood, p.eye);
 }
 
 // ===================================================================
@@ -431,24 +546,33 @@ fn draw_young_pylum(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState)
     // Eyes
     draw_eyes(img, cx, by + 1, 5, 4, mood, p.eye);
 
-    // Small beak
-    fill_rect(img, cx - 2, by + 8, 5, 3, p.mouth);
+    // Beak — always visible, NEAR_BLACK for contrast
+    fill_rect(img, cx - 3, by + 8, 6, 3, NEAR_BLACK_PX);
+    fill_rect(img, cx - 2, by + 11, 4, 2, NEAR_BLACK_PX);
+    fill_rect(img, cx - 1, by + 13, 2, 1, NEAR_BLACK_PX);
 }
 
 fn draw_young_skael(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
     let by = 24;
     let br = 15;
 
-    // Small crest stubs
-    fill_rect(img, cx - 8, by - br + 2, 4, 5, p.accent);
-    fill_rect(img, cx + 5, by - br + 2, 4, 5, p.accent);
+    // Growing horns — pointy triangles
+    fill_rect(img, cx - 9, by - br + 1, 4, 3, p.accent);
+    fill_rect(img, cx - 8, by - br - 1, 2, 2, p.accent);
+    put(img, cx - 7, by - br - 3, p.accent);
+    fill_rect(img, cx + 6, by - br + 1, 4, 3, p.accent);
+    fill_rect(img, cx + 7, by - br - 1, 2, 2, p.accent);
+    put(img, cx + 8, by - br - 3, p.accent);
 
     // Body
     fill_circle(img, cx, by, br, p.body);
     fill_circle(img, cx, by + 4, 9, p.body_light);
 
-    // Short tail stub
-    fill_rect(img, cx - 2, by + br - 2, 5, 6, p.body);
+    // Tapered tail (growing, longer than cub)
+    fill_rect(img, cx - 2, by + br - 2, 6, 3, p.accent);
+    fill_rect(img, cx - 1, by + br + 1, 4, 3, p.accent);
+    fill_rect(img, cx, by + br + 4, 2, 2, p.accent);
+    put(img, cx, by + br + 6, p.accent);
 
     // Feet
     fill_rect(img, cx - 8, by + br - 3, 6, 6, p.body);
@@ -457,7 +581,7 @@ fn draw_young_skael(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState)
     // Eyes
     draw_eyes(img, cx, by + 1, 5, 4, mood, p.eye);
 
-    // Small snout
+    // Snout
     fill_rect(img, cx - 2, by + 8, 5, 3, p.mouth);
 }
 
@@ -465,14 +589,16 @@ fn draw_young_nyxal(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState)
     let by = 20;
     let br = 13;
 
-    // Small mantle (just emerging)
-    fill_circle(img, cx, by - 4, 7, p.accent);
+    // Growing mantle
+    fill_circle(img, cx, by - 4, 8, p.accent);
 
-    // 2 short tentacle stubs (front pair only)
-    fill_rect(img, cx - 6, by + br - 2, 4, 10, p.accent);
-    fill_rect(img, cx + 3, by + br - 2, 4, 10, p.accent);
+    // 4 tentacles — spread, growing longer
+    fill_rect(img, cx - 12, by + br - 3, 3, 14, p.accent);  // outer left
+    fill_rect(img, cx - 5,  by + br - 2, 3, 16, p.accent);  // inner left
+    fill_rect(img, cx + 3,  by + br - 2, 3, 16, p.accent);  // inner right
+    fill_rect(img, cx + 10, by + br - 3, 3, 14, p.accent);  // outer right
 
-    // Body
+    // Body (on top of tentacle bases)
     fill_circle(img, cx, by, br, p.body);
     fill_circle(img, cx, by + 3, 8, p.body_light);
 
@@ -544,24 +670,37 @@ fn draw_adult_pylum(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState)
     // Eyes
     draw_eyes(img, cx, by + 1, 5, 4, mood, p.eye);
 
-    // Beak
-    fill_rect(img, cx - 3, by + 8, 6, 4, p.mouth);
+    // Beak — always visible, NEAR_BLACK, bigger for adult
+    fill_rect(img, cx - 3, by + 8, 7, 3, NEAR_BLACK_PX);
+    fill_rect(img, cx - 2, by + 11, 5, 2, NEAR_BLACK_PX);
+    fill_rect(img, cx - 1, by + 13, 3, 2, NEAR_BLACK_PX);
+    fill_rect(img, cx, by + 15, 1, 1, NEAR_BLACK_PX);
 }
 
 fn draw_adult_skael(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
     let by = 24;
     let br = 16;
 
-    // Full crests
-    fill_rect(img, cx - 10, by - br + 1, 5, 8, p.accent);
-    fill_rect(img, cx + 6, by - br + 1, 5, 8, p.accent);
+    // Full horns — tall pointy triangles
+    fill_rect(img, cx - 10, by - br, 5, 4, p.accent);
+    fill_rect(img, cx - 9,  by - br - 3, 3, 3, p.accent);
+    fill_rect(img, cx - 8,  by - br - 5, 2, 2, p.accent);
+    put(img, cx - 8,  by - br - 7, p.accent);
+    fill_rect(img, cx + 6,  by - br, 5, 4, p.accent);
+    fill_rect(img, cx + 7,  by - br - 3, 3, 3, p.accent);
+    fill_rect(img, cx + 8,  by - br - 5, 2, 2, p.accent);
+    put(img, cx + 8,  by - br - 7, p.accent);
 
     // Body
     fill_circle(img, cx, by, br, p.body);
     fill_circle(img, cx, by + 4, 10, p.body_light);
 
-    // Full tail
-    fill_rect(img, cx - 3, by + br - 3, 6, 10, p.body);
+    // Full tapered tail (thick at base, pointed tip)
+    fill_rect(img, cx - 3, by + br - 3, 7, 4, p.accent);
+    fill_rect(img, cx - 2, by + br + 1, 5, 3, p.accent);
+    fill_rect(img, cx - 1, by + br + 4, 3, 3, p.accent);
+    fill_rect(img, cx, by + br + 7, 2, 2, p.accent);
+    put(img, cx, by + br + 9, p.accent);
 
     // Feet
     fill_rect(img, cx - 10, by + br - 4, 7, 7, p.body);
@@ -581,18 +720,18 @@ fn draw_adult_nyxal(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState)
     // Full mantle
     fill_circle(img, cx, by - 5, 10, p.accent);
 
-    // 4 full tentacles
-    fill_rect(img, cx - 10, by + br - 4, 4, 18, p.accent);
-    fill_rect(img, cx - 4, by + br - 3, 4, 20, p.accent);
-    fill_rect(img, cx + 1, by + br - 3, 4, 20, p.accent);
-    fill_rect(img, cx + 7, by + br - 4, 4, 18, p.accent);
+    // 4 full tentacles — well spread
+    fill_rect(img, cx - 14, by + br - 4, 4, 18, p.accent);  // outer left
+    fill_rect(img, cx - 5,  by + br - 3, 4, 22, p.accent);  // inner left
+    fill_rect(img, cx + 2,  by + br - 3, 4, 22, p.accent);  // inner right
+    fill_rect(img, cx + 11, by + br - 4, 4, 18, p.accent);  // outer right
 
     // Glow tips
-    let glow = Rgba([50, 180, 200, 255]);
-    fill_rect(img, cx - 10, by + br + 12, 4, 3, glow);
-    fill_rect(img, cx - 4, by + br + 15, 4, 3, glow);
-    fill_rect(img, cx + 1, by + br + 15, 4, 3, glow);
-    fill_rect(img, cx + 7, by + br + 12, 4, 3, glow);
+    let glow = CREAM_PX;
+    fill_rect(img, cx - 14, by + br + 12, 4, 3, glow);
+    fill_rect(img, cx - 5,  by + br + 17, 4, 3, glow);
+    fill_rect(img, cx + 2,  by + br + 17, 4, 3, glow);
+    fill_rect(img, cx + 11, by + br + 12, 4, 3, glow);
 
     // Body
     fill_circle(img, cx, by, br, p.body);
@@ -638,7 +777,7 @@ fn draw_elder(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32)
         Species::Nyxal => {
             draw_adult_nyxal(img, &p, cx, mood);
             // Dimmer glow tips — overwrite with softer color
-            let dim_glow = Rgba([35, 130, 150, 255]);
+            let dim_glow = Rgba([180, 165, 145, 255]); // faded cream
             fill_rect(img, cx - 10, 24, 4, 3, dim_glow);
             fill_rect(img, cx - 4, 27, 4, 3, dim_glow);
             fill_rect(img, cx + 1, 27, 4, 3, dim_glow);

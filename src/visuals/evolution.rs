@@ -19,6 +19,7 @@
 
 use bevy::prelude::*;
 use crate::config;
+use crate::game::state::AppState;
 use crate::mind::Mind;
 use crate::creature::species::CreatureRoot;
 
@@ -94,7 +95,7 @@ impl Plugin for EvolutionPlugin {
                 current_scale: config::growth::CUB_SCALE,
                 target_scale: config::growth::CUB_SCALE,
             })
-           .add_systems(Update, evolution_system);
+           .add_systems(Update, evolution_system.run_if(in_state(AppState::Gameplay)));
     }
 }
 

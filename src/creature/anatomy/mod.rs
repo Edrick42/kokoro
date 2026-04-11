@@ -20,6 +20,8 @@ mod tick;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::game::state::AppState;
+
 use crate::config::anatomy as cfg;
 use self::skeleton::{Skeleton, SkeletonType};
 use self::muscles::MuscleSystem;
@@ -34,6 +36,26 @@ pub struct AnatomyState {
     pub muscles: MuscleSystem,
     pub joints: JointSystem,
     pub skin: SkinLayer,
+    pub fat: FatReserve,
+}
+
+/// Fat reserve — energy storage and body insulation.
+///
+/// Fat acts as a buffer between nutrition and energy:
+/// - Well-fed creatures build fat reserves
+/// - When hungry, fat is burned before muscles atrophy
+/// - Fat level affects body visual (rounder when high, thinner when low)
+/// - Insulation protects against temperature changes
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FatReserve {
+    /// Current fat level (0.0 = emaciated, 1.0 = maximum reserve).
+    pub level: f32,
+    /// Rate at which fat is consumed when hungry (species-dependent).
+    pub burn_rate: f32,
+    /// Rate at which fat is stored when well-fed.
+    pub store_rate: f32,
+    /// Insulation factor — higher fat = better temperature regulation.
+    pub insulation: f32,
 }
 
 /// Bevy plugin — registers the anatomy tick system.
@@ -41,7 +63,7 @@ pub struct AnatomyPlugin;
 
 impl Plugin for AnatomyPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, tick::anatomy_tick_system);
+        app.add_systems(Update, tick::anatomy_tick_system.run_if(in_state(AppState::Gameplay)));
     }
 }
 

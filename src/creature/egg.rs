@@ -12,6 +12,7 @@
 
 use bevy::prelude::*;
 
+use crate::game::state::AppState;
 use crate::genome::Species;
 
 use crate::config;
@@ -37,7 +38,7 @@ pub struct EggPlugin;
 impl Plugin for EggPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<EggTapEvent>()
-           .add_systems(Update, (natural_incubation, handle_egg_tap));
+           .add_systems(Update, (natural_incubation, handle_egg_tap).run_if(in_state(AppState::Gameplay)));
     }
 }
 

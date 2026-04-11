@@ -9,6 +9,7 @@
 //! relative to the rig's anchor points.
 
 use bevy::prelude::*;
+use crate::game::state::AppState;
 use crate::mind::Mind;
 use crate::creature::species::CreatureRoot;
 
@@ -17,7 +18,7 @@ pub struct AccessoriesPlugin;
 impl Plugin for AccessoriesPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(AccessoryState::default())
-           .add_systems(Update, check_milestones);
+           .add_systems(Update, check_milestones.run_if(in_state(AppState::Gameplay)));
     }
 }
 

@@ -13,6 +13,7 @@
 
 use bevy::prelude::*;
 
+use crate::game::state::AppState;
 use crate::creature::anatomy::AnatomyState;
 use crate::genome::{Genome, Species};
 use crate::mind::Mind;
@@ -27,7 +28,7 @@ impl Plugin for MultiCreaturePlugin {
         app.insert_resource(CreatureCollection::default())
            .add_event::<SelectSpeciesEvent>()
            .add_systems(Startup, init_collection)
-           .add_systems(Update, handle_select_species);
+           .add_systems(Update, handle_select_species.run_if(in_state(AppState::Gameplay)));
     }
 }
 

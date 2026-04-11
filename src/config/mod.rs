@@ -16,6 +16,7 @@ pub mod absence;
 pub mod slots;
 pub mod anatomy;
 pub mod audio;
+pub mod shop;
 pub mod ui;
 
 // Re-export at top level so existing `crate::config::X` paths keep working.

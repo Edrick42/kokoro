@@ -24,6 +24,10 @@ libc     = "0.2"
 # Image buffer for runtime pixel art rendering
 image = { version = "0.25", default-features = false, features = ["png"] }
 
+# HTTP client for web API sync (creature upload/download)
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "blocking"] }
+serde_json = "1.0"
+
 # Small optimization in dev builds for your own code
 [profile.dev]
 opt-level = 1

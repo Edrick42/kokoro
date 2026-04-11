@@ -1,7 +1,8 @@
 //! UI design system — retro Game Boy aesthetic.
 //!
-//! Strict 6-color palette with depth variations (lighter/darker) derived
-//! from the base colors. Every UI element uses these constants.
+//! Base palette of 7 colors that define the visual identity. Additional colors
+//! are allowed for creatures, textures, and details — the palette is a foundation,
+//! not a hard limit.
 //!
 //! ## Palette
 //!

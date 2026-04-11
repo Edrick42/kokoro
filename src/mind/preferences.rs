@@ -6,6 +6,8 @@
 
 use bevy::prelude::*;
 use std::collections::HashMap;
+
+use crate::game::state::AppState;
 use serde::{Deserialize, Serialize};
 
 use crate::config::nutrition::FoodType;
@@ -102,7 +104,7 @@ pub struct PreferencePlugin;
 
 impl Plugin for PreferencePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, preference_check_system);
+        app.add_systems(Update, preference_check_system.run_if(in_state(AppState::Gameplay)));
     }
 }
 

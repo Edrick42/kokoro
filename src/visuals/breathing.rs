@@ -9,6 +9,8 @@ use std::f32::consts::TAU;
 use bevy::prelude::*;
 use rand::Rng;
 
+use crate::game::state::AppState;
+
 use crate::config;
 use crate::creature::species::{BodyPartSlot, CreatureRoot};
 use crate::mind::{Mind, MoodState};
@@ -69,7 +71,7 @@ impl Plugin for BreathingPlugin {
             update_breathing_params,
             breathing_system,
             heartbeat_timer_system,
-        ).chain());
+        ).chain().run_if(in_state(AppState::Gameplay)));
     }
 }
 

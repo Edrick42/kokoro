@@ -343,6 +343,118 @@ p { margin-bottom: 1em; }
 }
 
 /* ===================================================================
+   ERROR MESSAGES
+   =================================================================== */
+
+.error-msg {
+    background: var(--red);
+    color: var(--cream);
+    padding: 8px 12px;
+    font-size: 11px;
+    margin-bottom: 16px;
+    border: 1px solid var(--near-black);
+}
+
+.loading {
+    color: var(--gray);
+    font-style: italic;
+}
+
+.hint {
+    color: var(--gray);
+    font-size: 12px;
+}
+
+/* ===================================================================
+   PROFILE PAGE
+   =================================================================== */
+
+.profile-page {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.profile-card {
+    background: var(--cream-light);
+    border: var(--border);
+    padding: 20px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.profile-info p {
+    margin-bottom: 4px;
+    font-size: 13px;
+}
+
+.btn--danger {
+    background: var(--red);
+    color: var(--cream);
+    border-color: var(--red);
+}
+
+.btn--danger:hover {
+    background: var(--near-black);
+    border-color: var(--red);
+}
+
+.creature-card {
+    background: var(--cream-light);
+    border: var(--border);
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.creature-card.empty {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.creature-info p {
+    margin-bottom: 4px;
+    font-size: 13px;
+}
+
+.genome-section,
+.mind-stats {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--gray);
+}
+
+.gene-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.gene-label {
+    font-family: var(--font-pixel);
+    font-size: 7px;
+    width: 100px;
+    flex-shrink: 0;
+}
+
+.gene-track {
+    flex: 1;
+    height: 8px;
+    background: var(--gray);
+}
+
+.gene-fill {
+    height: 100%;
+    background: var(--teal);
+}
+
+.stat-value { font-weight: bold; }
+.stat-red  { color: var(--red); }
+.stat-gold { color: var(--gold); }
+.stat-teal { color: var(--teal); }
+
+/* ===================================================================
    RESPONSIVE
    =================================================================== */
 

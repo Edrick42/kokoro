@@ -31,6 +31,14 @@ pub fn create_router(db: Arc<Database>) -> Router {
         .route(auth::routes::REGISTER, post(controllers::auth::register))
         .route(auth::routes::LOGIN, post(controllers::auth::login))
         .route(auth::routes::PROFILE, get(controllers::auth::profile))
+        // Creature endpoints (auth required via AuthUser extractor)
+        .route(routes::CREATURE_GET, get(controllers::creature::get))
+        .route(routes::CREATURE_SYNC, post(controllers::creature::sync))
+        // Shop endpoints
+        .route(routes::SHOP_BALANCE, get(controllers::shop::balance))
+        .route(routes::SHOP_CHECKOUT, post(controllers::shop::checkout))
+        .route(routes::SHOP_WEBHOOK, post(controllers::shop::webhook))
+        .route(routes::SHOP_PURCHASE, post(controllers::shop::purchase_item))
         // Shared state + middleware
         .with_state(db)
         .layer(cors)

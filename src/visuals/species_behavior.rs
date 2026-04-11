@@ -9,6 +9,8 @@
 use std::f32::consts::TAU;
 use bevy::prelude::*;
 
+use crate::game::state::AppState;
+
 use crate::creature::species::{BodyPartSlot, CreatureRoot};
 use crate::genome::Species;
 use crate::mind::absence::AbsenceState;
@@ -29,7 +31,7 @@ pub struct SpeciesBehaviorPlugin;
 
 impl Plugin for SpeciesBehaviorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, species_idle_system);
+        app.add_systems(Update, species_idle_system.run_if(in_state(AppState::Gameplay)));
     }
 }
 

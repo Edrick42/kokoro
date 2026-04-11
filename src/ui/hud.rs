@@ -5,14 +5,15 @@
 use bevy::prelude::*;
 use crate::config::ui::{palette, fonts, PixelFont};
 use crate::config::ui::stats as stat_colors;
+use crate::game::state::{AppState, GameplayEntity};
 use crate::mind::Mind;
 
 pub struct StatsPlugin;
 
 impl Plugin for StatsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_hud)
-           .add_systems(Update, update_hud);
+        app.add_systems(OnEnter(AppState::Gameplay), setup_hud)
+           .add_systems(Update, update_hud.run_if(in_state(AppState::Gameplay)));
     }
 }
 
@@ -29,6 +30,7 @@ fn setup_hud(mut commands: Commands, asset_server: Res<AssetServer>, pixel_font:
     };
 
     commands.spawn((
+        GameplayEntity,
         Node {
             position_type: PositionType::Absolute,
             top: Val::Px(8.0),

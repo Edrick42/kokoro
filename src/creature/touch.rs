@@ -7,6 +7,8 @@
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
+use crate::game::state::AppState;
+
 use crate::config::nervous_system as nerv;
 use crate::creature::species::{BodyPartSlot, CreatureRoot};
 use crate::genome::Genome;
@@ -27,7 +29,7 @@ pub struct TouchPlugin;
 impl Plugin for TouchPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<TouchEvent>()
-           .add_systems(Update, (detect_touch, apply_touch_effects).chain());
+           .add_systems(Update, (detect_touch, apply_touch_effects).chain().run_if(in_state(AppState::Gameplay)));
     }
 }
 

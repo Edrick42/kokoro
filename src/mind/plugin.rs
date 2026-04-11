@@ -18,6 +18,7 @@
 //! - The blend weight (`nn_influence`) grows with training maturity.
 
 use bevy::prelude::*;
+use crate::game::state::AppState;
 use crate::genome::Genome;
 use crate::mind::Mind;
 use crate::mind::neural::{MLP, build_input, index_to_mood, mood_to_index};
@@ -84,7 +85,7 @@ impl Plugin for NeuralMindPlugin {
     fn build(&self, app: &mut App) {
         // PersistencePlugin runs in PreStartup, so DbConnection is available by Startup
         app.add_systems(Startup, load_neural_weights)
-           .add_systems(Update, (neural_mood_system, neural_train_system));
+           .add_systems(Update, (neural_mood_system, neural_train_system).run_if(in_state(AppState::Gameplay)));
     }
 }
 

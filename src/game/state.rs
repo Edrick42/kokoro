@@ -5,48 +5,64 @@
 //!                                                 ↓
 //!                                           DeathScreen
 //! ```
+//!
+//! ## Entity cleanup
+//!
+//! All entities spawned during Gameplay are marked with `GameplayEntity`.
+//! When leaving Gameplay (death, pause, etc.), all `GameplayEntity` entities
+//! are despawned — clean slate for the next state.
 
 use bevy::prelude::*;
 
-/// The main game state. Determines which UI is visible and which systems run.
+/// The main game state.
 #[derive(States, Default, Clone, Eq, PartialEq, Debug, Hash)]
 pub enum AppState {
-    /// Loading assets (font, database). Transitions to TitleScreen automatically.
     #[default]
     Loading,
-    /// Logo + "Press to Start". Plays opening track.
     TitleScreen,
-    /// Login / Register / Skip (guest mode).
     Auth,
-    /// First-time tutorial. Skipped if save exists.
-    #[allow(dead_code)]
     Onboarding,
-    /// Main gameplay — creature alive, HUD visible, all systems active.
     Gameplay,
-    /// Gameplay paused — creature frozen, menu accessible.
     #[allow(dead_code)]
     Paused,
-    /// Creature died — memorial screen with cause of death.
     DeathScreen,
 }
+
+/// Marker component for all entities that belong to the Gameplay state.
+/// Everything with this marker is despawned when leaving Gameplay.
+#[derive(Component)]
+pub struct GameplayEntity;
 
 pub struct GameStatePlugin;
 
 impl Plugin for GameStatePlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<AppState>()
-           .add_systems(Update, auto_transition_from_loading.run_if(in_state(AppState::Loading)));
+           .add_systems(Update, auto_transition_from_loading.run_if(in_state(AppState::Loading)))
+           .add_systems(OnExit(AppState::Gameplay), cleanup_gameplay_entities);
     }
 }
 
-/// After one frame in Loading (assets queued), transition to TitleScreen.
 fn auto_transition_from_loading(
     mut next_state: ResMut<NextState<AppState>>,
     mut frame_count: Local<u32>,
 ) {
     *frame_count += 1;
-    // Wait 2 frames for assets to start loading
     if *frame_count >= 2 {
         next_state.set(AppState::TitleScreen);
+    }
+}
+
+/// Despawns ALL entities marked with `GameplayEntity` when leaving Gameplay.
+fn cleanup_gameplay_entities(
+    mut commands: Commands,
+    query: Query<Entity, With<GameplayEntity>>,
+) {
+    let count = query.iter().count();
+    for entity in query.iter() {
+        commands.entity(entity).despawn();
+    }
+    if count > 0 {
+        info!("Cleaned up {} gameplay entities", count);
     }
 }

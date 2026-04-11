@@ -7,14 +7,15 @@ use bevy::prelude::*;
 
 use crate::config::ui::{palette, fonts, PixelFont};
 use crate::creature::species::CreatureRoot;
+use crate::game::state::{AppState, GameplayEntity};
 use crate::visuals::breathing::{BreathingState, HeartbeatState};
 
 pub struct VitalsPlugin;
 
 impl Plugin for VitalsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_vitals_panel)
-           .add_systems(Update, update_vitals_panel);
+        app.add_systems(OnEnter(AppState::Gameplay), setup_vitals_panel)
+           .add_systems(Update, update_vitals_panel.run_if(in_state(AppState::Gameplay)));
     }
 }
 
@@ -32,6 +33,7 @@ fn setup_vitals_panel(mut commands: Commands, pixel_font: Res<PixelFont>) {
 
     // Flat dark panel — top right
     commands.spawn((
+        GameplayEntity,
         Node {
             position_type: PositionType::Absolute,
             top: Val::Px(8.0),

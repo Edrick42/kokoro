@@ -13,6 +13,7 @@
 
 use bevy::prelude::*;
 
+use crate::game::state::AppState;
 use crate::config::lifecycle as lc;
 use crate::creature::species::CreatureRoot;
 use crate::genome::Genome;
@@ -91,7 +92,7 @@ impl Plugin for LifecyclePlugin {
                starvation_system,
                death_check_system,
                care_quality_system,
-           ).chain());
+           ).chain().run_if(in_state(AppState::Gameplay)));
     }
 }
 

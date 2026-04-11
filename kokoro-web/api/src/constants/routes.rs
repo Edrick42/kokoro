@@ -16,3 +16,13 @@ pub const BIOME_BY_NAME: &str = "/api/biome/{name}";
 
 // Foods
 pub const FOOD_LIST: &str = "/api/foods";
+
+// Creatures (auth required)
+pub const CREATURE_GET: &str = "/api/creature";
+pub const CREATURE_SYNC: &str = "/api/creature/sync";
+
+// Shop
+pub const SHOP_BALANCE: &str = "/api/shop/balance";
+pub const SHOP_CHECKOUT: &str = "/api/shop/checkout";
+pub const SHOP_WEBHOOK: &str = "/api/shop/webhook";
+pub const SHOP_PURCHASE: &str = "/api/shop/purchase";

@@ -11,6 +11,8 @@
 
 use bevy::prelude::*;
 use bevy::image::ImageSampler;
+
+use crate::game::state::AppState;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use image::{RgbaImage, Rgba};
 
@@ -45,7 +47,7 @@ pub struct EffectsPlugin;
 impl Plugin for EffectsPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(CurrentEffectMood(None))
-           .add_systems(Update, (spawn_mood_effects, animate_effects).chain());
+           .add_systems(Update, (spawn_mood_effects, animate_effects).chain().run_if(in_state(AppState::Gameplay)));
     }
 }
 

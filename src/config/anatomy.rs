@@ -103,6 +103,24 @@ pub mod skin {
     pub const INTEGRITY_REPAIR: f32 = 0.00015;
 }
 
+/// Fat reserve constants per species.
+pub mod fat {
+    /// Base fat level for each species (0.0-1.0).
+    pub const LEVEL_MOLUUN: f32 = 0.5;  // moderate reserves
+    pub const LEVEL_PYLUM: f32 = 0.3;   // lean (flight efficiency)
+    pub const LEVEL_SKAEL: f32 = 0.6;   // higher reserves (cold caves)
+    pub const LEVEL_NYXAL: f32 = 0.4;   // moderate (deep sea pressure)
+
+    /// Per-tick burn rate when hungry.
+    pub const BURN_RATE: f32 = 0.0005;
+    /// Per-tick store rate when well-fed.
+    pub const STORE_RATE: f32 = 0.0003;
+    /// Fat threshold below which muscles start atrophying.
+    pub const MUSCLE_PROTECTION_THRESHOLD: f32 = 0.2;
+    /// Insulation factor per unit of fat.
+    pub const INSULATION_FACTOR: f32 = 0.3;
+}
+
 /// Growth stage multipliers for anatomy values.
 /// (bone_density, muscle_mass, joint_flexibility, skin_thickness)
 pub mod growth_anatomy {

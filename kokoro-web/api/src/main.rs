@@ -10,6 +10,7 @@ mod constants;
 mod controllers;
 mod db;
 mod error;
+mod middleware;
 mod models;
 mod router;
 mod services;
@@ -19,6 +20,9 @@ use constants::SERVER_ADDR;
 
 #[tokio::main]
 async fn main() {
+    // Load .env file (if present — not required)
+    let _ = dotenvy::dotenv();
+
     // Initialize the user database (creates table if needed)
     let db = Arc::new(db::Database::new("kokoro-users.db"));
 

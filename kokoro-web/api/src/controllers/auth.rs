@@ -6,13 +6,14 @@
 //!   3. Return JSON response or ApiError
 
 use std::sync::Arc;
-use axum::{extract::State, http::HeaderMap, Json};
+use axum::{extract::State, Json};
 use chrono::Utc;
 use uuid::Uuid;
 
 use crate::constants::auth::TOKEN_EXPIRY_SECS;
 use crate::db::{self, Database};
 use crate::error::ApiError;
+use crate::middleware::auth::AuthUser;
 use crate::models::auth::*;
 use crate::services::auth as auth_service;
 
@@ -88,18 +89,9 @@ pub async fn login(
 /// Returns the authenticated user's profile. Requires a valid
 /// Bearer token in the Authorization header.
 pub async fn profile(
+    AuthUser(claims): AuthUser,
     State(db): State<Arc<Database>>,
-    headers: HeaderMap,
 ) -> Result<Json<UserProfile>, ApiError> {
-    // Extract Bearer token from Authorization header
-    let token = extract_bearer_token(&headers)
-        .ok_or_else(|| ApiError::unauthorized("Missing or invalid Authorization header"))?;
-
-    // Validate token and extract claims
-    let claims = auth_service::validate_token(token)
-        .map_err(|_| ApiError::unauthorized("Invalid or expired token"))?;
-
-    // Look up user by ID from token claims
     let user = db::users::find_by_id(&db, &claims.sub)
         .ok_or_else(|| ApiError::not_found("User not found"))?;
 
@@ -109,12 +101,4 @@ pub async fn profile(
         display_name: user.display_name,
         created_at: user.created_at,
     }))
-}
-
-/// Extracts the Bearer token from the Authorization header.
-///
-/// Expects format: `Authorization: Bearer <token>`
-fn extract_bearer_token(headers: &HeaderMap) -> Option<&str> {
-    let value = headers.get("authorization")?.to_str().ok()?;
-    value.strip_prefix("Bearer ")
 }

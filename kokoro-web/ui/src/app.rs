@@ -29,6 +29,7 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/species/:name") view=pages::species_detail::SpeciesDetailPage/>
                     <Route path=path!("/login") view=pages::login::LoginPage/>
                     <Route path=path!("/register") view=pages::register::RegisterPage/>
+                    <Route path=path!("/profile") view=pages::profile::ProfilePage/>
                 </Routes>
             </Router>
         </main>

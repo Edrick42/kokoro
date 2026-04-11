@@ -10,6 +10,8 @@
 use bevy::prelude::*;
 use rand::Rng;
 
+use crate::game::state::AppState;
+
 use crate::creature::species::CreatureRoot;
 use crate::mind::{Mind, MoodState};
 
@@ -73,7 +75,7 @@ pub struct PhysicsPlugin;
 impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(PreviousMood::default())
-           .add_systems(Update, (physics_actions, physics_step).chain());
+           .add_systems(Update, (physics_actions, physics_step).chain().run_if(in_state(AppState::Gameplay)));
     }
 }
 

@@ -7,6 +7,8 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::game::state::AppState;
+
 use crate::config::nutrition::{FoodType, NutrientProfile, self as nutr};
 use crate::creature::species::CreatureRoot;
 use crate::genome::Genome;
@@ -100,7 +102,7 @@ pub struct NutritionPlugin;
 
 impl Plugin for NutritionPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, nutrient_decay_system);
+        app.add_systems(Update, nutrient_decay_system.run_if(in_state(AppState::Gameplay)));
     }
 }
 

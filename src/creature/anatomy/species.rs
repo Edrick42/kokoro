@@ -10,7 +10,7 @@ use super::skeleton::{self, Skeleton, SkeletonType};
 use super::muscles::{self, MuscleSystem};
 use super::joints::{self, JointSystem};
 use super::skin::{SkinLayer, SkinCovering};
-use super::AnatomyState;
+use super::{AnatomyState, FatReserve};
 
 impl AnatomyState {
     /// Creates the anatomy for a given species, using the genome for individual variation.
@@ -70,6 +70,12 @@ fn moluun(genome: &Genome) -> AnatomyState {
             thickness: cfg::skin::THICKNESS_MOLUUN,
             hydration: 1.0,
         },
+        fat: FatReserve {
+            level: cfg::fat::LEVEL_MOLUUN,
+            burn_rate: cfg::fat::BURN_RATE,
+            store_rate: cfg::fat::STORE_RATE,
+            insulation: cfg::fat::LEVEL_MOLUUN * cfg::fat::INSULATION_FACTOR,
+        },
     }
 }
 
@@ -119,6 +125,12 @@ fn pylum(genome: &Genome) -> AnatomyState {
             integrity: 1.0,
             thickness: cfg::skin::THICKNESS_PYLUM,
             hydration: 1.0,
+        },
+        fat: FatReserve {
+            level: cfg::fat::LEVEL_PYLUM,
+            burn_rate: cfg::fat::BURN_RATE,
+            store_rate: cfg::fat::STORE_RATE,
+            insulation: cfg::fat::LEVEL_PYLUM * cfg::fat::INSULATION_FACTOR,
         },
     }
 }
@@ -172,6 +184,12 @@ fn skael(genome: &Genome) -> AnatomyState {
             thickness: cfg::skin::THICKNESS_SKAEL,
             hydration: 1.0,
         },
+        fat: FatReserve {
+            level: cfg::fat::LEVEL_SKAEL,
+            burn_rate: cfg::fat::BURN_RATE,
+            store_rate: cfg::fat::STORE_RATE,
+            insulation: cfg::fat::LEVEL_SKAEL * cfg::fat::INSULATION_FACTOR,
+        },
     }
 }
 
@@ -211,6 +229,12 @@ fn nyxal(genome: &Genome) -> AnatomyState {
             integrity: 1.0,
             thickness: cfg::skin::THICKNESS_NYXAL,
             hydration: 1.0,
+        },
+        fat: FatReserve {
+            level: cfg::fat::LEVEL_NYXAL,
+            burn_rate: cfg::fat::BURN_RATE,
+            store_rate: cfg::fat::STORE_RATE,
+            insulation: cfg::fat::LEVEL_NYXAL * cfg::fat::INSULATION_FACTOR,
         },
     }
 }

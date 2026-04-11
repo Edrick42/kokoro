@@ -8,7 +8,9 @@
 //! Other buttons may have sub-actions in the future.
 
 use bevy::prelude::*;
+use bevy::audio::PlaybackSettings;
 use crate::config::nutrition::FoodType;
+use crate::game::state::{AppState, GameplayEntity};
 use crate::genome::{Genome, Species};
 use crate::mind::Mind;
 use crate::mind::training::build_event_payload;
@@ -70,7 +72,7 @@ pub struct ActionsPlugin;
 impl Plugin for ActionsPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(MenuState::default())
-           .add_systems(Startup, setup_menu)
+           .add_systems(OnEnter(AppState::Gameplay), setup_menu)
            .add_systems(Update, (
                handle_menu_toggle,
                handle_action_press,
@@ -80,7 +82,7 @@ impl Plugin for ActionsPlugin {
                sync_visibility,
                animate_buttons,
                smooth_button_scale,
-           ));
+           ).run_if(in_state(AppState::Gameplay)));
     }
 }
 
@@ -95,6 +97,7 @@ fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>, pixel_font
 
     // Toggle "..." — flat retro rectangle
     commands.spawn((
+        GameplayEntity,
         Button, MenuToggle, AnimatedButton,
         Node {
             position_type: PositionType::Absolute,
@@ -118,6 +121,7 @@ fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>, pixel_font
 
     // Main panel — flat, dark
     commands.spawn((
+        GameplayEntity,
         MenuPanel,
         Node {
             position_type: PositionType::Absolute,
@@ -140,7 +144,8 @@ fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>, pixel_font
         BorderRadius::all(Val::Px(0.0)),
         Visibility::Hidden,
     )).with_children(|panel| {
-        // Species row — each species gets its palette color
+        // Species selector — DEV MODE ONLY (player has one creature at a time)
+        #[cfg(feature = "dev")]
         panel.spawn(Node {
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
@@ -153,7 +158,7 @@ fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>, pixel_font
             spawn_species_btn(row, &font_sm, Species::Nyxal,  "Nyxal",  RED);
         });
 
-        // Action row — uniform cream buttons (Game Boy style)
+        // Action row
         panel.spawn(Node {
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
@@ -169,6 +174,7 @@ fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>, pixel_font
 
     // Food side panel — separate from the menu, positioned on the right side
     commands.spawn((
+        GameplayEntity,
         FoodSubPanel,
         Node {
             position_type: PositionType::Absolute,
@@ -198,6 +204,7 @@ fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>, pixel_font
 // Button spawners
 // ===================================================================
 
+#[allow(dead_code)]
 fn spawn_species_btn(parent: &mut ChildSpawnerCommands, font: &TextFont, species: Species, label: &str, color: Color) {
     // Species buttons use their species color as background
     let text_color = if color == TEAL || color == RED { CREAM } else { NEAR_BLACK };

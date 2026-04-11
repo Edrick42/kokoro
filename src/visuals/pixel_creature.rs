@@ -21,6 +21,8 @@
 
 use bevy::prelude::*;
 use bevy::image::ImageSampler;
+
+use crate::game::state::AppState;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use image::{RgbaImage, Rgba};
 
@@ -45,7 +47,7 @@ pub struct PixelCreaturePlugin;
 
 impl Plugin for PixelCreaturePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (attach_pixel_creature, update_pixel_creature).chain());
+        app.add_systems(Update, (attach_pixel_creature, update_pixel_creature).chain().run_if(in_state(AppState::Gameplay)));
     }
 }
 
@@ -130,62 +132,56 @@ struct Palette {
     egg_spot: Rgba<u8>,  // egg pattern spots
 }
 
-// Palette colors derived from the 6-color retro palette.
-// Each species gets a base color, with lighter (belly) and darker (accent/shadow)
-// variations computed for depth. Eyes always NEAR_BLACK.
+// Species palettes — natural colors with retro identity.
 //
-// Retro palette:
-//   CREAM      = (217, 199, 174)  #D9C7AE
-//   NEAR_BLACK = (27, 19, 13)     #1B130D
-//   RED        = (217, 13, 67)    #D90D43
-//   TEAL       = (1, 105, 112)    #016970
-//   GOLD       = (217, 164, 4)    #D9A404
-//   ORANGE     = (217, 103, 4)    #D96704
+// The UI palette (cream, near-black, gold, etc.) provides the visual identity.
+// Creatures use natural, biologically-grounded colors — not restricted to the palette.
+// Each species has a warm/cool identity that echoes its palette assignment.
 
 const NEAR_BLACK_PX: Rgba<u8> = Rgba([27, 19, 13, 255]);
 const CREAM_PX: Rgba<u8> = Rgba([217, 199, 174, 255]);
 
 fn palette(species: &Species) -> Palette {
     match species {
-        // Moluun = GOLD base, lighter gold belly, darker gold accent
+        // Moluun — warm forest mammal: soft blue-gray fur, cream belly, dark eyes
         Species::Moluun => Palette {
-            body:       Rgba([217, 164, 4, 255]),     // GOLD
-            body_light: Rgba([230, 195, 80, 255]),    // lighter gold (belly)
-            eye:        NEAR_BLACK_PX,
-            mouth:      NEAR_BLACK_PX,
-            accent:     Rgba([170, 128, 3, 255]),     // darker gold (ears)
-            egg:        CREAM_PX,
-            egg_spot:   Rgba([217, 164, 4, 255]),     // gold spots on cream egg
+            body:       Rgba([140, 180, 200, 255]),   // soft blue-gray (like a koala)
+            body_light: Rgba([210, 200, 185, 255]),   // warm cream belly
+            eye:        NEAR_BLACK_PX,                // large dark eyes
+            mouth:      Rgba([60, 45, 40, 255]),      // dark brown mouth
+            accent:     Rgba([120, 155, 175, 255]),   // lighter blue-gray (ears)
+            egg:        Rgba([220, 200, 180, 255]),   // warm cream egg
+            egg_spot:   Rgba([160, 190, 205, 255]),   // blue-gray spots
         },
-        // Pylum = ORANGE base, lighter orange belly, darker orange accent
+        // Pylum — bright highland bird: golden-amber plumage, orange beak, warm tones
         Species::Pylum => Palette {
-            body:       Rgba([217, 103, 4, 255]),     // ORANGE
-            body_light: Rgba([235, 150, 60, 255]),    // lighter orange (belly)
-            eye:        NEAR_BLACK_PX,
-            mouth:      Rgba([170, 80, 3, 255]),      // darker orange (beak)
-            accent:     Rgba([180, 85, 3, 255]),      // darker orange (wings)
-            egg:        CREAM_PX,
-            egg_spot:   Rgba([217, 103, 4, 255]),     // orange speckles on cream
+            body:       Rgba([235, 190, 80, 255]),    // golden amber plumage
+            body_light: Rgba([245, 220, 150, 255]),   // lighter golden belly
+            eye:        Rgba([30, 25, 20, 255]),      // dark beady bird eyes
+            mouth:      Rgba([230, 120, 30, 255]),    // bright orange beak
+            accent:     Rgba([200, 155, 55, 255]),    // darker gold (wing feathers)
+            egg:        Rgba([235, 225, 200, 255]),   // speckled cream
+            egg_spot:   Rgba([180, 140, 80, 255]),    // brown speckles
         },
-        // Skael = TEAL base, lighter teal belly, darker teal accent
+        // Skael — cool cave reptile: deep emerald-green scales, lighter underbelly
         Species::Skael => Palette {
-            body:       Rgba([1, 105, 112, 255]),     // TEAL
-            body_light: Rgba([40, 140, 145, 255]),    // lighter teal (belly)
-            eye:        NEAR_BLACK_PX,
-            mouth:      NEAR_BLACK_PX,
-            accent:     Rgba([1, 75, 80, 255]),       // darker teal (crests)
-            egg:        Rgba([1, 105, 112, 255]),     // teal egg
-            egg_spot:   NEAR_BLACK_PX,                // dark veins
+            body:       Rgba([45, 120, 85, 255]),     // deep emerald green
+            body_light: Rgba([90, 160, 120, 255]),    // lighter green underbelly
+            eye:        Rgba([190, 155, 40, 255]),    // golden reptile eyes
+            mouth:      Rgba([35, 65, 50, 255]),      // dark green snout
+            accent:     Rgba([100, 75, 55, 255]),     // brown horns/crests
+            egg:        Rgba([70, 130, 95, 255]),     // green crystalline egg
+            egg_spot:   Rgba([40, 80, 60, 255]),      // darker green veins
         },
-        // Nyxal = RED base, NEAR_BLACK belly (deep-sea), darker red accent
+        // Nyxal — deep sea cephalopod: dark purple body, bioluminescent accents
         Species::Nyxal => Palette {
-            body:       Rgba([217, 13, 67, 255]),     // RED
-            body_light: Rgba([140, 10, 45, 255]),     // darker red (deep belly)
-            eye:        NEAR_BLACK_PX,
-            mouth:      NEAR_BLACK_PX,
-            accent:     Rgba([170, 10, 52, 255]),     // darker red (tentacles)
-            egg:        Rgba([217, 13, 67, 180]),     // translucent red
-            egg_spot:   CREAM_PX,                     // cream spots
+            body:       Rgba([80, 45, 110, 255]),     // deep purple
+            body_light: Rgba([60, 35, 80, 255]),      // darker purple belly (deep sea)
+            eye:        Rgba([40, 180, 200, 255]),    // bioluminescent cyan eyes
+            mouth:      NEAR_BLACK_PX,                // hidden beak
+            accent:     Rgba([65, 40, 95, 255]),      // dark purple tentacles
+            egg:        Rgba([70, 45, 100, 180]),     // translucent purple
+            egg_spot:   Rgba([50, 180, 200, 200]),    // cyan bioluminescent spots
         },
     }
 }
@@ -196,7 +192,7 @@ fn elder_palette(species: &Species) -> Palette {
     Palette {
         body:       fade(base.body, 0.3),
         body_light: fade(base.body_light, 0.3),
-        eye:        NEAR_BLACK_PX, // eyes always black, all species
+        eye:        base.eye,      // eyes keep species color even in elder
         mouth:      fade(base.mouth, 0.2),
         accent:     fade(base.accent, 0.3),
         egg:        base.egg,

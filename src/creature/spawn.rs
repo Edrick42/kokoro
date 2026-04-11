@@ -22,6 +22,7 @@ use crate::mind::lifecycle::LifecycleState;
 use crate::mind::nutrition::NutrientState;
 use crate::mind::preferences::PreferenceMemory;
 use crate::visuals::breathing::{BreathingState, HeartbeatState};
+use crate::game::state::{AppState, GameplayEntity};
 use super::species::*;
 
 pub struct CreatureVisualsPlugin;
@@ -30,8 +31,8 @@ impl Plugin for CreatureVisualsPlugin {
     fn build(&self, app: &mut App) {
         let registry = SpeciesRegistry::new();
         app.insert_resource(registry)
-           .add_systems(Startup, spawn_creature)
-           .add_systems(Update, respawn_on_switch);
+           .add_systems(OnEnter(AppState::Gameplay), spawn_creature)
+           .add_systems(Update, respawn_on_switch.run_if(in_state(AppState::Gameplay)));
     }
 }
 
@@ -116,6 +117,7 @@ fn do_spawn_egg(
 
     commands.spawn((
         EggEntity,
+        GameplayEntity,
         Sprite {
             image: handle,
             custom_size: Some(Vec2::new(64.0 * 5.0, 64.0 * 5.0)),
@@ -141,10 +143,11 @@ fn do_spawn_creature(
     // Spawn root entity — PixelCreaturePlugin will attach the visual sprite
     commands.spawn((
         CreatureRoot,
+        GameplayEntity,
         physics,
         NutrientState::default(),
         PreferenceMemory::default(),
-        VocalRepertoire::new(&genome.species),
+        VocalRepertoire::new(&genome.species, &genome),
         LifecycleState::new(&genome.species),
         SpeciesBehavior { species: genome.species.clone(), elapsed: 0.0 },
         BreathingState::new(),

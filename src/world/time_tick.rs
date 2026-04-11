@@ -5,7 +5,7 @@
 //! time independently of rendering — useful for simulating day/night cycles later.
 
 use bevy::prelude::*;
-use crate::{config, genome::Genome, mind::Mind, world::daycycle::DayCycle};
+use crate::{config, game::state::AppState, genome::Genome, mind::Mind, world::daycycle::DayCycle};
 
 #[derive(Resource)]
 struct TickTimer(Timer);
@@ -18,7 +18,7 @@ impl Plugin for TimeTickPlugin {
             config::TICK_INTERVAL,
             TimerMode::Repeating,
         )))
-        .add_systems(Update, tick_system);
+        .add_systems(Update, tick_system.run_if(in_state(AppState::Gameplay)));
     }
 }
 

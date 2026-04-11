@@ -74,6 +74,7 @@ fn autosave_system(
     genome:     Res<Genome>,
     mind:       Res<Mind>,
     collection: Option<Res<crate::creature::collection::CreatureCollection>>,
+    web_session: Res<crate::web::WebSession>,
 ) {
     if mind.age_ticks % config::AUTOSAVE_INTERVAL == 0 && mind.age_ticks > 0 {
         let conn = db.0.lock().expect("DB lock poisoned");
@@ -84,6 +85,10 @@ fn autosave_system(
             if let Err(e) = save::save_collection(&conn, collection) {
                 error!("Auto-save collection failed: {e}");
             }
+        }
+        // Sync to web API if authenticated (non-blocking)
+        if web_session.active.is_some() {
+            crate::web::sync::sync_creature_async(&web_session, &genome, &mind);
         }
         debug!("Auto-saved at tick {}", mind.age_ticks);
     }

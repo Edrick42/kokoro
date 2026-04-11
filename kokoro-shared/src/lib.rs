@@ -8,3 +8,9 @@ pub mod species;
 pub mod food;
 pub mod biomes;
 pub mod genes;
+pub mod shop;
+
+/// Convenience: all shop items.
+pub fn shop_items() -> &'static [shop::ShopItem] {
+    shop::all_items()
+}

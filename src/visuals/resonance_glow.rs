@@ -16,6 +16,8 @@
 use std::f32::consts::TAU;
 use bevy::prelude::*;
 
+use crate::game::state::AppState;
+
 use crate::config;
 use crate::mind::{Mind, MoodState};
 
@@ -46,7 +48,7 @@ pub struct ResonanceGlowPlugin;
 
 impl Plugin for ResonanceGlowPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, update_resonance_glow);
+        app.add_systems(Update, update_resonance_glow.run_if(in_state(AppState::Gameplay)));
     }
 }
 

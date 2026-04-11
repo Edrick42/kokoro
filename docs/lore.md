@@ -99,9 +99,9 @@ Each Kobara's personality and appearance are determined by a genome that transla
 
 Seven genes on a spectrum (0.0 to 1.0, except hue which is 0–360), and every Kobara is unique. Two Moluun can look and behave very differently, just as two people who both "feel deeply" can be entirely different.
 
-### Universal Trait: Dark Eyes
+### Eyes
 
-All Kobaras, regardless of species, have **deep black eyes**. This is one of the few traits that doesn't vary between individuals or species. Biologists on Ethara theorize this is an adaptation for the etharin-rich atmosphere — the pigment absorbs excess resonance radiation that would otherwise damage the retina. The practical effect: dark, bead-like eyes that contrast against every body color, creating the wide-eyed expressiveness that makes Kobaras so emotionally readable.
+Eye shape and size vary by species — Moluun have large round eyes, Skael have narrow deep-set eyes, Nyxal have oversized forward-facing eyes. Eye coloration is not fixed and may vary between individuals or evolve with future visual updates.
 
 ---
 
@@ -307,6 +307,99 @@ This creates the deepest possible emotional loop: **you care for a creature not 
 
 ---
 
+## Kobara Encounters — When Worlds Collide
+
+> *"A Kobara raised alone knows only its own reflection. A Kobara that meets another discovers the rest of the world."*
+
+When two players bring their devices close to each other, their Kobaras become aware of one another. This isn't a menu. There's no "trade" button or "battle" command. The Kobaras simply... meet.
+
+What happens next depends entirely on who they are.
+
+### How Encounters Work
+
+Two devices detect proximity (Bluetooth LE or local network). The Kobaras enter a shared interaction space — visible on both screens. Neither player controls the interaction directly. The creatures act according to their personality, mood, species, and history.
+
+### Possible Outcomes
+
+| Outcome | What Triggers It | What Happens |
+|---------|-----------------|--------------|
+| **Curiosity** | High curiosity genes on both sides | They approach, sniff/inspect each other. Information exchange. |
+| **Friendship** | Compatible temperaments, repeated positive encounters | They develop a bond. Future encounters start warmer. Shared play. |
+| **Hostility** | Territorial species (Skael), stress, low health | Growling, posturing, possible attack. One may flee. |
+| **Mating** | Both adults, opposite or compatible genetics, high bond | Courtship ritual. If successful → egg with blended genome. |
+| **Indifference** | Low social need, sleeping, sick | They ignore each other entirely. |
+| **Fear** | Cub meeting an elder, sick creature meeting healthy one | One retreats. The other may follow or respect the distance. |
+
+### The Rules of Encounter
+
+1. **No player control** — you don't choose "attack" or "befriend." Your Kobara decides based on its personality, mood, health, and history with the other creature.
+2. **Species matters** — Moluun (social) approach readily. Skael (territorial) are cautious. Nyxal (analytical) observe first. Pylum (curious) investigate everything.
+3. **History is remembered** — if two Kobaras met before and fought, the next encounter starts tense. If they played together, it starts warm.
+4. **Consequences are real** — an attack can injure. Mating produces a real egg. Friendship affects mood for days.
+5. **Genetics influence offspring** — a mated pair produces an egg whose genome blends both parents, with mutation. The child inherits traits from both lineages.
+
+### The Mirror Bond in Encounters
+
+Because each Kobara mirrors its player's inner world, encounters between Kobaras are, in a sense, encounters between the players' spirits. A Kobara that is aggressive may be reflecting something in its player. A Kobara that is open and curious may be reflecting something else.
+
+The game never says this explicitly. But players will notice.
+
+---
+
+## Sensory Perception — How Kobaras Experience Their Player
+
+> *"It doesn't understand your words. It understands your presence."*
+
+A Kobara is not a chatbot. It doesn't parse language or follow commands. It is an animal — a resonance being — that perceives its player through a biological filter, the way a real animal perceives its human.
+
+### The Perception Layer
+
+Everything the Kobara "hears" and "sees" passes through its **kokoro-sac filter** — a perceptual layer that translates raw input into emotional resonance. The creature doesn't receive data. It receives *feeling*.
+
+| Input | What the Device Captures | What the Kobara Perceives |
+|-------|-------------------------|--------------------------|
+| **Voice** | Microphone audio | Not words — **tone**. Soft voice → comfort. Loud voice → stress. High pitch → excitement. Silence → loneliness. |
+| **Touch** | Screen taps and gestures | Gentle touch → affection. Rapid tapping → agitation. Long press → warmth. Swipe → play. |
+| **Presence** | Camera / face detection | Not identity — **presence**. Face visible → "my human is here." No face → "I'm alone." Proximity → comfort level. |
+| **Movement** | Accelerometer/gyroscope | Calm → the world is stable. Shaking → the world is unstable (stress). Walking rhythm → adventure. |
+| **Time** | Clock | How long since last interaction. A Kobara left alone for days will show it. |
+
+### What the Kobara Does NOT Understand
+
+- Specific words or language (it's not a voice assistant)
+- Written text on screen
+- The meaning of what you say — only how you say it
+- Complex commands ("go to sleep" means nothing — but a soft, low voice at night might trigger drowsiness)
+
+### What the Kobara DOES Understand
+
+- **Emotional tone** — joy, anger, calm, anxiety (from voice pitch, volume, rhythm)
+- **Physical presence** — "you're here" vs "you're gone" (camera, interaction frequency)
+- **Touch quality** — gentle vs rough, brief vs sustained
+- **Consistency** — a Kobara that receives regular, calm attention becomes confident. One that receives erratic, intense bursts becomes anxious.
+- **Routine** — creatures adapt to patterns. Feed at the same time daily and they'll expect it. Break the pattern and they notice.
+
+### Training Through Resonance
+
+You can't "teach" a Kobara to sit or fetch. But you can **shape its behavior through consistent emotional resonance**.
+
+- Petting after it eats → it associates feeding with comfort → eats more willingly
+- Playing when it's curious → curiosity is reinforced → it explores more
+- Ignoring distress calls → trust decreases → it becomes withdrawn
+- Speaking softly when it's agitated → it learns to calm down faster (resilience training)
+
+This isn't operant conditioning in the behavioral science sense. It's resonance adaptation — the kokoro-sac learns which emotional patterns lead to which outcomes. The neural network inside the creature adjusts its weights based on these associations.
+
+### The Uncanny Moment
+
+Players who spend enough time with their Kobara will experience what internal testers call "the uncanny moment" — the first time the creature does something that feels *too* accurate. It gets distressed when you're stressed. It calms down when you speak softly. It seems to know when you're about to leave.
+
+It doesn't know. It resonates. And the difference between those two things is smaller than you think.
+
+*This system requires device sensors (microphone, camera, accelerometer). Permissions are always explicit, processing is always on-device, and raw data is never stored or transmitted.*
+
+---
+
 ## Open Mysteries
 
 These are unresolved questions that may be explored in future updates:
@@ -384,6 +477,18 @@ Species-specific covering protects the body and mediates sensation:
 - **Scales** (Skael) — not true scales but mineralized skin plates interlocking like chainmail, anchored by collagen fibers. They grow continuously, shedding from the tail tip. Dull, uneven scales signal poor mineral intake — experienced caretakers can diagnose a Skael's health at a glance.
 - **Membrane** (Nyxal) — thin, permeable skin that allows gas exchange with water. Contains chromatophores for color-changing communication and bioluminescent cells concentrated at tentacle tips.
 
+### Fat Reserves
+
+Fat is the body's energy buffer — the bridge between nutrition and survival. A well-fed Kobara stores fat; when food becomes scarce, fat is burned before muscles begin to atrophy. This creates a visible progression of neglect: a healthy Kobara looks round and full, while a starving one becomes visibly thin before its muscles waste.
+
+Species differ in fat storage:
+- **Moluun** — moderate reserves, adapted for inconsistent forest foraging
+- **Pylum** — lean, minimal fat (weight impacts flight efficiency)
+- **Skael** — high reserves, fat insulates against the cold of deep caves
+- **Nyxal** — moderate fat, distributed for neutral buoyancy in deep water
+
+Fat also provides insulation against temperature changes — a fat Skael tolerates cave cold better than a lean one.
+
 ### Kokoro-Sac Integration
 
 The kokoro-sac — the resonance organ at the center of every Kobara — sits between lungs and heart, surrounded by the ribcage (or, in Nyxal, suspended in the mantle cavity). When ribcage integrity drops below 50%, the sac's resonance is physically dampened by structural instability. This manifests as reduced emotional responsiveness — happiness gains are reduced by approximately 20% until the ribcage heals.
@@ -417,16 +522,26 @@ Each Kobara has a vocal identity shaped by its species and age. Cubs sound high-
 
 **Nyxal** — alien and ethereal. Long, haunting drones that pulse with bioluminescent rhythm, electronic-sounding clicks for sonar navigation, and deep pressure waves felt rather than heard. In the Abyssal Depths, sound travels differently — Nyxal voices carry for kilometers through etharin-saturated water.
 
-### The Sounds of Growth
+### Vocal Learning — How Kobaras Find Their Voice
 
-A Kobara's voice is one of the clearest markers of its age:
+A Kobara is not born with a full voice. Like a human baby learning to speak, it starts with basic sounds — a content hum, a hunger call, a sleepy murmur — and gradually learns more through interaction with its caretaker.
+
+**How learning works:**
+- **Play** unlocks playful sounds — chirps, trills, excited vocalizations
+- **Feeding** unlocks satisfaction sounds — purrs, food requests
+- **Touch** unlocks trust sounds — pet responses, greeting calls
+- **Aging** unlocks wisdom sounds — deep drones only elders can produce
+
+A Pylum that plays constantly will develop a rich repertoire of playful trills before it learns food-related sounds. A Skael raised with lots of petting will develop trust vocalizations that a neglected Skael never discovers. The creature's voice is a record of how it was raised.
+
+**Genetic voice uniqueness**: each individual sounds slightly different due to genetics. The hue gene affects vocal pitch — two Moluun of the same age and experience will purr at subtly different frequencies. The resilience gene affects vocal intensity — a resilient creature is louder, more confident in its sounds.
 
 | Stage | Vocal Character |
 |-------|----------------|
-| Cub | High-pitched, simple sounds, limited repertoire |
-| Young | Voice deepening, new sounds emerging, more confidence |
-| Adult | Full vocal range, learned sounds from interaction |
-| Elder | Deep, slow, deliberate — fewer sounds but each carries meaning |
+| Cub | 3 basic sounds (hum, call, murmur). High-pitched. |
+| Young | 4-6 sounds. Voice deepening. First learned sounds emerging. |
+| Adult | 6-10+ sounds. Full range. Reflects interaction history. |
+| Elder | All sounds slower, deeper. Unlocks WisdomDrone — a sound only age can teach. |
 
 ### Biome Ambiance
 

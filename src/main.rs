@@ -9,6 +9,7 @@ mod mind;
 mod persistence;
 mod ui;
 mod visuals;
+mod web;
 mod world;
 
 use bevy::prelude::*;
@@ -22,7 +23,8 @@ use creature::{
     spawn::CreatureVisualsPlugin,
     touch::TouchPlugin,
 };
-use game::state::GameStatePlugin;
+use game::state::{AppState, GameStatePlugin};
+use web::WebPlugin;
 use mind::lifecycle::LifecyclePlugin;
 use mind::nutrition::NutritionPlugin;
 use mind::plugin::NeuralMindPlugin;
@@ -33,6 +35,8 @@ use ui::{
     auth_screen::AuthScreenPlugin,
     death_screen::DeathScreenPlugin,
     hud::StatsPlugin,
+    onboarding_screen::OnboardingScreenPlugin,
+    side_menu::SideMenuPlugin,
     title_screen::TitleScreenPlugin,
     vitals::VitalsPlugin,
 };
@@ -71,12 +75,14 @@ fn main() {
         .add_plugins(GameStatePlugin)
         // Retro font + palette (must load before UI plugins)
         .add_plugins(config::ui::RetroFontPlugin)
+        // Web API client (auth + creature sync)
+        .add_plugins(WebPlugin)
         // Persistence — loads (or creates) Genome and Mind resources
         .add_plugins(PersistencePlugin)
         // Camera
         .add_systems(Startup, setup_world)
         // Screen plugins (state-gated internally)
-        .add_plugins((TitleScreenPlugin, AuthScreenPlugin, DeathScreenPlugin))
+        .add_plugins((TitleScreenPlugin, AuthScreenPlugin, OnboardingScreenPlugin, DeathScreenPlugin))
         // Creature visuals — modular body part composition
         .add_plugins(CreatureVisualsPlugin)
         // World systems
@@ -84,7 +90,7 @@ fn main() {
         // Neural mind — learns owner interaction patterns
         .add_plugins((NeuralMindPlugin, NutritionPlugin))
         // UI plugins (gameplay)
-        .add_plugins((StatsPlugin, ActionsPlugin, VitalsPlugin))
+        .add_plugins((StatsPlugin, ActionsPlugin, VitalsPlugin, SideMenuPlugin))
         // Creature lifecycle — collection management + egg incubation + anatomy
         .add_plugins((MultiCreaturePlugin, EggPlugin, TouchPlugin, PreferencePlugin, SoundPlugin, LifecyclePlugin, AnatomyPlugin))
         // Physics — gravity, collision, buoyancy
@@ -93,7 +99,7 @@ fn main() {
         .add_plugins((EffectsPlugin, AnimationPlugin, EvolutionPlugin, AccessoriesPlugin, BackgroundPlugin))
         .add_plugins((BreathingPlugin, SpeciesBehaviorPlugin, ResonanceGlowPlugin, PixelCreaturePlugin))
         // Visual update systems
-        .add_systems(Update, (sync_mood_sprites, apply_genome_visuals));
+        .add_systems(Update, (sync_mood_sprites, apply_genome_visuals).run_if(in_state(AppState::Gameplay)));
 
     // Dev mode — only compiled with `cargo run --features dev`
     #[cfg(feature = "dev")]

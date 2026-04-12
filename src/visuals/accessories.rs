@@ -44,10 +44,10 @@ pub enum AccessoryKind {
     Crown,
 }
 
-/// Age thresholds matching evolution.rs growth stages.
-const CHILD_AGE: u64 = 500;
-const ADULT_AGE: u64 = 2000;
-const ELDER_AGE: u64 = 10000;
+/// Age thresholds from config — single source of truth for growth stages.
+const CHILD_AGE: u64 = crate::config::growth::CUB_MAX;
+const ADULT_AGE: u64 = crate::config::growth::YOUNG_MAX;
+const ELDER_AGE: u64 = crate::config::growth::ADULT_MAX;
 
 fn check_milestones(
     mind: Res<Mind>,

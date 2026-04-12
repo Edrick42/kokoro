@@ -21,3 +21,19 @@ pub mod circadian {
     pub const PREFERRED_BONUS: f32 = 1.5;
     pub const NON_PREFERRED_PENALTY: f32 = -1.0;
 }
+
+/// Preference learning system.
+pub mod preferences {
+    /// Minimum interactions before forming an opinion about a food.
+    pub const OPINION_THRESHOLD: u32 = 5;
+    /// Interactions before the opinion becomes strong (hard to change).
+    pub const STRONG_THRESHOLD: u32 = 10;
+    /// Ticks between preference checks.
+    pub const CHECK_INTERVAL: u64 = 30;
+}
+
+/// Reproduction.
+pub mod breeding {
+    /// Ticks between breeding attempts for the same pair.
+    pub const BREED_COOLDOWN: u64 = 60;
+}

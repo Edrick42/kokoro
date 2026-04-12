@@ -389,113 +389,111 @@ fn draw_cheats_panel(
     collection: Option<&mut CreatureCollection>,
     growth: Option<&mut GrowthState>,
 ) {
-    egui::CollapsingHeader::new("Cheats")
-        .default_open(false)
-        .show(ui, |ui| {
-            // --- Tick speed ---
-            ui.horizontal(|ui| {
-                ui.label("Speed:");
-                ui.add(egui::Slider::new(&mut dev_state.tick_speed, 0.5..=10.0).text("x"));
-            });
+    ui.heading("Cheats");
+    ui.separator();
 
-            ui.add_space(4.0);
+    // --- Tick speed ---
+    ui.horizontal(|ui| {
+        ui.label("Speed:");
+        ui.add(egui::Slider::new(&mut dev_state.tick_speed, 0.5..=10.0).text("x"));
+    });
 
-            // --- Growth stage selector ---
-            if let Some(growth) = growth {
-                ui.label("Growth stage:");
-                ui.horizontal(|ui| {
-                    let stages = [
-                        ("Cub", GrowthStage::Cub),
-                        ("Young", GrowthStage::Young),
-                        ("Adult", GrowthStage::Adult),
-                        ("Elder", GrowthStage::Elder),
-                    ];
-                    for (label, stage) in stages {
-                        let is_current = growth.stage == stage;
-                        let btn = egui::Button::new(label)
-                            .selected(is_current);
-                        if ui.add(btn).clicked() && !is_current {
-                            growth.stage = stage;
-                            growth.target_scale = stage.target_scale_pub();
-                        }
-                    }
-                });
-                ui.add_space(4.0);
-            }
+    ui.add_space(4.0);
 
-            if let Some(mind) = mind {
-                // --- Skip time ---
-                ui.horizontal(|ui| {
-                    if ui.button("Skip 1h").clicked() {
-                        mind.age_ticks += 3600;
-                    }
-                    if ui.button("Skip 1d").clicked() {
-                        mind.age_ticks += 86400;
-                    }
-                });
-
-                ui.add_space(4.0);
-
-                // --- Max stats ---
-                if ui.button("Max all stats").clicked() {
-                    mind.stats.hunger = 0.0;
-                    mind.stats.happiness = 100.0;
-                    mind.stats.energy = 100.0;
-                    mind.stats.health = 100.0;
-                    mind.pending_hunger = 0.0;
-                    mind.pending_happiness = 0.0;
-                    mind.pending_energy = 0.0;
-                }
-
-                ui.add_space(4.0);
-
-                // --- Force mood ---
-                ui.label("Force mood:");
-                ui.horizontal(|ui| {
-                    for (label, mood) in [
-                        ("Happy", MoodState::Happy),
-                        ("Hungry", MoodState::Hungry),
-                        ("Tired", MoodState::Tired),
-                    ] {
-                        if ui.small_button(label).clicked() {
-                            mind.mood = mood;
-                            mind.mood_cooldown = 15;
-                        }
-                    }
-                });
-                ui.horizontal(|ui| {
-                    for (label, mood) in [
-                        ("Lonely", MoodState::Lonely),
-                        ("Playful", MoodState::Playful),
-                        ("Sick", MoodState::Sick),
-                        ("Sleep", MoodState::Sleeping),
-                    ] {
-                        if ui.small_button(label).clicked() {
-                            mind.mood = mood;
-                            mind.mood_cooldown = 15;
-                        }
-                    }
-                });
-            }
-
-            ui.add_space(4.0);
-
-            // --- Hatch egg ---
-            if let Some(collection) = collection {
-                let idx = collection.active_index;
-                if let Some(creature) = collection.creatures.get_mut(idx) {
-                    if !creature.egg.hatched {
-                        if ui.button("Hatch egg now").clicked() {
-                            creature.egg.progress = 1.0;
-                            creature.egg.hatched = true;
-                            collection.visuals_dirty = true;
-                        }
-                        ui.label(format!(
-                            "Incubation: {:.0}%",
-                            creature.egg.progress * 100.0
-                        ));
-                    }
+    // --- Growth stage selector ---
+    if let Some(growth) = growth {
+        ui.label("Growth stage:");
+        ui.horizontal(|ui| {
+            for (label, stage) in [
+                ("Cub", GrowthStage::Cub),
+                ("Young", GrowthStage::Young),
+                ("Adult", GrowthStage::Adult),
+                ("Elder", GrowthStage::Elder),
+            ] {
+                let is_current = growth.stage == stage;
+                if ui.selectable_label(is_current, label).clicked() && !is_current {
+                    growth.stage = stage;
+                    growth.target_scale = stage.target_scale_pub();
                 }
             }
         });
+        ui.add_space(4.0);
+    }
+
+    if let Some(mind) = mind {
+        // --- Skip time ---
+        ui.horizontal(|ui| {
+            if ui.button("Skip 1h").clicked() {
+                mind.age_ticks += 3600;
+            }
+            if ui.button("Skip 1d").clicked() {
+                mind.age_ticks += 86400;
+            }
+        });
+
+        ui.add_space(4.0);
+
+        // --- Max stats ---
+        if ui.button("Max all stats").clicked() {
+            mind.stats.hunger = 0.0;
+            mind.stats.happiness = 100.0;
+            mind.stats.energy = 100.0;
+            mind.stats.health = 100.0;
+            mind.pending_hunger = 0.0;
+            mind.pending_happiness = 0.0;
+            mind.pending_energy = 0.0;
+        }
+
+        ui.add_space(4.0);
+
+        // --- Force mood ---
+        ui.label("Force mood:");
+        ui.horizontal(|ui| {
+            for (label, mood) in [
+                ("Happy", MoodState::Happy),
+                ("Hungry", MoodState::Hungry),
+                ("Tired", MoodState::Tired),
+            ] {
+                if ui.small_button(label).clicked() {
+                    mind.mood = mood;
+                    mind.mood_cooldown = 15;
+                }
+            }
+        });
+        ui.horizontal(|ui| {
+            for (label, mood) in [
+                ("Lonely", MoodState::Lonely),
+                ("Playful", MoodState::Playful),
+                ("Sick", MoodState::Sick),
+                ("Sleep", MoodState::Sleeping),
+            ] {
+                if ui.small_button(label).clicked() {
+                    mind.mood = mood;
+                    mind.mood_cooldown = 15;
+                }
+            }
+        });
+    }
+
+    ui.add_space(4.0);
+
+    // --- Hatch egg ---
+    if let Some(collection) = collection {
+        let idx = collection.active_index;
+        if let Some(creature) = collection.creatures.get_mut(idx) {
+            if !creature.egg.hatched {
+                if ui.button("Hatch egg now").clicked() {
+                    creature.egg.progress = 1.0;
+                    creature.egg.hatched = true;
+                    collection.visuals_dirty = true;
+                }
+                ui.label(format!(
+                    "Incubation: {:.0}%",
+                    creature.egg.progress * 100.0
+                ));
+            }
+        }
+    }
+
+    ui.separator();
 }

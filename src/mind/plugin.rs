@@ -25,17 +25,12 @@ use crate::mind::neural::{MLP, build_input, index_to_mood, mood_to_index};
 use crate::mind::training::{extract_samples, train_on_samples};
 use crate::persistence::plugin::DbConnection;
 
-/// How many ticks between neural network training sessions.
-const TRAIN_INTERVAL: u64 = 120;
-
-/// Minimum number of events needed before the NN starts influencing mood.
-const MIN_TRAINING_EVENTS: usize = 20;
-
-/// Maximum number of recent events to train on per session.
-const TRAIN_SAMPLE_LIMIT: usize = 200;
-
-/// Number of epochs per training session.
-const TRAIN_EPOCHS: usize = 5;
+// Neural training constants — sourced from config.
+use crate::config::timing::neural;
+const TRAIN_INTERVAL: u64 = neural::TRAIN_INTERVAL;
+const MIN_TRAINING_EVENTS: usize = neural::MIN_EVENTS;
+const TRAIN_SAMPLE_LIMIT: usize = neural::SAMPLE_LIMIT;
+const TRAIN_EPOCHS: usize = neural::EPOCHS;
 
 /// The creature's neural network, stored as a Bevy resource.
 #[derive(Resource)]

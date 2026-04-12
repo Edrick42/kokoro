@@ -16,13 +16,12 @@ use crate::genome::Genome;
 use crate::mind::Mind;
 use crate::mind::nutrition::is_preferred_food;
 
-/// Minimum feedings before an opinion forms.
-const OPINION_THRESHOLD: u32 = 5;
-/// Feedings before a strong preference (can refuse).
+// Preference constants — sourced from config.
+use crate::config::timing::preferences as pref_config;
+const OPINION_THRESHOLD: u32 = pref_config::OPINION_THRESHOLD;
 #[allow(dead_code)]
-const STRONG_THRESHOLD: u32 = 10;
-/// Ticks between preference checks.
-const CHECK_INTERVAL: u64 = 30;
+const STRONG_THRESHOLD: u32 = pref_config::STRONG_THRESHOLD;
+const CHECK_INTERVAL: u64 = pref_config::CHECK_INTERVAL;
 
 /// Memory of a specific food.
 #[derive(Debug, Clone, Serialize, Deserialize)]

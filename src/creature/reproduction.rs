@@ -27,7 +27,7 @@ pub struct BreedingState {
 }
 
 #[allow(dead_code)]
-const BREED_COOLDOWN: u64 = 60;
+const BREED_COOLDOWN: u64 = crate::config::timing::breeding::BREED_COOLDOWN;
 
 #[derive(Event)]
 #[allow(dead_code)]

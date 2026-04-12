@@ -56,6 +56,9 @@ impl GrowthStage {
         }
     }
 
+    #[allow(dead_code)]
+    pub fn target_scale_pub(&self) -> f32 { self.target_scale() }
+
     fn target_scale(&self) -> f32 {
         match self {
             GrowthStage::Cub  => config::growth::CUB_SCALE,

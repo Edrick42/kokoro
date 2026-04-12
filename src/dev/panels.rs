@@ -12,6 +12,7 @@ use crate::creature::physics::PhysicsBody;
 use crate::creature::species::CreatureRoot;
 use crate::genome::Genome;
 use crate::mind::{Mind, MoodState};
+use crate::visuals::evolution::{GrowthState, GrowthStage};
 use crate::mind::neural::{OUTPUT_SIZE, build_input, index_to_mood};
 use crate::mind::absence::AbsenceState;
 use crate::mind::plugin::NeuralMind;
@@ -28,6 +29,7 @@ pub fn dev_panels_system(
     neural: Option<Res<NeuralMind>>,
     absence: Option<Res<AbsenceState>>,
     mut collection: Option<ResMut<CreatureCollection>>,
+    mut growth: Option<ResMut<GrowthState>>,
     physics_q: Query<(&PhysicsBody, &BreathingState, &HeartbeatState), With<CreatureRoot>>,
     glow_q: Query<&ResonanceGlow>,
 ) {
@@ -68,6 +70,7 @@ pub fn dev_panels_system(
                         &mut dev_state,
                         mind.as_deref_mut(),
                         collection.as_deref_mut(),
+                        growth.as_deref_mut(),
                     );
                 }
             });
@@ -384,6 +387,7 @@ fn draw_cheats_panel(
     dev_state: &mut DevModeState,
     mind: Option<&mut Mind>,
     collection: Option<&mut CreatureCollection>,
+    growth: Option<&mut GrowthState>,
 ) {
     egui::CollapsingHeader::new("Cheats")
         .default_open(false)
@@ -395,6 +399,29 @@ fn draw_cheats_panel(
             });
 
             ui.add_space(4.0);
+
+            // --- Growth stage selector ---
+            if let Some(growth) = growth {
+                ui.label("Growth stage:");
+                ui.horizontal(|ui| {
+                    let stages = [
+                        ("Cub", GrowthStage::Cub),
+                        ("Young", GrowthStage::Young),
+                        ("Adult", GrowthStage::Adult),
+                        ("Elder", GrowthStage::Elder),
+                    ];
+                    for (label, stage) in stages {
+                        let is_current = growth.stage == stage;
+                        let btn = egui::Button::new(label)
+                            .selected(is_current);
+                        if ui.add(btn).clicked() && !is_current {
+                            growth.stage = stage;
+                            growth.target_scale = stage.target_scale_pub();
+                        }
+                    }
+                });
+                ui.add_space(4.0);
+            }
 
             if let Some(mind) = mind {
                 // --- Skip time ---

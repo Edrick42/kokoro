@@ -309,12 +309,19 @@ fn draw_eyes(img: &mut RgbaImage, cx: i32, ey: i32, size: i32, gap: i32, mood: &
 
 fn draw_egg_moluun(img: &mut RgbaImage, p: &Palette, cx: i32) {
     let cy = 30;
-    // Warm cream egg, slightly taller than wide
-    fill_ellipse(img, cx, cy, 12, 16, p.egg);
-    // Blue spots (hint of species color)
-    fill_circle(img, cx - 4, cy - 5, 3, p.egg_spot);
-    fill_circle(img, cx + 5, cy + 3, 2, p.egg_spot);
-    fill_circle(img, cx - 2, cy + 7, 2, p.egg_spot);
+    // Warm cream egg with soft bottom shadow
+    fill_ellipse(img, cx, cy, 13, 17, p.egg);
+    // Bottom shadow (slightly darker)
+    fill_ellipse(img, cx, cy + 8, 10, 5, fade(p.egg, 0.15));
+    // Blue-gray spots (hint of fur color, organic placement)
+    fill_circle(img, cx - 5, cy - 6, 3, p.egg_spot);
+    fill_circle(img, cx + 6, cy - 2, 3, p.egg_spot);
+    fill_circle(img, cx - 2, cy + 5, 2, p.egg_spot);
+    fill_circle(img, cx + 3, cy + 8, 2, p.egg_spot);
+    // Tiny crack near top (about to hatch feeling)
+    put(img, cx + 1, cy - 12, fade(p.egg, 0.3));
+    put(img, cx + 2, cy - 11, fade(p.egg, 0.3));
+    put(img, cx + 3, cy - 12, fade(p.egg, 0.3));
 }
 
 fn draw_egg_pylum(img: &mut RgbaImage, p: &Palette, cx: i32) {
@@ -372,25 +379,68 @@ fn draw_cub(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32) {
 fn draw_cub_moluun(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
     let by = 24;
     let br = 18;
+    let blush = Rgba([220, 150, 140, 255]);    // pink cheek marks
+    let ear_inner = Rgba([200, 160, 155, 255]); // ear interior pink
+    let highlight = Rgba([255, 255, 255, 200]); // eye shine
 
-    // Small round ears (signature Moluun feature, even as cub)
-    fill_circle(img, cx - 10, by - 14, 5, p.accent);
-    fill_circle(img, cx + 10, by - 14, 5, p.accent);
+    // Round ears with pink inner (cub: small but visible)
+    fill_circle(img, cx - 11, by - 14, 6, p.accent);
+    fill_circle(img, cx + 11, by - 14, 6, p.accent);
+    fill_circle(img, cx - 11, by - 14, 3, ear_inner);
+    fill_circle(img, cx + 11, by - 14, 3, ear_inner);
 
-    // Body
+    // Body — main round shape
     fill_circle(img, cx, by, br, p.body);
-    fill_circle(img, cx, by + 5, 12, p.body_light);
 
-    // Tiny stub feet
-    fill_rect(img, cx - 8, by + br - 3, 6, 5, p.body);
-    fill_rect(img, cx + 3, by + br - 3, 6, 5, p.body);
+    // Fur texture — scattered lighter pixels on body
+    for &(dx, dy) in &[(-8,-6), (7,-4), (-5,3), (9,1), (-3,-10), (6,7), (-9,5)] {
+        put(img, cx + dx, by + dy, p.accent);
+    }
 
-    // HUGE eyes (6x6)
-    draw_eyes(img, cx, by + 1, 6, 4, mood, p.eye);
+    // Belly — soft cream, slightly lower
+    fill_circle(img, cx, by + 6, 13, p.body_light);
 
-    // Tiny mouth
+    // Round stub feet with pads
+    fill_circle(img, cx - 7, by + br - 2, 5, p.body);
+    fill_circle(img, cx + 7, by + br - 2, 5, p.body);
+    // Tiny toe pads (3 circles per foot)
+    for dx in [-2, 0, 2] {
+        put(img, cx - 7 + dx, by + br + 2, p.accent);
+        put(img, cx + 7 + dx, by + br + 2, p.accent);
+    }
+
+    // HUGE eyes (6x6) — dominant cub feature
+    draw_eyes(img, cx, by, 6, 4, mood, p.eye);
+
+    // Eye highlights (sparkle — makes them look alive)
     if *mood != MoodState::Sleeping {
-        fill_rect(img, cx - 1, by + 10, 3, 2, p.mouth);
+        put(img, cx - 6, by, highlight);
+        put(img, cx - 5, by, highlight);
+        put(img, cx + 2, by, highlight);
+        put(img, cx + 3, by, highlight);
+    }
+
+    // Blush marks (pink cheek ovals — cub cuteness)
+    fill_rect(img, cx - 11, by + 5, 3, 2, blush);
+    fill_rect(img, cx + 9, by + 5, 3, 2, blush);
+
+    // Nose — small inverted triangle (koala-like)
+    let nose = Rgba([50, 35, 30, 255]); // dark warm brown
+    fill_rect(img, cx - 1, by + 7, 3, 2, nose);   // top row (wider)
+    put(img, cx, by + 9, nose);                      // bottom point
+
+    // Tiny mouth — only when awake
+    if *mood != MoodState::Sleeping {
+        put(img, cx - 1, by + 11, p.mouth);
+        put(img, cx + 1, by + 11, p.mouth);
+    }
+
+    // Happy mouth (smile curve — wider)
+    if *mood == MoodState::Happy || *mood == MoodState::Playful {
+        put(img, cx - 2, by + 11, p.mouth);
+        put(img, cx + 2, by + 11, p.mouth);
+        put(img, cx - 1, by + 12, p.mouth);
+        put(img, cx + 1, by + 12, p.mouth);
     }
 }
 
@@ -498,25 +548,65 @@ fn draw_young(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32)
 fn draw_young_moluun(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
     let by = 24;
     let br = 17;
+    let blush = Rgba([220, 150, 140, 255]);
+    let ear_inner = Rgba([200, 160, 155, 255]);
+    let highlight = Rgba([255, 255, 255, 200]);
 
-    // Small ear stubs (just emerging)
-    fill_circle(img, cx - 9, by - 12, 4, p.accent);
-    fill_circle(img, cx + 9, by - 12, 4, p.accent);
+    // Growing ears — bigger than cub, with pink inner
+    fill_circle(img, cx - 11, by - 13, 6, p.accent);
+    fill_circle(img, cx + 11, by - 13, 6, p.accent);
+    fill_circle(img, cx - 11, by - 13, 3, ear_inner);
+    fill_circle(img, cx + 11, by - 13, 3, ear_inner);
 
     // Body
     fill_circle(img, cx, by, br, p.body);
-    fill_circle(img, cx, by + 5, 11, p.body_light);
 
-    // Feet (slightly bigger than cub)
-    fill_rect(img, cx - 9, by + br - 4, 7, 6, p.body);
-    fill_rect(img, cx + 3, by + br - 4, 7, 6, p.body);
+    // Fur texture
+    for &(dx, dy) in &[(-7,-5), (6,-3), (-4,4), (8,2), (-2,-9), (5,6)] {
+        put(img, cx + dx, by + dy, p.accent);
+    }
 
-    // Eyes — 5x5 (slightly smaller than cub)
-    draw_eyes(img, cx, by + 2, 5, 4, mood, p.eye);
+    // Belly
+    fill_circle(img, cx, by + 5, 12, p.body_light);
+
+    // Feet — rounder, with visible pads
+    fill_circle(img, cx - 7, by + br - 1, 5, p.body);
+    fill_circle(img, cx + 7, by + br - 1, 5, p.body);
+    for dx in [-2, 0, 2] {
+        put(img, cx - 7 + dx, by + br + 3, p.accent);
+        put(img, cx + 7 + dx, by + br + 3, p.accent);
+    }
+
+    // Short arms emerging (new for young stage)
+    fill_rect(img, cx - br + 1, by + 1, 3, 5, p.body);
+    fill_rect(img, cx + br - 3, by + 1, 3, 5, p.body);
+
+    // Eyes — 5x5 (maturing)
+    draw_eyes(img, cx, by + 1, 5, 4, mood, p.eye);
+    if *mood != MoodState::Sleeping {
+        put(img, cx - 5, by + 1, highlight);
+        put(img, cx + 2, by + 1, highlight);
+    }
+
+    // Blush (softer than cub)
+    fill_rect(img, cx - 10, by + 5, 2, 2, blush);
+    fill_rect(img, cx + 9, by + 5, 2, 2, blush);
+
+    // Nose — inverted triangle
+    let nose = Rgba([50, 35, 30, 255]);
+    fill_rect(img, cx - 1, by + 7, 3, 2, nose);
+    put(img, cx, by + 9, nose);
 
     // Mouth
     if *mood != MoodState::Sleeping {
-        fill_rect(img, cx - 2, by + 10, 4, 2, p.mouth);
+        put(img, cx - 1, by + 11, p.mouth);
+        put(img, cx + 1, by + 11, p.mouth);
+    }
+    if *mood == MoodState::Happy || *mood == MoodState::Playful {
+        put(img, cx - 2, by + 11, p.mouth);
+        put(img, cx + 2, by + 11, p.mouth);
+        put(img, cx - 1, by + 12, p.mouth);
+        put(img, cx + 1, by + 12, p.mouth);
     }
 }
 
@@ -622,25 +712,76 @@ fn draw_adult(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32)
 fn draw_adult_moluun(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
     let by = 24;
     let br = 18;
+    let blush = Rgba([210, 145, 135, 255]);
+    let ear_inner = Rgba([200, 160, 155, 255]);
+    let highlight = Rgba([255, 255, 255, 200]);
 
-    // Full-sized ears
-    fill_circle(img, cx - 11, by - 14, 6, p.accent);
-    fill_circle(img, cx + 11, by - 14, 6, p.accent);
+    // Full-sized ears with detailed inner
+    fill_circle(img, cx - 12, by - 14, 7, p.accent);
+    fill_circle(img, cx + 12, by - 14, 7, p.accent);
+    fill_circle(img, cx - 12, by - 14, 4, ear_inner);
+    fill_circle(img, cx + 12, by - 14, 4, ear_inner);
 
     // Body
     fill_circle(img, cx, by, br, p.body);
-    fill_circle(img, cx, by + 5, 12, p.body_light);
 
-    // Sturdy feet
-    fill_rect(img, cx - 10, by + br - 4, 8, 7, p.body);
-    fill_rect(img, cx + 3, by + br - 4, 8, 7, p.body);
+    // Fur texture — denser for adult
+    for &(dx, dy) in &[(-8,-7), (7,-5), (-5,3), (9,1), (-3,-11), (6,7), (-10,5), (4,-8), (-6,9)] {
+        put(img, cx + dx, by + dy, p.accent);
+    }
 
-    // Eyes — 5x5 (mature, not as huge as cub)
-    draw_eyes(img, cx, by + 2, 5, 4, mood, p.eye);
+    // Belly — large, warm
+    fill_circle(img, cx, by + 5, 13, p.body_light);
+    // Belly fur detail
+    for &(dx, dy) in &[(-3, 2), (4, 3), (-1, 6), (2, 8)] {
+        put(img, cx + dx, by + 5 + dy, fade(p.body_light, 0.1));
+    }
 
-    // Mouth
+    // Arms (visible, resting at sides)
+    fill_rect(img, cx - br + 1, by - 1, 4, 8, p.body);
+    fill_rect(img, cx + br - 4, by - 1, 4, 8, p.body);
+    // Arm paws
+    fill_circle(img, cx - br + 2, by + 7, 2, p.accent);
+    fill_circle(img, cx + br - 2, by + 7, 2, p.accent);
+
+    // Sturdy round feet
+    fill_circle(img, cx - 8, by + br - 1, 6, p.body);
+    fill_circle(img, cx + 8, by + br - 1, 6, p.body);
+    // Toe pads
+    for dx in [-3, -1, 1, 3] {
+        put(img, cx - 8 + dx, by + br + 4, p.accent);
+        put(img, cx + 8 + dx, by + br + 4, p.accent);
+    }
+
+    // Eyes — 5x5, confident and calm
+    draw_eyes(img, cx, by + 1, 5, 4, mood, p.eye);
     if *mood != MoodState::Sleeping {
-        fill_rect(img, cx - 2, by + 10, 4, 2, p.mouth);
+        put(img, cx - 5, by + 1, highlight);
+        put(img, cx + 2, by + 1, highlight);
+    }
+
+    // Subtle blush
+    fill_rect(img, cx - 10, by + 5, 2, 2, blush);
+    fill_rect(img, cx + 9, by + 5, 2, 2, blush);
+
+    // Nose — inverted triangle (wider for adult)
+    let nose = Rgba([50, 35, 30, 255]);
+    fill_rect(img, cx - 2, by + 7, 5, 2, nose);   // top row (wide)
+    fill_rect(img, cx - 1, by + 9, 3, 1, nose);   // middle
+    put(img, cx, by + 10, nose);                     // bottom point
+
+    // Mouth — mood-expressive
+    if *mood == MoodState::Happy || *mood == MoodState::Playful {
+        // Smile: curved mouth
+        fill_rect(img, cx - 2, by + 11, 5, 1, p.mouth);
+        put(img, cx - 3, by + 10, p.mouth);
+        put(img, cx + 4, by + 10, p.mouth);
+    } else if *mood == MoodState::Hungry {
+        // Open mouth (wanting food)
+        fill_rect(img, cx - 1, by + 11, 3, 2, p.mouth);
+    } else if *mood != MoodState::Sleeping {
+        // Neutral
+        fill_rect(img, cx - 1, by + 11, 3, 1, p.mouth);
     }
 }
 
@@ -749,10 +890,20 @@ fn draw_elder(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32)
     match species {
         Species::Moluun => {
             draw_adult_moluun(img, &p, cx, mood);
-            // Wisdom marks — small light spots on forehead
-            put(img, cx - 3, 14, base_p.body_light);
-            put(img, cx + 2, 13, base_p.body_light);
-            put(img, cx, 12, base_p.body_light);
+            let by = 24;  // same as adult body center
+            let white = Rgba([230, 225, 215, 255]);
+            // Gray/white ear tips (aging fur)
+            fill_circle(img, cx - 12, by - 18, 3, white);
+            fill_circle(img, cx + 12, by - 18, 3, white);
+            // Wisdom marks — three dots on forehead
+            put(img, cx - 2, 13, white);
+            put(img, cx + 1, 12, white);
+            put(img, cx + 3, 14, white);
+            // White whisker dots on cheeks
+            put(img, cx - 10, by + 3, white);
+            put(img, cx - 11, by + 5, white);
+            put(img, cx + 10, by + 3, white);
+            put(img, cx + 11, by + 5, white);
         }
         Species::Pylum => {
             draw_adult_pylum(img, &p, cx, mood);

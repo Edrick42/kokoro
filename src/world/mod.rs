@@ -1,6 +1,7 @@
 //! World setup — spawns the camera and any static scene elements.
 
 pub mod daycycle;
+pub mod environment;
 pub mod time_tick;
 
 use bevy::prelude::*;

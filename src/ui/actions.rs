@@ -25,7 +25,7 @@ use super::style::*;
 // ===================================================================
 
 #[derive(Component, Clone, Copy)]
-enum ActionKind { Feed, Play, Sleep }
+enum ActionKind { Feed, Play, Sleep, Clean, Ability }
 
 #[derive(Component, Clone, Copy)]
 struct FoodBtn(FoodType);
@@ -90,7 +90,7 @@ impl Plugin for ActionsPlugin {
 // Setup
 // ===================================================================
 
-fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>, pixel_font: Res<crate::config::ui::PixelFont>) {
+fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>, pixel_font: Res<crate::config::ui::PixelFont>, genome: Res<Genome>) {
     let font_lg = TextFont { font: pixel_font.0.clone(), font_size: fonts::LG, ..default() };
     let font_sm = TextFont { font: pixel_font.0.clone(), font_size: fonts::SM, ..default() };
     let font_md = TextFont { font: pixel_font.0.clone(), font_size: fonts::MD, ..default() };
@@ -168,6 +168,14 @@ fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>, pixel_font
             spawn_action_btn(row, &font_md, ActionKind::Feed,  "Feed");
             spawn_action_btn(row, &font_md, ActionKind::Play,  "Play");
             spawn_action_btn(row, &font_md, ActionKind::Sleep, "Sleep");
+            // Clean button
+            let clean_label = crate::mind::hygiene::clean_action_name(&genome.species);
+            spawn_action_btn(row, &font_md, ActionKind::Clean, clean_label);
+            // Ability button (only for active abilities)
+            let ability_kind = crate::creature::abilities::AbilityKind::for_species(&genome.species);
+            if !ability_kind.is_passive() {
+                spawn_action_btn(row, &font_md, ActionKind::Ability, ability_kind.label());
+            }
         });
 
     });
@@ -364,6 +372,9 @@ fn handle_action_press(
     db: Res<DbConnection>,
     collection: Res<CreatureCollection>,
     mut egg_events: EventWriter<EggTapEvent>,
+    mut reaction_events: EventWriter<crate::creature::reactions::CreatureReaction>,
+    mut clean_events: EventWriter<crate::mind::hygiene::CleanEvent>,
+    mut ability_events: EventWriter<crate::creature::abilities::ActivateAbilityEvent>,
     mut state: ResMut<MenuState>,
     bank: Res<crate::audio::SoundBank>,
     mut commands: Commands,
@@ -384,6 +395,7 @@ fn handle_action_press(
                 mind.play(&genome);
                 state.food_expanded = false;
                 play_action_sound(&bank, crate::audio::ActionSound::Play, &mut commands);
+                reaction_events.write(crate::creature::reactions::CreatureReaction::PlayStart);
                 let payload = build_event_payload(&mind.stats, &mind.mood, "played");
                 let conn = db.0.lock().expect("DB lock poisoned");
                 let _ = save::log_event(&conn, mind.age_ticks, "played", Some(&payload));
@@ -392,9 +404,21 @@ fn handle_action_press(
                 mind.sleep(&genome);
                 state.food_expanded = false;
                 play_action_sound(&bank, crate::audio::ActionSound::Sleep, &mut commands);
+                reaction_events.write(crate::creature::reactions::CreatureReaction::FallingAsleep);
                 let payload = build_event_payload(&mind.stats, &mind.mood, "slept");
                 let conn = db.0.lock().expect("DB lock poisoned");
                 let _ = save::log_event(&conn, mind.age_ticks, "slept", Some(&payload));
+            }
+            ActionKind::Clean => {
+                state.food_expanded = false;
+                clean_events.write(crate::mind::hygiene::CleanEvent);
+                let payload = build_event_payload(&mind.stats, &mind.mood, "cleaned");
+                let conn = db.0.lock().expect("DB lock poisoned");
+                let _ = save::log_event(&conn, mind.age_ticks, "cleaned", Some(&payload));
+            }
+            ActionKind::Ability => {
+                state.food_expanded = false;
+                ability_events.write(crate::creature::abilities::ActivateAbilityEvent);
             }
         }
     }
@@ -407,7 +431,9 @@ fn handle_food_press(
     db: Res<DbConnection>,
     collection: Res<CreatureCollection>,
     mut egg_events: EventWriter<EggTapEvent>,
+    mut reaction_events: EventWriter<crate::creature::reactions::CreatureReaction>,
     mut nutrient_q: Query<&mut crate::mind::nutrition::NutrientState, With<crate::creature::species::CreatureRoot>>,
+    pref_q: Query<&crate::mind::preferences::PreferenceMemory, With<crate::creature::species::CreatureRoot>>,
     bank: Res<crate::audio::SoundBank>,
     mut commands: Commands,
 ) {
@@ -419,11 +445,31 @@ fn handle_food_press(
         if is_egg { egg_events.write(EggTapEvent); continue; }
 
         let food = food_btn.0;
+        let preferred = food.is_native_for(&genome.species);
+
+        // Check if creature refuses this food (disliked after many feedings)
+        let refuses = pref_q.iter().next()
+            .map(|prefs| prefs.will_refuse(&food))
+            .unwrap_or(false);
+
+        if refuses {
+            // Creature refuses! Visual reaction but no feeding
+            reaction_events.write(crate::creature::reactions::CreatureReaction::RefusingFood);
+            continue;
+        }
+
+        // Feed: nutrients + stats
         if let Ok(mut nutrients) = nutrient_q.single_mut() {
             nutrients.add_food(&food.nutrients());
         }
         mind.feed(&genome, &food);
         play_action_sound(&bank, crate::audio::ActionSound::Eat, &mut commands);
+
+        // Fire reaction event — creature visually reacts!
+        reaction_events.write(crate::creature::reactions::CreatureReaction::Eating {
+            food,
+            preferred,
+        });
 
         let payload = build_event_payload(&mind.stats, &mind.mood, &format!("fed:{}", food.event_key()));
         let conn = db.0.lock().expect("DB lock poisoned");

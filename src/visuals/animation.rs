@@ -1,7 +1,7 @@
 //! Basic creature animations.
 //!
 //! With the pixel art renderer, eye blink and mood sprite swaps are handled
-//! directly by the pixel_creature system. This module is kept for future
+//! directly by the skin system. This module is kept for future
 //! animation systems (walk cycles, emotes, etc.).
 
 use bevy::prelude::*;

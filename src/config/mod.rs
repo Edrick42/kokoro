@@ -17,6 +17,10 @@ pub mod slots;
 pub mod anatomy;
 pub mod audio;
 pub mod shop;
+pub mod abilities;
+pub mod disease;
+pub mod environment;
+pub mod hygiene;
 pub mod ui;
 
 // Re-export at top level so existing `crate::config::X` paths keep working.

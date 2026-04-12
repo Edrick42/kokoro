@@ -1,4 +1,10 @@
+#[allow(dead_code, unused_imports, unused_variables)]
+pub mod abilities;
 pub mod anatomy;
+#[allow(dead_code)]
+pub mod pose;
+#[allow(dead_code)]
+pub mod reactions;
 pub mod collection;
 pub mod egg;
 pub mod physics;

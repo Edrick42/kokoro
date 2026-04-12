@@ -10,6 +10,7 @@
 //! muscle weakens → energy costs rise → creature suffers.
 //! Good care reverses the cycle gradually.
 
+pub mod fat;
 pub mod skeleton;
 pub mod muscles;
 pub mod joints;
@@ -23,11 +24,11 @@ use serde::{Deserialize, Serialize};
 use crate::game::state::AppState;
 
 use crate::config::anatomy as cfg;
+pub use self::fat::FatReserve;
 use self::skeleton::{Skeleton, SkeletonType};
 use self::muscles::MuscleSystem;
 use self::joints::JointSystem;
 use self::skin::SkinLayer;
-
 
 /// Complete anatomy state for one creature.
 #[derive(Resource, Debug, Clone, Serialize, Deserialize)]
@@ -37,25 +38,6 @@ pub struct AnatomyState {
     pub joints: JointSystem,
     pub skin: SkinLayer,
     pub fat: FatReserve,
-}
-
-/// Fat reserve — energy storage and body insulation.
-///
-/// Fat acts as a buffer between nutrition and energy:
-/// - Well-fed creatures build fat reserves
-/// - When hungry, fat is burned before muscles atrophy
-/// - Fat level affects body visual (rounder when high, thinner when low)
-/// - Insulation protects against temperature changes
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FatReserve {
-    /// Current fat level (0.0 = emaciated, 1.0 = maximum reserve).
-    pub level: f32,
-    /// Rate at which fat is consumed when hungry (species-dependent).
-    pub burn_rate: f32,
-    /// Rate at which fat is stored when well-fed.
-    pub store_rate: f32,
-    /// Insulation factor — higher fat = better temperature regulation.
-    pub insulation: f32,
 }
 
 /// Bevy plugin — registers the anatomy tick system.

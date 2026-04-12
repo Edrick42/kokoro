@@ -86,16 +86,68 @@ impl NutrientState {
     }
 }
 
-/// Whether a food is preferred by a species (matches their biome).
+/// Whether a food is from the creature's home biome.
 pub fn is_preferred_food(species: &crate::genome::Species, food: &FoodType) -> bool {
-    use crate::genome::Species;
-    matches!(
-        (species, food),
-        (Species::Moluun, FoodType::VerdanceBerry) |
-        (Species::Pylum,  FoodType::ThermalSeed) |
-        (Species::Skael,  FoodType::CaveCrustacean) |
-        (Species::Nyxal,  FoodType::BiolumPlankton)
-    )
+    food.is_native_for(species)
+}
+
+/// Result of feeding a creature — includes special effect info.
+pub struct FeedResult {
+    pub happiness_bonus: f32,
+    pub special_applied: bool,
+    /// Warmth buff to apply to EnvironmentState (from warming foods).
+    pub warmth_buff: f32,
+    /// Biolum boost to apply to skin glow (from biolum foods).
+    pub biolum_boost: f32,
+}
+
+/// Feed a creature: apply nutrients, biome preference bonus, and special effects.
+pub fn feed_creature(
+    nutrients: &mut NutrientState,
+    mind: &mut Mind,
+    species: &crate::genome::Species,
+    food: &FoodType,
+) -> FeedResult {
+    use crate::config::nutrition::{self as cfg, SpecialEffect};
+
+    // Apply base nutrients
+    nutrients.add_food(&food.nutrients());
+
+    // Biome preference bonus
+    let happiness = if food.is_native_for(species) {
+        cfg::PREFERRED_FOOD_HAPPINESS
+    } else {
+        cfg::BASE_FEED_HAPPINESS + cfg::FOREIGN_FOOD_PENALTY
+    };
+    mind.stats.happiness = (mind.stats.happiness + happiness).clamp(0.0, 100.0);
+
+    // Special effects
+    let mut special_applied = false;
+    if let Some(effect) = food.special_effect() {
+        special_applied = true;
+        match effect {
+            SpecialEffect::Healing(amount) => {
+                mind.stats.health = (mind.stats.health + amount).min(100.0);
+            }
+            SpecialEffect::BoneStrength(_factor) => {
+                // Stored for anatomy tick to read — boosts mineral → bone repair rate
+                // (wired in Phase 10B)
+            }
+            SpecialEffect::MoodBoost(amount) => {
+                mind.stats.happiness = (mind.stats.happiness + amount).min(100.0);
+            }
+            SpecialEffect::BiolumBoost(intensity) => {
+                // Caller applies to skin glow
+                return FeedResult { happiness_bonus: happiness, special_applied: true, warmth_buff: 0.0, biolum_boost: intensity };
+            }
+            SpecialEffect::Warming(heat) => {
+                // Caller applies to EnvironmentState
+                return FeedResult { happiness_bonus: happiness, special_applied: true, warmth_buff: heat, biolum_boost: 0.0 };
+            }
+        }
+    }
+
+    FeedResult { happiness_bonus: happiness, special_applied, warmth_buff: 0.0, biolum_boost: 0.0 }
 }
 
 pub struct NutritionPlugin;

@@ -27,8 +27,13 @@ use bevy::prelude::Resource;
 use serde::{Deserialize, Serialize};
 
 pub mod absence;
+#[allow(dead_code)]
+pub mod disease;
+#[allow(dead_code)]
+pub mod hygiene;
 pub mod lifecycle;
 pub mod neural;
+#[allow(dead_code)]
 pub mod nutrition;
 pub mod plugin;
 pub mod preferences;

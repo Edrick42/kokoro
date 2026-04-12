@@ -1,14 +1,14 @@
-//! Runtime pixel art creature renderer.
+//! Creature skin renderer — the visible surface of every Kobara.
 //!
-//! Draws creatures directly to a 64x64 pixel buffer and displays
-//! as a scaled-up sprite. No pre-made PNGs — the creature IS the pixels.
-//!
+//! Draws creatures to a 64x64 pixel buffer, scaled 5x for display.
 //! Species-specific drawing lives in submodules (one per species).
+//! Anatomy data (skeleton, muscles, fat, skin) drives visual parameters.
 
 pub mod moluun;
+pub mod nyxal;
+pub mod params;
 pub mod pylum;
 pub mod skael;
-pub mod nyxal;
 
 use bevy::prelude::*;
 use bevy::image::ImageSampler;
@@ -18,28 +18,33 @@ use image::{RgbaImage, Rgba};
 type BevyImage = Image;
 
 use crate::game::state::AppState;
+use crate::creature::anatomy::AnatomyState;
+use crate::creature::pose::PoseState;
+use crate::creature::reactions::ExpressionOverride;
 use crate::creature::species::CreatureRoot;
 use crate::genome::{Genome, Species};
 use crate::mind::{Mind, MoodState};
 use crate::visuals::evolution::{GrowthState, GrowthStage};
+
+use params::SkinParams;
 
 const CANVAS_W: u32 = 64;
 const CANVAS_H: u32 = 64;
 const DISPLAY_SCALE: f32 = 5.0;
 
 #[derive(Component)]
-pub struct PixelCreature;
+pub struct CreatureSkin;
 
 #[derive(Component)]
-pub struct HasPixelCreature;
+pub struct HasCreatureSkin;
 
-pub struct PixelCreaturePlugin;
+pub struct SkinPlugin;
 
-impl Plugin for PixelCreaturePlugin {
+impl Plugin for SkinPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (attach_pixel_creature, update_pixel_creature)
+            (attach_skin, update_skin)
                 .chain()
                 .run_if(in_state(AppState::Gameplay)),
         );
@@ -50,30 +55,36 @@ impl Plugin for PixelCreaturePlugin {
 // SYSTEMS
 // ===================================================================
 
-fn attach_pixel_creature(
+fn attach_skin(
     mut commands: Commands,
     mut images: ResMut<Assets<BevyImage>>,
-    query: Query<Entity, (With<CreatureRoot>, Without<HasPixelCreature>)>,
+    query: Query<Entity, (With<CreatureRoot>, Without<HasCreatureSkin>)>,
     genome: Res<Genome>,
     mind: Res<Mind>,
     growth: Res<GrowthState>,
+    anatomy: Option<Res<AnatomyState>>,
+    pose: Res<PoseState>,
+    expression: Res<ExpressionOverride>,
 ) {
     for entity in query.iter() {
-        let handle = create_pixel_creature_image(&mut images);
+        let handle = create_skin_texture(&mut images);
 
         if let Some(image) = images.get_mut(&handle) {
             let mut buf = RgbaImage::new(CANVAS_W, CANVAS_H);
-            draw_creature(&mut buf, &genome.species, &mind.mood, &growth.stage);
+            let sp = anatomy.as_ref()
+                .map(|a| SkinParams::from_anatomy(a, &genome.species, &growth.stage))
+                .unwrap_or_else(SkinParams::healthy_default);
+            draw_creature(&mut buf, &genome.species, &mind.mood, &growth.stage, &sp, &pose, &expression);
             if let Some(ref mut data) = image.data {
                 data.copy_from_slice(buf.as_raw());
             }
         }
 
-        info!("Attaching pixel creature to entity {:?}", entity);
-        commands.entity(entity).insert(HasPixelCreature);
+        info!("Attaching skin to entity {:?}", entity);
+        commands.entity(entity).insert(HasCreatureSkin);
 
         commands.entity(entity).with_child((
-            PixelCreature,
+            CreatureSkin,
             Sprite {
                 image: handle,
                 custom_size: Some(Vec2::new(
@@ -87,12 +98,15 @@ fn attach_pixel_creature(
     }
 }
 
-fn update_pixel_creature(
+fn update_skin(
     genome: Res<Genome>,
     mind: Res<Mind>,
     growth: Res<GrowthState>,
+    anatomy: Option<Res<AnatomyState>>,
+    pose: Res<PoseState>,
+    expression: Res<ExpressionOverride>,
     mut images: ResMut<Assets<BevyImage>>,
-    creature_q: Query<&Sprite, With<PixelCreature>>,
+    creature_q: Query<&Sprite, With<CreatureSkin>>,
     mut pixel_buf: Local<Option<RgbaImage>>,
 ) {
     if pixel_buf.is_none() {
@@ -100,11 +114,16 @@ fn update_pixel_creature(
     }
     let buf = pixel_buf.as_mut().unwrap();
 
-    if !mind.is_changed() && !genome.is_changed() && !growth.is_changed() {
+    let anatomy_changed = anatomy.as_ref().map_or(false, |a| a.is_changed());
+    if !mind.is_changed() && !genome.is_changed() && !growth.is_changed()
+        && !anatomy_changed && !pose.is_changed() && !expression.is_changed() {
         return;
     }
 
-    draw_creature(buf, &genome.species, &mind.mood, &growth.stage);
+    let sp = anatomy.as_ref()
+        .map(|a| SkinParams::from_anatomy(a, &genome.species, &growth.stage))
+        .unwrap_or_else(SkinParams::healthy_default);
+    draw_creature(buf, &genome.species, &mind.mood, &growth.stage, &sp, &pose, &expression);
 
     for sprite in creature_q.iter() {
         if let Some(image) = images.get_mut(&sprite.image) {
@@ -203,7 +222,18 @@ pub fn fade(c: Rgba<u8>, amount: f32) -> Rgba<u8> {
 // MAIN DRAW DISPATCH
 // ===================================================================
 
-fn draw_creature(img: &mut RgbaImage, species: &Species, mood: &MoodState, stage: &GrowthStage) {
+/// Computed pixel offsets from skeletal pose — passed to draw functions.
+#[allow(dead_code)]
+pub struct PoseOffsets {
+    /// Head horizontal shift (from neck angle).
+    pub head_dx: i32,
+    /// Head vertical dip (from neck angle).
+    pub head_dy: i32,
+    /// Tail horizontal swing.
+    pub tail_dx: i32,
+}
+
+fn draw_creature(img: &mut RgbaImage, species: &Species, mood: &MoodState, stage: &GrowthStage, sp: &SkinParams, pose: &PoseState, expr: &ExpressionOverride) {
     let cx = img.width() as i32 / 2;
 
     // Clear canvas
@@ -211,25 +241,62 @@ fn draw_creature(img: &mut RgbaImage, species: &Species, mood: &MoodState, stage
         *pixel = Rgba([0, 0, 0, 0]);
     }
 
+    // Compute pixel offsets from pose joint angles
+    let neck = pose.angle("neck");
+    let tail = pose.angle("tail");
+    let offsets = PoseOffsets {
+        head_dx: (neck.to_radians().sin() * 4.0) as i32,
+        head_dy: (neck.to_radians().sin().abs() * 2.0) as i32,
+        tail_dx: (tail.to_radians().sin() * 3.0) as i32,
+    };
+
+    // Override mood for expression if active
+    let effective_mood = if expr.is_active() {
+        // Map expression override to a temporary mood for eye/mouth rendering
+        match (expr.eyes, expr.mouth) {
+            (2, _)  => MoodState::Sleeping,  // half-closed eyes → sleeping look
+            (1, 2)  => MoodState::Playful,   // wide eyes + big smile → playful
+            (-1, _) => MoodState::Sick,      // squint → sick look
+            (_, 1)  => MoodState::Hungry,    // mouth open → hungry look
+            _       => mood.clone(),
+        }
+    } else {
+        mood.clone()
+    };
+
+    // Body shifts opposite to head (natural counterbalance)
+    let body_dx = -offsets.head_dx / 2;
+
     match stage {
-        GrowthStage::Cub   => draw_cub(img, species, mood, cx),
-        GrowthStage::Young => draw_young(img, species, mood, cx),
-        GrowthStage::Adult => draw_adult(img, species, mood, cx),
-        GrowthStage::Elder => draw_elder(img, species, mood, cx),
+        GrowthStage::Egg   => draw_egg(img, species),
+        GrowthStage::Cub   => draw_cub(img, species, &effective_mood, cx + offsets.head_dx, sp),
+        GrowthStage::Young => draw_young(img, species, &effective_mood, cx + offsets.head_dx + body_dx, sp),
+        GrowthStage::Adult => draw_adult(img, species, &effective_mood, cx + offsets.head_dx + body_dx, sp),
+        GrowthStage::Elder => draw_elder(img, species, &effective_mood, cx + offsets.head_dx + body_dx, sp),
     }
 }
 
-fn draw_cub(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32) {
+fn draw_cub(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32, sp: &SkinParams) {
     let p = palette(species);
+    // Cubs: fat affects belly size slightly (baby fat)
+    let belly_mod = 0.8 + sp.belly * 0.4; // 0.8 to 1.2
     match species {
         Species::Moluun => moluun::draw_cub(img, &p, cx, mood),
         Species::Pylum  => pylum::draw_cub(img, &p, cx, mood),
         Species::Skael  => skael::draw_cub(img, &p, cx, mood),
         Species::Nyxal  => nyxal::draw_cub(img, &p, cx, mood),
     }
+    // Overlay: belly modulated by fat (draw extra belly pixels if fat)
+    if belly_mod > 1.05 {
+        let extra = ((belly_mod - 1.0) * 6.0) as i32;
+        let belly_color = fade(p.body_light, 0.05);
+        for dx in -extra..=extra {
+            put(img, cx + dx, 38, belly_color);
+        }
+    }
 }
 
-fn draw_young(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32) {
+fn draw_young(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32, sp: &SkinParams) {
     let p = palette(species);
     match species {
         Species::Moluun => moluun::draw_young(img, &p, cx, mood),
@@ -237,9 +304,18 @@ fn draw_young(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32)
         Species::Skael  => skael::draw_young(img, &p, cx, mood),
         Species::Nyxal  => nyxal::draw_young(img, &p, cx, mood),
     }
+    // Fat overlay: wider belly when well-fed
+    if sp.belly > 0.6 {
+        let extra = ((sp.belly - 0.5) * 8.0) as i32;
+        let belly_color = fade(p.body_light, 0.05);
+        for dx in -extra..=extra {
+            put(img, cx + dx, 38, belly_color);
+            put(img, cx + dx, 39, belly_color);
+        }
+    }
 }
 
-fn draw_adult(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32) {
+fn draw_adult(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32, sp: &SkinParams) {
     let p = palette(species);
     match species {
         Species::Moluun => moluun::draw_adult(img, &p, cx, mood),
@@ -247,9 +323,34 @@ fn draw_adult(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32)
         Species::Skael  => skael::draw_adult(img, &p, cx, mood),
         Species::Nyxal  => nyxal::draw_adult(img, &p, cx, mood),
     }
+    // Fat affects adult body visibly: wider body when bulk > 1.0, thinner when < 0.9
+    let bulk_extra = ((sp.bulk - 1.0) * 10.0) as i32; // -3 to +3 px
+    if bulk_extra != 0 {
+        let color = if bulk_extra > 0 { fade(p.body, 0.05) } else { Rgba([0, 0, 0, 0]) };
+        let body_y = 30; // approximate adult body center
+        for dy in -5..=5 {
+            if bulk_extra > 0 {
+                // Fat: add extra body pixels on both sides
+                for i in 0..bulk_extra {
+                    put(img, cx - 17 - i, body_y + dy, color);
+                    put(img, cx + 17 + i, body_y + dy, color);
+                }
+            }
+            // Thin: handled by vitality color fade (already in SkinParams)
+        }
+    }
+    // Belly size from fat
+    if sp.belly > 0.6 {
+        let belly_extra = ((sp.belly - 0.5) * 6.0) as i32;
+        let belly_color = fade(p.body_light, 0.08);
+        for dx in -belly_extra..=belly_extra {
+            put(img, cx + dx, 42, belly_color);
+            put(img, cx + dx, 43, belly_color);
+        }
+    }
 }
 
-fn draw_elder(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32) {
+fn draw_elder(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32, _sp: &SkinParams) {
     let p = elder_palette(species);
     let base_p = palette(species);
 
@@ -345,7 +446,7 @@ pub fn draw_eyes(img: &mut RgbaImage, cx: i32, ey: i32, size: i32, gap: i32, moo
 // IMAGE CREATION
 // ===================================================================
 
-pub fn create_pixel_creature_image(images: &mut Assets<BevyImage>) -> Handle<BevyImage> {
+pub fn create_skin_texture(images: &mut Assets<BevyImage>) -> Handle<BevyImage> {
     let mut image = BevyImage::new_fill(
         Extent3d {
             width: CANVAS_W,

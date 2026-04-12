@@ -13,6 +13,12 @@ use crate::creature::species::CreatureRoot;
 use crate::genome::Genome;
 use crate::mind::{Mind, MoodState};
 use crate::visuals::evolution::{GrowthState, GrowthStage};
+use crate::creature::anatomy::AnatomyState;
+use crate::creature::pose::PoseState;
+use crate::creature::reactions::ExpressionOverride;
+use crate::mind::hygiene::HygieneState;
+use crate::mind::disease::DiseaseState;
+use crate::world::environment::EnvironmentState;
 use crate::mind::neural::{OUTPUT_SIZE, build_input, index_to_mood};
 use crate::mind::absence::AbsenceState;
 use crate::mind::plugin::NeuralMind;
@@ -30,8 +36,14 @@ pub fn dev_panels_system(
     absence: Option<Res<AbsenceState>>,
     mut collection: Option<ResMut<CreatureCollection>>,
     mut growth: Option<ResMut<GrowthState>>,
-    physics_q: Query<(&PhysicsBody, &BreathingState, &HeartbeatState), With<CreatureRoot>>,
-    glow_q: Query<&ResonanceGlow>,
+    pose: Option<Res<PoseState>>,
+    expression: Option<Res<ExpressionOverride>>,
+    mut reaction_events: EventWriter<crate::creature::reactions::CreatureReaction>,
+    anatomy: Option<Res<AnatomyState>>,
+    hygiene: Option<Res<HygieneState>>,
+    disease: Option<Res<DiseaseState>>,
+    environment: Option<Res<EnvironmentState>>,
+    physics_q: Query<(&PhysicsBody, &BreathingState, &HeartbeatState, &ResonanceGlow), With<CreatureRoot>>,
 ) {
     let Ok(ctx) = contexts.ctx_mut() else { return };
 
@@ -62,8 +74,115 @@ pub fn dev_panels_system(
                     draw_neural_panel(ui, neural.as_deref(), mind.as_deref(), genome.as_deref());
                 }
                 if dev_state.show_physics {
-                    draw_physics_panel(ui, &physics_q, &glow_q, absence.as_deref());
+                    draw_physics_panel(ui, &physics_q, absence.as_deref());
                 }
+                // Biology panel
+                ui.collapsing("Biology", |ui| {
+                    if let Some(ref anat) = anatomy {
+                        ui.label(format!("Bone health: {:.0}%", anat.skeleton.bone_health * 100.0));
+                        ui.label(format!("Muscle cond: {:.0}%", anat.muscles.condition * 100.0));
+                        ui.label(format!("Fat level: {:.0}%", anat.fat.level * 100.0));
+                        ui.label(format!("Skin integ: {:.0}%", anat.skin.integrity * 100.0));
+                        ui.label(format!("Skin hydra: {:.0}%", anat.skin.hydration * 100.0));
+                        ui.label(format!("Avg flex: {:.0}%", anat.avg_flexibility() * 100.0));
+                        ui.label(format!("Avg fatigue: {:.0}%", anat.avg_fatigue() * 100.0));
+                    }
+                    if let Some(ref hyg) = hygiene {
+                        ui.separator();
+                        let color = if hyg.level < 30.0 { egui::Color32::RED } else { egui::Color32::GREEN };
+                        ui.colored_label(color, format!("Hygiene: {:.0}", hyg.level));
+                    }
+                    if let Some(ref dis) = disease {
+                        if dis.is_sick() {
+                            ui.separator();
+                            for c in &dis.conditions {
+                                ui.colored_label(
+                                    egui::Color32::RED,
+                                    format!("{}: {}t left", c.condition.label(), c.remaining_ticks),
+                                );
+                            }
+                        }
+                    }
+                    if let Some(ref env) = environment {
+                        ui.separator();
+                        ui.label(format!("Temp: {:.1}°C", env.temperature));
+                        if env.warmth_buff > 0.0 {
+                            ui.label(format!("Warmth buff: +{:.1}", env.warmth_buff));
+                        }
+                    }
+                });
+                ui.separator();
+
+                // Pose & Reaction state (always visible when dev mode active)
+                if let Some(ref pose) = pose {
+                    ui.collapsing("Pose & Reactions", |ui| {
+                        for (name, angle) in &pose.angles {
+                            if angle.abs() > 0.1 {
+                                ui.horizontal(|ui| {
+                                    ui.label(format!("{name}:"));
+                                    ui.colored_label(
+                                        egui::Color32::from_rgb(240, 200, 60),
+                                        format!("{angle:.1}°"),
+                                    );
+                                });
+                            }
+                        }
+                        if pose.angles.values().all(|a| a.abs() < 0.1) {
+                            ui.label("All joints neutral");
+                        }
+                        if let Some(ref expr) = expression {
+                            if expr.is_active() {
+                                ui.separator();
+                                ui.label(format!(
+                                    "Expression: eyes={} mouth={} blush={:.1} ({}t)",
+                                    expr.eyes, expr.mouth, expr.blush, expr.ticks
+                                ));
+                            }
+                        }
+                    });
+                    ui.separator();
+                }
+
+                // Reaction test buttons
+                if dev_state.show_cheats {
+                    ui.label("Test reactions:");
+                    ui.horizontal(|ui| {
+                        use crate::creature::reactions::CreatureReaction;
+                        use crate::config::nutrition::FoodType;
+                        if ui.small_button("Eat").clicked() {
+                            reaction_events.write(CreatureReaction::Eating {
+                                food: FoodType::VerdanceBerry,
+                                preferred: true,
+                            });
+                        }
+                        if ui.small_button("Pet").clicked() {
+                            reaction_events.write(CreatureReaction::Petted { pleasure: 0.8 });
+                        }
+                        if ui.small_button("Flinch").clicked() {
+                            reaction_events.write(CreatureReaction::Flinched { pain: 0.9 });
+                        }
+                        if ui.small_button("Play").clicked() {
+                            reaction_events.write(CreatureReaction::PlayStart);
+                        }
+                    });
+                    ui.horizontal(|ui| {
+                        use crate::creature::reactions::CreatureReaction;
+                        if ui.small_button("Sleep").clicked() {
+                            reaction_events.write(CreatureReaction::FallingAsleep);
+                        }
+                        if ui.small_button("Refuse").clicked() {
+                            reaction_events.write(CreatureReaction::RefusingFood);
+                        }
+                        if ui.small_button("Sick").clicked() {
+                            reaction_events.write(CreatureReaction::GotSick);
+                        }
+                        if ui.small_button("Recover").clicked() {
+                            reaction_events.write(CreatureReaction::Recovered);
+                        }
+                    });
+                    ui.add_space(4.0);
+                }
+
                 if dev_state.show_cheats {
                     draw_cheats_panel(
                         ui,
@@ -307,14 +426,13 @@ fn draw_neural_panel(
 
 fn draw_physics_panel(
     ui: &mut egui::Ui,
-    physics_q: &Query<(&PhysicsBody, &BreathingState, &HeartbeatState), With<CreatureRoot>>,
-    glow_q: &Query<&ResonanceGlow>,
+    physics_q: &Query<(&PhysicsBody, &BreathingState, &HeartbeatState, &ResonanceGlow), With<CreatureRoot>>,
     absence: Option<&AbsenceState>,
 ) {
     egui::CollapsingHeader::new("Physics & Vitals")
         .default_open(true)
         .show(ui, |ui| {
-            let Ok((body, breathing, heartbeat)) = physics_q.single() else {
+            let Ok((body, breathing, heartbeat, glow)) = physics_q.single() else {
                 ui.label("No creature found");
                 return;
             };
@@ -351,12 +469,10 @@ fn draw_physics_panel(
             ui.add_space(4.0);
 
             // Resonance glow (kokoro-sac)
-            if let Ok(glow) = glow_q.single() {
-                ui.label(format!(
-                    "Kokoro-sac: {:.1} Hz | int {:.2}",
-                    glow.frequency, glow.intensity
-                ));
-            }
+            ui.label(format!(
+                "Kokoro-sac: {:.1} Hz | int {:.2}",
+                glow.frequency, glow.intensity
+            ));
 
             // Absence (Mirror Bond)
             if let Some(absence) = absence {
@@ -402,21 +518,38 @@ fn draw_cheats_panel(
 
     // --- Growth stage selector ---
     if let Some(growth) = growth {
-        ui.label("Growth stage:");
-        ui.horizontal(|ui| {
-            for (label, stage) in [
-                ("Cub", GrowthStage::Cub),
-                ("Young", GrowthStage::Young),
-                ("Adult", GrowthStage::Adult),
-                ("Elder", GrowthStage::Elder),
-            ] {
-                let is_current = growth.stage == stage;
-                if ui.selectable_label(is_current, label).clicked() && !is_current {
-                    growth.stage = stage;
-                    growth.target_scale = stage.target_scale_pub();
-                }
-            }
-        });
+        ui.label(format!("Stage: {:?} {}", growth.stage, if growth.dev_override { "(override)" } else { "" }));
+        if ui.button("Egg").clicked() {
+            growth.stage = GrowthStage::Egg;
+            growth.target_scale = GrowthStage::Egg.target_scale_pub();
+            growth.dev_override = true;
+        }
+        if ui.button("Cub").clicked() {
+            growth.stage = GrowthStage::Cub;
+            growth.target_scale = GrowthStage::Cub.target_scale_pub();
+            growth.dev_override = true;
+        }
+        if ui.button("Young").clicked() {
+            growth.stage = GrowthStage::Young;
+            growth.target_scale = GrowthStage::Young.target_scale_pub();
+            growth.dev_override = true;
+        }
+        if ui.button("Adult").clicked() {
+            growth.stage = GrowthStage::Adult;
+            growth.target_scale = GrowthStage::Adult.target_scale_pub();
+            growth.dev_override = true;
+        }
+        if ui.button("Elder").clicked() {
+            growth.stage = GrowthStage::Elder;
+            growth.target_scale = GrowthStage::Elder.target_scale_pub();
+            growth.dev_override = true;
+        }
+        if growth.dev_override && ui.button("Reset to age").clicked() {
+            growth.dev_override = false;
+        }
+        ui.add_space(4.0);
+    } else {
+        ui.label("GrowthState: not available");
         ui.add_space(4.0);
     }
 

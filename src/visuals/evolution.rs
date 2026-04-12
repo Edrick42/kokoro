@@ -31,10 +31,14 @@ pub struct GrowthState {
     pub current_scale: f32,
     /// Target scale for the current stage
     pub target_scale: f32,
+    /// When true, dev mode has manually set the stage — skip age-based recalculation.
+    pub dev_override: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum GrowthStage {
+    #[allow(dead_code)]
+    Egg,
     Cub,
     Young,
     Adult,
@@ -61,7 +65,8 @@ impl GrowthStage {
 
     fn target_scale(&self) -> f32 {
         match self {
-            GrowthStage::Cub  => config::growth::CUB_SCALE,
+            GrowthStage::Egg   => config::growth::CUB_SCALE * 0.8, // egg is smaller than cub
+            GrowthStage::Cub   => config::growth::CUB_SCALE,
             GrowthStage::Young => config::growth::YOUNG_SCALE,
             GrowthStage::Adult => config::growth::ADULT_SCALE,
             GrowthStage::Elder => config::growth::ELDER_SCALE,
@@ -71,7 +76,8 @@ impl GrowthStage {
     #[allow(dead_code)]
     pub fn sprite_subdir(&self) -> Option<&'static str> {
         match self {
-            GrowthStage::Cub  => Some("cub"),
+            GrowthStage::Egg   => Some("egg"),
+            GrowthStage::Cub   => Some("cub"),
             GrowthStage::Young => Some("young"),
             GrowthStage::Adult => Some("adult"),
             GrowthStage::Elder => Some("elder"),
@@ -81,7 +87,8 @@ impl GrowthStage {
     #[allow(dead_code)]
     pub fn label(&self) -> &str {
         match self {
-            GrowthStage::Cub  => "Cub",
+            GrowthStage::Egg   => "Egg",
+            GrowthStage::Cub   => "Cub",
             GrowthStage::Young => "Young",
             GrowthStage::Adult => "Adult",
             GrowthStage::Elder => "Elder",
@@ -97,6 +104,7 @@ impl Plugin for EvolutionPlugin {
                 stage: GrowthStage::Cub,
                 current_scale: config::growth::CUB_SCALE,
                 target_scale: config::growth::CUB_SCALE,
+                dev_override: false,
             })
            .add_systems(Update, evolution_system.run_if(in_state(AppState::Gameplay)));
     }
@@ -109,15 +117,18 @@ fn evolution_system(
     mut growth: ResMut<GrowthState>,
     mut root_q: Query<&mut Transform, With<CreatureRoot>>,
 ) {
-    let new_stage = GrowthStage::from_age(mind.age_ticks);
+    // Skip age-based recalculation when dev mode has manually overridden the stage.
+    if !growth.dev_override {
+        let new_stage = GrowthStage::from_age(mind.age_ticks);
 
-    if new_stage != growth.stage {
-        info!(
-            "Growth stage changed: {:?} → {:?} (age: {} ticks)",
-            growth.stage, new_stage, mind.age_ticks
-        );
-        growth.stage = new_stage;
-        growth.target_scale = new_stage.target_scale();
+        if new_stage != growth.stage {
+            info!(
+                "Growth stage changed: {:?} → {:?} (age: {} ticks)",
+                growth.stage, new_stage, mind.age_ticks
+            );
+            growth.stage = new_stage;
+            growth.target_scale = new_stage.target_scale();
+        }
     }
 
     // Smoothly interpolate toward target scale

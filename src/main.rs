@@ -25,6 +25,11 @@ use creature::{
 };
 use game::state::{AppState, GameStatePlugin};
 use web::WebPlugin;
+use creature::abilities::AbilityPlugin;
+use creature::pose::PosePlugin;
+use creature::reactions::ReactionPlugin;
+use mind::disease::DiseasePlugin;
+use mind::hygiene::HygienePlugin;
 use mind::lifecycle::LifecyclePlugin;
 use mind::nutrition::NutritionPlugin;
 use mind::plugin::NeuralMindPlugin;
@@ -49,12 +54,13 @@ use visuals::{
     evolution::EvolutionPlugin,
     genome_visuals::apply_genome_visuals,
     mood_sync::sync_mood_sprites,
-    pixel_creature::PixelCreaturePlugin,
+    skin::SkinPlugin,
     resonance_glow::ResonanceGlowPlugin,
     species_behavior::SpeciesBehaviorPlugin,
 };
 use world::{
     daycycle::DayCyclePlugin,
+    environment::EnvironmentPlugin,
     setup_world,
     time_tick::TimeTickPlugin,
 };
@@ -86,18 +92,18 @@ fn main() {
         // Creature visuals — modular body part composition
         .add_plugins(CreatureVisualsPlugin)
         // World systems
-        .add_plugins((DayCyclePlugin, TimeTickPlugin))
+        .add_plugins((DayCyclePlugin, TimeTickPlugin, EnvironmentPlugin))
         // Neural mind — learns owner interaction patterns
-        .add_plugins((NeuralMindPlugin, NutritionPlugin))
+        .add_plugins((NeuralMindPlugin, NutritionPlugin, HygienePlugin, DiseasePlugin))
         // UI plugins (gameplay)
         .add_plugins((StatsPlugin, ActionsPlugin, VitalsPlugin, SideMenuPlugin))
         // Creature lifecycle — collection management + egg incubation + anatomy
-        .add_plugins((MultiCreaturePlugin, EggPlugin, TouchPlugin, PreferencePlugin, SoundPlugin, LifecyclePlugin, AnatomyPlugin))
+        .add_plugins((MultiCreaturePlugin, EggPlugin, TouchPlugin, PreferencePlugin, SoundPlugin, LifecyclePlugin, AnatomyPlugin, AbilityPlugin, PosePlugin, ReactionPlugin))
         // Physics — gravity, collision, buoyancy
         .add_plugins(PhysicsPlugin)
         // Visual plugins — effects, animation, evolution, accessories, organic behavior
         .add_plugins((EffectsPlugin, AnimationPlugin, EvolutionPlugin, AccessoriesPlugin, BackgroundPlugin))
-        .add_plugins((BreathingPlugin, SpeciesBehaviorPlugin, ResonanceGlowPlugin, PixelCreaturePlugin))
+        .add_plugins((BreathingPlugin, SpeciesBehaviorPlugin, ResonanceGlowPlugin, SkinPlugin))
         // Visual update systems
         .add_systems(Update, (sync_mood_sprites, apply_genome_visuals).run_if(in_state(AppState::Gameplay)));
 

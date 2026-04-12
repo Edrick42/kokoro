@@ -101,6 +101,7 @@ impl From<&Species> for SpeciesKey {
 impl From<&GrowthStage> for StageKey {
     fn from(s: &GrowthStage) -> Self {
         match s {
+            GrowthStage::Egg   => StageKey::Cub,  // egg uses cub sounds
             GrowthStage::Cub   => StageKey::Cub,
             GrowthStage::Young => StageKey::Young,
             GrowthStage::Adult => StageKey::Adult,

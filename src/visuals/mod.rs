@@ -6,6 +6,6 @@ pub mod effects;
 pub mod evolution;
 pub mod genome_visuals;
 pub mod mood_sync;
-pub mod pixel_creature;
+pub mod skin;
 pub mod resonance_glow;
 pub mod species_behavior;

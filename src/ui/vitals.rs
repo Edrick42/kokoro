@@ -23,6 +23,8 @@ impl Plugin for VitalsPlugin {
 #[derive(Component)] struct VitalsBpmDot;
 #[derive(Component)] struct VitalsBreathing;
 #[derive(Component)] struct VitalsBreathingDot;
+#[derive(Component)] struct VitalsHygiene;
+#[derive(Component)] struct VitalsDisease;
 
 fn setup_vitals_panel(mut commands: Commands, pixel_font: Res<PixelFont>) {
     let font = TextFont {
@@ -98,15 +100,47 @@ fn setup_vitals_panel(mut commands: Commands, pixel_font: Res<PixelFont>) {
                 VitalsBreathing,
             ));
         });
+
+        // Hygiene row
+        panel.spawn(Node {
+            flex_direction: FlexDirection::Row,
+            align_items: AlignItems::Center,
+            column_gap: Val::Px(6.0),
+            ..default()
+        }).with_children(|row| {
+            row.spawn((
+                Node { width: Val::Px(8.0), height: Val::Px(8.0), ..default() },
+                BackgroundColor(palette::GOLD),
+                BorderRadius::all(Val::Px(0.0)),
+            ));
+            row.spawn((
+                Text::new("--"),
+                font.clone(),
+                TextColor(palette::GOLD),
+                VitalsHygiene,
+            ));
+        });
+
+        // Disease row (hidden by default)
+        panel.spawn((
+            Text::new(""),
+            font.clone(),
+            TextColor(palette::RED),
+            VitalsDisease,
+        ));
     });
 }
 
 fn update_vitals_panel(
     root_q: Query<(&HeartbeatState, &BreathingState), With<CreatureRoot>>,
-    mut bpm_text: Query<&mut Text, (With<VitalsBpm>, Without<VitalsBreathing>)>,
-    mut breath_text: Query<&mut Text, (With<VitalsBreathing>, Without<VitalsBpm>)>,
+    mut bpm_text: Query<&mut Text, (With<VitalsBpm>, Without<VitalsBreathing>, Without<VitalsHygiene>, Without<VitalsDisease>)>,
+    mut breath_text: Query<&mut Text, (With<VitalsBreathing>, Without<VitalsBpm>, Without<VitalsHygiene>, Without<VitalsDisease>)>,
+    mut hygiene_text: Query<&mut Text, (With<VitalsHygiene>, Without<VitalsBpm>, Without<VitalsBreathing>, Without<VitalsDisease>)>,
+    mut disease_text: Query<&mut Text, (With<VitalsDisease>, Without<VitalsBpm>, Without<VitalsBreathing>, Without<VitalsHygiene>)>,
     mut bpm_dot: Query<&mut BackgroundColor, (With<VitalsBpmDot>, Without<VitalsBreathingDot>)>,
     mut breath_dot: Query<&mut BackgroundColor, (With<VitalsBreathingDot>, Without<VitalsBpmDot>)>,
+    hygiene: Option<Res<crate::mind::hygiene::HygieneState>>,
+    disease: Option<Res<crate::mind::disease::DiseaseState>>,
 ) {
     let Ok((heartbeat, breathing)) = root_q.single() else { return };
 
@@ -132,9 +166,27 @@ fn update_vitals_panel(
     if let Ok(mut bg) = breath_dot.single_mut() {
         let inhale = breathing.phase.sin().max(0.0);
         if inhale > 0.5 {
-            bg.0 = palette::CREAM; // flash cream on inhale peak
+            bg.0 = palette::CREAM;
         } else {
             bg.0 = palette::TEAL;
+        }
+    }
+
+    // Hygiene indicator
+    if let (Some(ref hyg), Ok(mut text)) = (hygiene, hygiene_text.single_mut()) {
+        let label = if hyg.level > 70.0 { "Clean" }
+            else if hyg.level > 40.0 { "Dirty" }
+            else { "Filthy!" };
+        *text = Text::new(format!("{} {:.0}%", label, hyg.level));
+    }
+
+    // Disease indicator
+    if let (Some(ref dis), Ok(mut text)) = (disease, disease_text.single_mut()) {
+        if dis.is_sick() {
+            let names: Vec<&str> = dis.conditions.iter().map(|c| c.condition.label()).collect();
+            *text = Text::new(names.join(" + "));
+        } else {
+            *text = Text::new("");
         }
     }
 }

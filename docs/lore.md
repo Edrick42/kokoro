@@ -506,6 +506,64 @@ Good care reverses this gradually. Proper nutrition → bones repair → joints 
 
 ---
 
+## Nutrition — The Foods of Ethara
+
+Each biome produces its own food chain. Kobaras prefer food from their home biome — it tastes right, their bodies recognize it, and their kokoro-sac resonates when they eat something familiar.
+
+**Food Categories**: Water, Fruits, Meats, Herbs, Tubers, Fungi, Seeds, Algae. Each category provides different nutrient profiles — protein builds muscle, minerals strengthen bone, water hydrates skin, vitamins boost immunity.
+
+**Biome Foods**: The Verdance produces berries, canopy fruit, root tubers, forest mushrooms, honey sap, and bark grubs. The Highlands grow thermal seeds, highland clover (medicinal), wind-dried berries, and mesa cactus water. The Abyssal Shallows yield cave crustaceans, spore moss, crystal water, stalactite fungi (bone-strengthening), and blind fish. The Abyssal Depths produce bioluminescent plankton, thermal vent shrimp, abyss kelp, pressure pearls, depth jelly, and coral polyps.
+
+**Special Properties**: Some foods heal (Highland Clover, Forest Mushroom), some strengthen bones (Stalactite Fungi, Coral Polyp), some boost mood (Honey Sap), some warm the body (Thermal Vent Shrimp), and some enhance Nyxal bioluminescence (Depth Jelly).
+
+A Kobara fed only foreign food will survive but never thrive. The biome preference is not cultural — it's biological. Their digestive systems evolved alongside their environment.
+
+---
+
+## Hygiene — How Kobaras Keep Clean
+
+Cleanliness is not vanity. A dirty Kobara is a sick Kobara. Each species has evolved its own cleaning method:
+
+- **Moluun — Grooming**: Methodical licking of fur, using their broad tongue to reach every patch. Slow but thorough. A grooming Moluun enters a meditative state — heart rate drops, breathing deepens.
+- **Pylum — Preening**: Beak-to-feather maintenance, oiling each flight feather from a gland near the tail. Medium speed. Preening is social for Pylum — in groups, they preen each other.
+- **Skael — Shedding**: Vigorous shaking to dislodge old scale plates. Fast and dramatic — a cloud of dead scales fills the air. New scales underneath are softer for a few hours before hardening.
+- **Nyxal — Ink Cleaning**: A burst of specialized ink that strips parasites and debris from the membrane surface. Instant but energy-costly — a tired Nyxal can only manage a weak ink cloud.
+
+Low hygiene leads to parasites, skin degradation, and eventually infection — especially dangerous if combined with a bone fracture.
+
+---
+
+## Disease — When the Body Fails
+
+Kobaras don't simply become "sick." They develop specific conditions with specific causes and cures:
+
+- **Cold**: Prolonged exposure outside the species' comfort temperature. A Nyxal in a warm biome shivers. A Moluun in deep ocean freezes. Cure: warmth, rest, warming foods.
+- **Parasite**: Hygiene below critical levels. Invisible organisms colonize the skin. Cure: cleaning + time.
+- **Malnutrition**: Sustained nutrient deficiency. The body cannibalizes itself. Cure: balanced feeding over multiple days.
+- **Exhaustion**: The body pushed beyond its limits. Not just "tired" — the muscles physically cannot contract. Cure: sleep. Extended sleep.
+- **Infection**: The most dangerous. A broken bone combined with dirty conditions. Bacteria enter through the wound. Cure: cleaning + rest + healing herbs + time. Without intervention, infection can be fatal.
+
+The resilience gene affects recovery speed. A high-resilience Kobara shakes off a cold in hours. A low-resilience one suffers for days.
+
+---
+
+## Reactions — How Kobaras Express Themselves
+
+A Kobara is not a status bar. When you feed it, it doesn't just gain +10 happiness — it opens its mouth, dips its head, chews, and bounces with satisfaction. When you touch a painful spot, it flinches, pulls away, and its eyes go wide.
+
+Every reaction is anatomically correct per species:
+
+- **Eating**: Moluun dips its head and chomps three times. Pylum pecks sharply. Skael lunges slowly and snaps once. Nyxal curls its tentacles inward.
+- **Refusing food**: Moluun turns away, ears flat. Pylum steps back on long legs. Skael shakes its head slowly. Nyxal's body darkens.
+- **Being petted (sweet spot)**: Moluun leans in, eyes half-close. Pylum spreads wings slightly. Skael becomes perfectly still (trust). Nyxal's tentacles reach toward the touch.
+- **Being petted (painful spot)**: Moluun jerks away, ears erect. Pylum snaps wings open (startle display). Skael curls partially, tail whips. Nyxal squirts ink.
+- **Playing**: Moluun bounces in hops. Pylum jumps using powerful legs. Skael tail-slams. Nyxal spins with tentacles spread.
+- **Falling asleep**: Moluun curls into a ball. Pylum tucks head under wing. Skael wraps tail around body. Nyxal gathers tentacles and sinks.
+
+These movements are driven by the skeletal pose system — joint angles blend toward target positions at a speed determined by muscle strength and joint lubrication. A tired creature moves slowly. An injured creature favors the wounded side. An elder creature moves with deliberate economy.
+
+---
+
 ## Sound — The Voice of Ethara
 
 Ethara is not a silent world. Every biome has its own ambient soundscape, every species its own voice, and the world itself has a rhythm — a slow, lofi pulse that fills the air like a second atmosphere.

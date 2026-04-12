@@ -84,11 +84,12 @@ fn detect_touch(
     }
 }
 
-/// Applies touch effects to creature stats.
+/// Applies touch effects to creature stats and fires visual reaction.
 fn apply_touch_effects(
     mut events: EventReader<TouchEvent>,
     mut mind: ResMut<Mind>,
     genome: Res<Genome>,
+    mut reaction_events: EventWriter<crate::creature::reactions::CreatureReaction>,
 ) {
     for event in events.read() {
         let sens = nerv::sensitivity(&genome.species, &event.slot);
@@ -97,6 +98,17 @@ fn apply_touch_effects(
 
         mind.pending_happiness += happiness_delta;
         mind.pending_energy += energy_delta;
+
+        // Fire visual reaction based on pleasure vs pain
+        if event.pain > 0.5 {
+            reaction_events.write(crate::creature::reactions::CreatureReaction::Flinched {
+                pain: event.pain,
+            });
+        } else if event.pleasure > 0.3 {
+            reaction_events.write(crate::creature::reactions::CreatureReaction::Petted {
+                pleasure: event.pleasure,
+            });
+        }
     }
 }
 

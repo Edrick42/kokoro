@@ -8,4 +8,5 @@ pub struct FoodResponse {
     pub name: String,
     pub description: String,
     pub biome: String,
+    pub category: String,
 }

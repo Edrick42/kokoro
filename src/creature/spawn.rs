@@ -16,7 +16,7 @@ use crate::creature::collection::CreatureCollection;
 use crate::creature::egg::EggEntity;
 use crate::creature::physics::{PhysicsBody, GROUND_Y};
 use crate::visuals::species_behavior::SpeciesBehavior;
-use crate::visuals::pixel_creature;
+use crate::visuals::skin;
 use crate::audio::VocalRepertoire;
 use crate::mind::lifecycle::LifecycleState;
 use crate::mind::nutrition::NutrientState;
@@ -100,7 +100,7 @@ fn do_spawn_egg(
 ) {
     // Create pixel art egg
     let mut buf = RgbaImage::new(64, 64);
-    pixel_creature::draw_egg(&mut buf, &genome.species);
+    skin::draw_egg(&mut buf, &genome.species);
 
     let mut image = Image::new_fill(
         Extent3d { width: 64, height: 64, depth_or_array_layers: 1 },

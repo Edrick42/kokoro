@@ -11,7 +11,7 @@ mod panels;
 mod rig_gizmos;
 
 use bevy::prelude::*;
-use bevy_egui::EguiPlugin;
+use bevy_egui::{EguiPlugin, EguiPrimaryContextPass};
 
 /// Master state for dev mode — controls visibility of all overlays.
 #[derive(Resource)]
@@ -50,11 +50,13 @@ impl Plugin for DevPlugin {
             .insert_resource(DevModeState::default())
             .add_systems(Update, toggle_dev_mode)
             .add_systems(
+                EguiPrimaryContextPass,
+                panels::dev_panels_system
+                    .run_if(|state: Res<DevModeState>| state.active),
+            )
+            .add_systems(
                 Update,
-                (
-                    rig_gizmos::draw_rig_gizmos,
-                    panels::dev_panels_system,
-                )
+                rig_gizmos::draw_rig_gizmos
                     .run_if(|state: Res<DevModeState>| state.active),
             );
     }

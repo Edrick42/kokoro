@@ -1,9 +1,9 @@
 //! Mood synchronization.
 //!
-//! With the pixel art renderer, mood-driven visual changes are handled
-//! by pixel_creature::update_pixel_creature(). This function is a no-op.
+//! Mood-driven visual changes are handled by skin::update_skin().
+//! This function is a no-op placeholder.
 
-/// Placeholder — mood sync is now handled by PixelCreaturePlugin.
+/// Placeholder — mood sync is handled by SkinPlugin.
 pub fn sync_mood_sprites() {
-    // No-op: pixel_creature redraws automatically on mind.is_changed()
+    // No-op: skin redraws automatically on mind.is_changed()
 }

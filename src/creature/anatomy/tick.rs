@@ -11,8 +11,11 @@
 use bevy::prelude::*;
 
 use crate::config::anatomy as cfg;
+use crate::config::nutrition as nutr;
 use crate::genome::Genome;
 use crate::mind::{Mind, MoodState};
+use crate::mind::nutrition::NutrientState;
+use crate::creature::species::CreatureRoot;
 
 use super::AnatomyState;
 use super::skeleton::SkeletonType;
@@ -22,6 +25,7 @@ pub fn anatomy_tick_system(
     mut anatomy: ResMut<AnatomyState>,
     mut mind: ResMut<Mind>,
     genome: Res<Genome>,
+    nutrient_q: Query<&NutrientState, With<CreatureRoot>>,
 ) {
     if !mind.is_changed() {
         return;
@@ -31,12 +35,27 @@ pub fn anatomy_tick_system(
     let is_sleeping = mind.mood == MoodState::Sleeping;
     let hunger = mind.stats.hunger;
 
-    update_skeleton(&mut anatomy, is_sick, hunger);
-    update_muscles(&mut anatomy, is_sick, is_sleeping, hunger);
+    // Get nutrient levels for nutrient-specific repair modifiers
+    let nutrients = nutrient_q.iter().next();
+
+    // Nutrient-specific repair modifiers (1.0 = normal, <1.0 = deficient slows repair)
+    let mineral_mod = nutrients
+        .map(|n| if n.minerals < nutr::DEFICIENCY_THRESHOLD { n.minerals / nutr::DEFICIENCY_THRESHOLD } else { 1.0 })
+        .unwrap_or(1.0);
+    let protein_mod = nutrients
+        .map(|n| if n.protein < nutr::DEFICIENCY_THRESHOLD { n.protein / nutr::DEFICIENCY_THRESHOLD } else { 1.0 })
+        .unwrap_or(1.0);
+    let water_mod = nutrients
+        .map(|n| if n.water < nutr::DEFICIENCY_THRESHOLD { n.water / nutr::DEFICIENCY_THRESHOLD } else { 1.0 })
+        .unwrap_or(1.0);
+
+    update_skeleton(&mut anatomy, is_sick, hunger, mineral_mod);
+    update_muscles(&mut anatomy, is_sick, is_sleeping, hunger, protein_mod);
 
     let is_elder = mind.age_ticks > 8_500_000;
     update_joints(&mut anatomy, hunger, is_elder);
-    update_skin(&mut anatomy, is_sick, hunger);
+    update_skin(&mut anatomy, is_sick, hunger, water_mod);
+    update_fat(&mut anatomy, &mut mind);
 
     apply_health_ceiling(&anatomy, &mut mind);
     apply_energy_penalties(&anatomy, &mut mind);
@@ -44,7 +63,22 @@ pub fn anatomy_tick_system(
     check_bone_breaks(&mut anatomy, &mut mind);
 }
 
-fn update_skeleton(anatomy: &mut AnatomyState, is_sick: bool, hunger: f32) {
+/// Fat burn/store system — buffer between hunger and starvation.
+fn update_fat(anatomy: &mut AnatomyState, mind: &mut Mind) {
+    let fat = &mut anatomy.fat;
+
+    if mind.stats.hunger > 80.0 && fat.level > 0.0 {
+        // Very hungry → burn fat for energy (delays starvation)
+        let burned = fat.burn_rate.min(fat.level);
+        fat.level -= burned;
+        mind.stats.energy = (mind.stats.energy + burned * 15.0).min(100.0);
+    } else if mind.stats.hunger < 30.0 && fat.level < 1.0 {
+        // Well-fed → store fat
+        fat.level = (fat.level + fat.store_rate).min(1.0);
+    }
+}
+
+fn update_skeleton(anatomy: &mut AnatomyState, is_sick: bool, hunger: f32, mineral_mod: f32) {
     let skeleton = &mut anatomy.skeleton;
 
     if skeleton.structure_type == SkeletonType::Hydrostatic {
@@ -72,11 +106,12 @@ fn update_skeleton(anatomy: &mut AnatomyState, is_sick: bool, hunger: f32) {
                 (bone.integrity - cfg::skeleton::BONE_INTEGRITY_DECAY * decay_mult).max(0.0);
         }
     } else if hunger < cfg::HUNGER_REPAIR_THRESHOLD {
+        // Mineral-rich diet speeds bone repair; deficiency slows it
         skeleton.bone_health =
-            (skeleton.bone_health + cfg::skeleton::BONE_HEALTH_REPAIR).min(1.0);
+            (skeleton.bone_health + cfg::skeleton::BONE_HEALTH_REPAIR * mineral_mod).min(1.0);
         for bone in &mut skeleton.bones {
             bone.integrity =
-                (bone.integrity + cfg::skeleton::BONE_INTEGRITY_REPAIR).min(1.0);
+                (bone.integrity + cfg::skeleton::BONE_INTEGRITY_REPAIR * mineral_mod).min(1.0);
         }
         if skeleton.structure_type == SkeletonType::Dense {
             skeleton.bone_health =
@@ -85,7 +120,7 @@ fn update_skeleton(anatomy: &mut AnatomyState, is_sick: bool, hunger: f32) {
     }
 }
 
-fn update_muscles(anatomy: &mut AnatomyState, is_sick: bool, is_sleeping: bool, hunger: f32) {
+fn update_muscles(anatomy: &mut AnatomyState, is_sick: bool, is_sleeping: bool, hunger: f32, protein_mod: f32) {
     let muscles = &mut anatomy.muscles;
 
     if is_sleeping {
@@ -102,7 +137,8 @@ fn update_muscles(anatomy: &mut AnatomyState, is_sick: bool, is_sleeping: bool, 
     if is_sick || hunger > cfg::HUNGER_MUSCLE_THRESHOLD {
         muscles.condition = (muscles.condition - cfg::muscles::CONDITION_DECAY).max(0.0);
     } else if hunger < cfg::HUNGER_MUSCLE_REPAIR {
-        muscles.condition = (muscles.condition + cfg::muscles::CONDITION_REPAIR).min(1.0);
+        // Protein-rich diet speeds muscle repair; deficiency slows it
+        muscles.condition = (muscles.condition + cfg::muscles::CONDITION_REPAIR * protein_mod).min(1.0);
     }
 
     muscles.tone += (muscles.condition - muscles.tone) * cfg::muscles::TONE_CONVERGENCE;
@@ -125,13 +161,15 @@ fn update_joints(anatomy: &mut AnatomyState, hunger: f32, is_elder: bool) {
     }
 }
 
-fn update_skin(anatomy: &mut AnatomyState, is_sick: bool, hunger: f32) {
+fn update_skin(anatomy: &mut AnatomyState, is_sick: bool, hunger: f32, water_mod: f32) {
     let skin = &mut anatomy.skin;
 
     if hunger > cfg::HUNGER_SKIN_THRESHOLD {
-        skin.hydration = (skin.hydration - cfg::skin::HYDRATION_DECAY).max(0.0);
+        // Dehydration accelerated when water-deficient
+        let dehydrate = cfg::skin::HYDRATION_DECAY * (2.0 - water_mod); // 1x normal, up to 2x when dry
+        skin.hydration = (skin.hydration - dehydrate).max(0.0);
     } else if hunger < cfg::HUNGER_REPAIR_THRESHOLD {
-        skin.hydration = (skin.hydration + cfg::skin::HYDRATION_REPAIR).min(1.0);
+        skin.hydration = (skin.hydration + cfg::skin::HYDRATION_REPAIR * water_mod).min(1.0);
     }
 
     if is_sick {

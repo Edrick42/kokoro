@@ -26,6 +26,7 @@ pub fn anatomy_tick_system(
     mut mind: ResMut<Mind>,
     genome: Res<Genome>,
     nutrient_q: Query<&NutrientState, With<CreatureRoot>>,
+    ans: Option<Res<crate::mind::autonomic::AutonomicState>>,
 ) {
     if !mind.is_changed() {
         return;
@@ -34,6 +35,10 @@ pub fn anatomy_tick_system(
     let is_sick = mind.mood == MoodState::Sick;
     let is_sleeping = mind.mood == MoodState::Sleeping;
     let hunger = mind.stats.hunger;
+
+    // ANS modifiers: parasympathetic = faster healing, sympathetic = faster decay
+    let calm = ans.as_ref().map(|a| a.calm_multiplier()).unwrap_or(1.0);   // 1.5 (para) to 0.5 (symp)
+    let arousal = ans.as_ref().map(|a| a.arousal_multiplier()).unwrap_or(1.0); // 0.5 (para) to 1.5 (symp)
 
     // Get nutrient levels for nutrient-specific repair modifiers
     let nutrients = nutrient_q.iter().next();
@@ -49,13 +54,13 @@ pub fn anatomy_tick_system(
         .map(|n| if n.water < nutr::DEFICIENCY_THRESHOLD { n.water / nutr::DEFICIENCY_THRESHOLD } else { 1.0 })
         .unwrap_or(1.0);
 
-    update_skeleton(&mut anatomy, is_sick, hunger, mineral_mod);
-    update_muscles(&mut anatomy, is_sick, is_sleeping, hunger, protein_mod);
+    update_skeleton(&mut anatomy, is_sick, hunger, mineral_mod, calm, arousal);
+    update_muscles(&mut anatomy, is_sick, is_sleeping, hunger, protein_mod, calm, arousal);
 
     let is_elder = mind.age_ticks > 8_500_000;
-    update_joints(&mut anatomy, hunger, is_elder);
-    update_skin(&mut anatomy, is_sick, hunger, water_mod);
-    update_fat(&mut anatomy, &mut mind);
+    update_joints(&mut anatomy, hunger, is_elder, calm);
+    update_skin(&mut anatomy, is_sick, hunger, water_mod, calm);
+    update_fat(&mut anatomy, &mut mind, calm, arousal);
 
     apply_health_ceiling(&anatomy, &mut mind);
     apply_energy_penalties(&anatomy, &mut mind);
@@ -64,21 +69,21 @@ pub fn anatomy_tick_system(
 }
 
 /// Fat burn/store system — buffer between hunger and starvation.
-fn update_fat(anatomy: &mut AnatomyState, mind: &mut Mind) {
+fn update_fat(anatomy: &mut AnatomyState, mind: &mut Mind, calm: f32, arousal: f32) {
     let fat = &mut anatomy.fat;
 
     if mind.stats.hunger > 80.0 && fat.level > 0.0 {
-        // Very hungry → burn fat for energy (delays starvation)
-        let burned = fat.burn_rate.min(fat.level);
+        // Sympathetic burns fat faster (fight-or-flight energy demand)
+        let burned = (fat.burn_rate * arousal).min(fat.level);
         fat.level -= burned;
         mind.stats.energy = (mind.stats.energy + burned * 15.0).min(100.0);
     } else if mind.stats.hunger < 30.0 && fat.level < 1.0 {
-        // Well-fed → store fat
-        fat.level = (fat.level + fat.store_rate).min(1.0);
+        // Parasympathetic stores fat better (rest-and-digest)
+        fat.level = (fat.level + fat.store_rate * calm).min(1.0);
     }
 }
 
-fn update_skeleton(anatomy: &mut AnatomyState, is_sick: bool, hunger: f32, mineral_mod: f32) {
+fn update_skeleton(anatomy: &mut AnatomyState, is_sick: bool, hunger: f32, mineral_mod: f32, calm: f32, arousal: f32) {
     let skeleton = &mut anatomy.skeleton;
 
     if skeleton.structure_type == SkeletonType::Hydrostatic {
@@ -99,19 +104,20 @@ fn update_skeleton(anatomy: &mut AnatomyState, is_sick: bool, hunger: f32, miner
     };
 
     if is_sick || hunger > cfg::HUNGER_DECAY_THRESHOLD {
+        // Sympathetic state accelerates decay (body under stress)
         skeleton.bone_health =
-            (skeleton.bone_health - cfg::skeleton::BONE_HEALTH_DECAY * decay_mult).max(0.0);
+            (skeleton.bone_health - cfg::skeleton::BONE_HEALTH_DECAY * decay_mult * arousal).max(0.0);
         for bone in &mut skeleton.bones {
             bone.integrity =
-                (bone.integrity - cfg::skeleton::BONE_INTEGRITY_DECAY * decay_mult).max(0.0);
+                (bone.integrity - cfg::skeleton::BONE_INTEGRITY_DECAY * decay_mult * arousal).max(0.0);
         }
     } else if hunger < cfg::HUNGER_REPAIR_THRESHOLD {
-        // Mineral-rich diet speeds bone repair; deficiency slows it
+        // Parasympathetic state accelerates repair (rest & digest)
         skeleton.bone_health =
-            (skeleton.bone_health + cfg::skeleton::BONE_HEALTH_REPAIR * mineral_mod).min(1.0);
+            (skeleton.bone_health + cfg::skeleton::BONE_HEALTH_REPAIR * mineral_mod * calm).min(1.0);
         for bone in &mut skeleton.bones {
             bone.integrity =
-                (bone.integrity + cfg::skeleton::BONE_INTEGRITY_REPAIR * mineral_mod).min(1.0);
+                (bone.integrity + cfg::skeleton::BONE_INTEGRITY_REPAIR * mineral_mod * calm).min(1.0);
         }
         if skeleton.structure_type == SkeletonType::Dense {
             skeleton.bone_health =
@@ -120,38 +126,40 @@ fn update_skeleton(anatomy: &mut AnatomyState, is_sick: bool, hunger: f32, miner
     }
 }
 
-fn update_muscles(anatomy: &mut AnatomyState, is_sick: bool, is_sleeping: bool, hunger: f32, protein_mod: f32) {
+fn update_muscles(anatomy: &mut AnatomyState, is_sick: bool, is_sleeping: bool, hunger: f32, protein_mod: f32, calm: f32, arousal: f32) {
     let muscles = &mut anatomy.muscles;
 
     if is_sleeping {
+        // Parasympathetic recovery — calm multiplier boosts repair
         for group in &mut muscles.groups {
-            group.fatigue = (group.fatigue - cfg::muscles::FATIGUE_RECOVERY).max(0.0);
+            group.fatigue = (group.fatigue - cfg::muscles::FATIGUE_RECOVERY * calm).max(0.0);
         }
-        muscles.condition = (muscles.condition + cfg::muscles::CONDITION_REPAIR).min(1.0);
+        muscles.condition = (muscles.condition + cfg::muscles::CONDITION_REPAIR * calm).min(1.0);
     } else {
+        // Sympathetic arousal increases fatigue accumulation
         for group in &mut muscles.groups {
-            group.fatigue = (group.fatigue + cfg::muscles::FATIGUE_ACCUMULATION).min(1.0);
+            group.fatigue = (group.fatigue + cfg::muscles::FATIGUE_ACCUMULATION * arousal).min(1.0);
         }
     }
 
     if is_sick || hunger > cfg::HUNGER_MUSCLE_THRESHOLD {
-        muscles.condition = (muscles.condition - cfg::muscles::CONDITION_DECAY).max(0.0);
+        muscles.condition = (muscles.condition - cfg::muscles::CONDITION_DECAY * arousal).max(0.0);
     } else if hunger < cfg::HUNGER_MUSCLE_REPAIR {
-        // Protein-rich diet speeds muscle repair; deficiency slows it
-        muscles.condition = (muscles.condition + cfg::muscles::CONDITION_REPAIR * protein_mod).min(1.0);
+        muscles.condition = (muscles.condition + cfg::muscles::CONDITION_REPAIR * protein_mod * calm).min(1.0);
     }
 
     muscles.tone += (muscles.condition - muscles.tone) * cfg::muscles::TONE_CONVERGENCE;
 }
 
-fn update_joints(anatomy: &mut AnatomyState, hunger: f32, is_elder: bool) {
+fn update_joints(anatomy: &mut AnatomyState, hunger: f32, is_elder: bool, calm: f32) {
     for joint in &mut anatomy.joints.joints {
         if hunger > cfg::HUNGER_JOINT_THRESHOLD {
             joint.lubrication =
                 (joint.lubrication - cfg::joints::LUBRICATION_DECAY).max(0.0);
         } else if hunger < cfg::HUNGER_REPAIR_THRESHOLD {
+            // Parasympathetic rest lubricates joints faster
             joint.lubrication =
-                (joint.lubrication + cfg::joints::LUBRICATION_REPAIR).min(1.0);
+                (joint.lubrication + cfg::joints::LUBRICATION_REPAIR * calm).min(1.0);
         }
 
         if is_elder {
@@ -161,7 +169,7 @@ fn update_joints(anatomy: &mut AnatomyState, hunger: f32, is_elder: bool) {
     }
 }
 
-fn update_skin(anatomy: &mut AnatomyState, is_sick: bool, hunger: f32, water_mod: f32) {
+fn update_skin(anatomy: &mut AnatomyState, is_sick: bool, hunger: f32, water_mod: f32, calm: f32) {
     let skin = &mut anatomy.skin;
 
     if hunger > cfg::HUNGER_SKIN_THRESHOLD {
@@ -175,7 +183,8 @@ fn update_skin(anatomy: &mut AnatomyState, is_sick: bool, hunger: f32, water_mod
     if is_sick {
         skin.integrity = (skin.integrity - cfg::skin::INTEGRITY_DECAY).max(0.0);
     } else {
-        skin.integrity = (skin.integrity + cfg::skin::INTEGRITY_REPAIR).min(1.0);
+        // Parasympathetic rest repairs skin faster
+        skin.integrity = (skin.integrity + cfg::skin::INTEGRITY_REPAIR * calm).min(1.0);
     }
 }
 

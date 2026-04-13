@@ -170,18 +170,23 @@ fn disease_trigger_system(
 fn disease_tick_system(
     mut disease: ResMut<DiseaseState>,
     mut mind: ResMut<Mind>,
+    ans: Option<Res<crate::mind::autonomic::AutonomicState>>,
     mut reaction_events: EventWriter<crate::creature::reactions::CreatureReaction>,
 ) {
+    // ANS: parasympathetic rest speeds recovery; sympathetic stress slows it
+    let calm = ans.as_ref().map(|a| a.calm_multiplier()).unwrap_or(1.0);
+
     // Apply health drain from each active condition
     for active in &disease.conditions {
         let drain = active.condition.health_drain();
         mind.stats.health = (mind.stats.health - drain).max(0.0);
     }
 
-    // Tick down durations, remove expired
+    // Tick down durations — parasympathetic accelerates recovery
+    let recovery_ticks = if calm > 1.2 { 2 } else { 1 }; // heal 2x ticks when very calm
     let before = disease.conditions.len();
     disease.conditions.retain_mut(|c| {
-        c.remaining_ticks = c.remaining_ticks.saturating_sub(1);
+        c.remaining_ticks = c.remaining_ticks.saturating_sub(recovery_ticks);
         c.remaining_ticks > 0
     });
 

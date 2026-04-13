@@ -77,32 +77,34 @@ impl Plugin for BreathingPlugin {
 
 fn update_breathing_params(
     mind: Res<Mind>,
+    ans: Option<Res<crate::mind::autonomic::AutonomicState>>,
     mut query: Query<(&mut BreathingState, &mut HeartbeatState), With<CreatureRoot>>,
 ) {
+    // ANS arousal drives breathing/heartbeat instead of mood lookup tables
+    let arousal = ans.as_ref().map(|a| a.level).unwrap_or(0.4);
+    let arousal_mult = 0.5 + arousal; // 0.5 (calm) to 1.5 (alert)
+
     for (mut breathing, mut heartbeat) in query.iter_mut() {
-        breathing.target_rate = match mind.mood {
-            MoodState::Sleeping => config::breathing::RATE_SLEEPING,
-            MoodState::Tired | MoodState::Lonely => config::breathing::RATE_TIRED,
-            MoodState::Happy => config::breathing::RATE_HAPPY,
-            MoodState::Hungry => config::breathing::RATE_HUNGRY,
-            MoodState::Sick => config::breathing::RATE_SICK,
-            MoodState::Playful => config::breathing::RATE_PLAYFUL,
-        };
+        // Breathing rate: base rate scaled by arousal
+        let base_rate = config::breathing::DEFAULT_RATE;
+        breathing.target_rate = base_rate * arousal_mult;
+
+        // Override: sleeping forces very slow breathing
+        if mind.mood == MoodState::Sleeping {
+            breathing.target_rate = config::breathing::RATE_SLEEPING;
+        }
 
         breathing.target_amplitude = config::breathing::AMPLITUDE_BASE
             + (mind.stats.energy / 100.0) * config::breathing::AMPLITUDE_ENERGY_FACTOR;
 
+        // Heartbeat: base BPM + arousal scaling
         let base_bpm = config::heartbeat::BASE_BPM
             + (100.0 - mind.stats.health) * config::heartbeat::HEALTH_BPM_FACTOR;
-        heartbeat.target_bpm = base_bpm + match mind.mood {
-            MoodState::Playful => config::heartbeat::BPM_PLAYFUL,
-            MoodState::Sleeping => config::heartbeat::BPM_SLEEPING,
-            MoodState::Sick => config::heartbeat::BPM_SICK,
-            _ => 0.0,
-        };
+        heartbeat.target_bpm = base_bpm * arousal_mult;
 
-        heartbeat.irregularity = if mind.mood == MoodState::Sick {
-            config::heartbeat::SICK_IRREGULARITY
+        // Irregularity from sympathetic stress
+        heartbeat.irregularity = if arousal > 0.7 {
+            (arousal - 0.7) * config::heartbeat::SICK_IRREGULARITY * 3.0
         } else {
             0.0
         };

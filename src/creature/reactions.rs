@@ -83,7 +83,7 @@ pub struct ExpressionOverride {
 impl ExpressionOverride {
     pub fn is_active(&self) -> bool { self.ticks > 0 }
 
-    fn set(&mut self, eyes: i8, mouth: i8, blush: f32, ticks: u32) {
+    pub fn set(&mut self, eyes: i8, mouth: i8, blush: f32, ticks: u32) {
         self.eyes = eyes;
         self.mouth = mouth;
         self.blush = blush;

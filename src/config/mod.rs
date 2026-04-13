@@ -18,6 +18,7 @@ pub mod anatomy;
 pub mod audio;
 pub mod shop;
 pub mod abilities;
+pub mod autonomic;
 pub mod disease;
 pub mod environment;
 pub mod hygiene;

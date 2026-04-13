@@ -19,8 +19,8 @@ use crate::creature::reactions::ExpressionOverride;
 use crate::mind::hygiene::HygieneState;
 use crate::mind::disease::DiseaseState;
 use crate::world::environment::EnvironmentState;
+use crate::mind::autonomic::AutonomicState as ANS;
 use crate::mind::neural::{OUTPUT_SIZE, build_input, index_to_mood};
-use crate::mind::absence::AbsenceState;
 use crate::mind::plugin::NeuralMind;
 use crate::visuals::breathing::{BreathingState, HeartbeatState};
 use crate::visuals::resonance_glow::ResonanceGlow;
@@ -33,7 +33,6 @@ pub fn dev_panels_system(
     mut mind: Option<ResMut<Mind>>,
     genome: Option<Res<Genome>>,
     neural: Option<Res<NeuralMind>>,
-    absence: Option<Res<AbsenceState>>,
     mut collection: Option<ResMut<CreatureCollection>>,
     mut growth: Option<ResMut<GrowthState>>,
     pose: Option<Res<PoseState>>,
@@ -43,6 +42,7 @@ pub fn dev_panels_system(
     hygiene: Option<Res<HygieneState>>,
     disease: Option<Res<DiseaseState>>,
     environment: Option<Res<EnvironmentState>>,
+    ans: Option<Res<ANS>>,
     physics_q: Query<(&PhysicsBody, &BreathingState, &HeartbeatState, &ResonanceGlow), With<CreatureRoot>>,
 ) {
     let Ok(ctx) = contexts.ctx_mut() else { return };
@@ -74,8 +74,26 @@ pub fn dev_panels_system(
                     draw_neural_panel(ui, neural.as_deref(), mind.as_deref(), genome.as_deref());
                 }
                 if dev_state.show_physics {
-                    draw_physics_panel(ui, &physics_q, absence.as_deref());
+                    draw_physics_panel(ui, &physics_q);
                 }
+                // Autonomic Nervous System
+                if let Some(ref ans) = ans {
+                    ui.collapsing("ANS", |ui| {
+                        let label = if ans.level > 0.6 { "SYMPATHETIC" }
+                            else if ans.level < 0.3 { "PARASYMPATHETIC" }
+                            else { "neutral" };
+                        let color = if ans.level > 0.6 { egui::Color32::from_rgb(220, 80, 80) }
+                            else if ans.level < 0.3 { egui::Color32::from_rgb(80, 160, 220) }
+                            else { egui::Color32::from_rgb(180, 180, 100) };
+                        ui.colored_label(color, format!("{} ({:.0}%)", label, ans.level * 100.0));
+                        ui.label(format!("Target: {:.0}%", ans.target * 100.0));
+                        if ans.conflict > 0.3 {
+                            ui.colored_label(egui::Color32::YELLOW, format!("Conflict: {:.0}%", ans.conflict * 100.0));
+                        }
+                    });
+                    ui.separator();
+                }
+
                 // Biology panel
                 ui.collapsing("Biology", |ui| {
                     if let Some(ref anat) = anatomy {
@@ -427,7 +445,6 @@ fn draw_neural_panel(
 fn draw_physics_panel(
     ui: &mut egui::Ui,
     physics_q: &Query<(&PhysicsBody, &BreathingState, &HeartbeatState, &ResonanceGlow), With<CreatureRoot>>,
-    absence: Option<&AbsenceState>,
 ) {
     egui::CollapsingHeader::new("Physics & Vitals")
         .default_open(true)
@@ -474,21 +491,8 @@ fn draw_physics_panel(
                 glow.frequency, glow.intensity
             ));
 
-            // Absence (Mirror Bond)
-            if let Some(absence) = absence {
-                ui.add_space(4.0);
-                ui.label(format!(
-                    "Absence: {}s ({})",
-                    absence.seconds_away,
-                    absence.description()
-                ));
-                if !absence.acknowledged {
-                    ui.colored_label(
-                        egui::Color32::from_rgb(240, 200, 60),
-                        format!("Reunion: {} ticks left", absence.reunion_ticks),
-                    );
-                }
-            }
+            // Absence display removed (param limit reached)
+            // TODO: restore when system params are refactored to use SystemParam bundle
         });
 
     ui.separator();

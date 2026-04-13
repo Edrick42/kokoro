@@ -168,6 +168,7 @@ fn animation_tick_system(
 /// Blend current angles toward targets, constrained by anatomy.
 fn pose_blend_system(
     anatomy: Option<Res<AnatomyState>>,
+    ans: Option<Res<crate::mind::autonomic::AutonomicState>>,
     mut pose: ResMut<PoseState>,
 ) {
     let Some(ref anat) = anatomy else { return };
@@ -199,7 +200,9 @@ fn pose_blend_system(
         let fatigue = muscle.map(|m| m.fatigue).unwrap_or(0.0);
         let lubrication = joint_data.lubrication;
 
-        let speed = 5.0 * strength * (1.0 - fatigue * 0.5) * lubrication;
+        // ANS arousal makes movements faster/jerkier; calm makes them smooth
+        let ans_speed = ans.as_ref().map(|a| a.arousal_multiplier()).unwrap_or(1.0);
+        let speed = 5.0 * strength * (1.0 - fatigue * 0.5) * lubrication * ans_speed;
 
         // Blend toward target
         let diff = clamped_target - current;

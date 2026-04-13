@@ -27,6 +27,7 @@ use bevy::prelude::Resource;
 use serde::{Deserialize, Serialize};
 
 pub mod absence;
+pub mod autonomic;
 #[allow(dead_code)]
 pub mod disease;
 #[allow(dead_code)]

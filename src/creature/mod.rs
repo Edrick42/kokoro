@@ -1,6 +1,7 @@
 #[allow(dead_code, unused_imports, unused_variables)]
 pub mod abilities;
 pub mod anatomy;
+pub mod idle;
 #[allow(dead_code)]
 pub mod pose;
 #[allow(dead_code)]

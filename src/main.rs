@@ -26,8 +26,10 @@ use creature::{
 use game::state::{AppState, GameStatePlugin};
 use web::WebPlugin;
 use creature::abilities::AbilityPlugin;
+use creature::idle::IdleBehaviorPlugin;
 use creature::pose::PosePlugin;
 use creature::reactions::ReactionPlugin;
+use mind::autonomic::AutonomicPlugin;
 use mind::disease::DiseasePlugin;
 use mind::hygiene::HygienePlugin;
 use mind::lifecycle::LifecyclePlugin;
@@ -94,11 +96,11 @@ fn main() {
         // World systems
         .add_plugins((DayCyclePlugin, TimeTickPlugin, EnvironmentPlugin))
         // Neural mind — learns owner interaction patterns
-        .add_plugins((NeuralMindPlugin, NutritionPlugin, HygienePlugin, DiseasePlugin))
+        .add_plugins((NeuralMindPlugin, NutritionPlugin, HygienePlugin, DiseasePlugin, AutonomicPlugin))
         // UI plugins (gameplay)
         .add_plugins((StatsPlugin, ActionsPlugin, VitalsPlugin, SideMenuPlugin))
         // Creature lifecycle — collection management + egg incubation + anatomy
-        .add_plugins((MultiCreaturePlugin, EggPlugin, TouchPlugin, PreferencePlugin, SoundPlugin, LifecyclePlugin, AnatomyPlugin, AbilityPlugin, PosePlugin, ReactionPlugin))
+        .add_plugins((MultiCreaturePlugin, EggPlugin, TouchPlugin, PreferencePlugin, SoundPlugin, LifecyclePlugin, AnatomyPlugin, AbilityPlugin, PosePlugin, ReactionPlugin, IdleBehaviorPlugin))
         // Physics — gravity, collision, buoyancy
         .add_plugins(PhysicsPlugin)
         // Visual plugins — effects, animation, evolution, accessories, organic behavior

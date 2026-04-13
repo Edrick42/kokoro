@@ -564,6 +564,58 @@ These movements are driven by the skeletal pose system — joint angles blend to
 
 ---
 
+## The Autonomic Nervous System — The Invisible Conductor
+
+> *"You don't notice the conductor of an orchestra. You notice when they stop."*
+
+Every Kobara has a two-branched nervous system that silently governs every bodily function — the autonomic nervous system (ANS). It operates without conscious control, like breathing, blinking, and heartbeat in real animals.
+
+### The Two Branches
+
+**Sympathetic — Fight or Flight**: When a Kobara feels threatened, hungry, sick, or overstimulated, the sympathetic branch activates. Heart rate spikes. Breathing quickens. Muscles tense. Digestion halts. Fat burns faster. The body enters emergency mode — burning reserves to stay alive, at the cost of long-term health.
+
+**Parasympathetic — Rest and Digest**: When a Kobara feels safe, well-fed, and calm, the parasympathetic branch takes over. Heart rate drops. Breathing deepens. Muscles relax and repair. Digestion activates — nutrients are absorbed efficiently, fat is stored. Bones heal. Skin regenerates. Joints lubricate. The body enters maintenance mode.
+
+Every Kobara exists somewhere on a spectrum between these two extremes. A scared creature at 90% sympathetic barely digests food — it's too busy surviving to heal. A sleeping creature at 5% parasympathetic heals faster than at any other time.
+
+### The Conflict State
+
+Something fascinating happens when both branches activate simultaneously — a state real ethologists call **displacement behavior**. The body can't decide whether to fight or rest, so it does something completely unrelated: scratching for no reason, sudden grooming in the middle of an interaction, shaking off invisible water.
+
+These aren't bugs. They're pressure valves. When you see your Kobara suddenly scratch itself during a tense moment, that's its nervous system literally releasing tension. Every experienced caretaker learns to read these signals.
+
+### What the ANS Controls
+
+| System | Sympathetic | Parasympathetic |
+|--------|------------|-----------------|
+| Heart rate | Faster, irregular | Slower, steady |
+| Breathing | Rapid, shallow | Deep, slow |
+| Muscle fatigue | Accumulates faster | Recovers faster |
+| Bone healing | Paused | Accelerated |
+| Joint lubrication | Normal | Enhanced |
+| Skin repair | Paused | Active |
+| Fat reserves | Burns rapidly | Stores efficiently |
+| Digestion | Suppressed | Active |
+| Disease recovery | Slowed | Doubled |
+| Movement | Jerky, restless | Smooth, deliberate |
+| Hygiene | Degrades faster (sweating) | Degrades slowly |
+
+### Involuntary Behaviors
+
+The ANS also drives unconscious micro-behaviors — things the Kobara does without deciding to:
+
+**When calm** (parasympathetic): Yawning, stretching, slow blinking (a sign of deep trust — a Kobara that slow-blinks at you feels completely safe), settling into comfortable positions, and the barely-audible purr that vibrates the kokoro-sac.
+
+**When neutral**: Ear twitches (responding to sounds you can't hear), looking around (passive environmental scanning), tail flicks, and sniffing (checking for food, danger, or familiar scents).
+
+**When alert** (sympathetic): Freezing completely still (the most ancient predator defense — if I don't move, nothing can see me), ears snapping erect, rapid head scanning left-right-left, and dilated pupils letting in maximum light.
+
+**When conflicted** (displacement): Scratching without an itch, grooming mid-interaction, full-body shake-off (like a dog shaking off water, except dry), and lip-licking.
+
+These behaviors are species-specific in their expression — a Moluun scratches its ear, a Pylum pecks at its own feathers, a Skael rubs against an imaginary surface, a Nyxal wraps and unwraps its tentacles — but they all serve the same purpose: releasing tension from a nervous system that can't decide what to do.
+
+---
+
 ## Sound — The Voice of Ethara
 
 Ethara is not a silent world. Every biome has its own ambient soundscape, every species its own voice, and the world itself has a rhythm — a slow, lofi pulse that fills the air like a second atmosphere.

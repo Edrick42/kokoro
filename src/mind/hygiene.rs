@@ -48,13 +48,18 @@ impl Plugin for HygienePlugin {
 fn hygiene_decay_system(
     mind: Res<Mind>,
     mut hygiene: ResMut<HygieneState>,
+    ans: Option<Res<crate::mind::autonomic::AutonomicState>>,
 ) {
-    let decay = match mind.mood {
+    let base_decay = match mind.mood {
         MoodState::Sleeping => cfg::SLEEP_DECAY,
         MoodState::Playful  => cfg::ACTIVE_DECAY,
         MoodState::Happy    => cfg::IDLE_DECAY * 1.5,
         _ => cfg::IDLE_DECAY,
     };
+
+    // Sympathetic arousal = sweating, more dirt. Parasympathetic = slower decay.
+    let arousal = ans.as_ref().map(|a| a.arousal_multiplier()).unwrap_or(1.0);
+    let decay = base_decay * arousal;
 
     hygiene.level = (hygiene.level - decay).max(0.0);
 

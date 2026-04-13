@@ -75,7 +75,7 @@ pub struct PhysicsPlugin;
 impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(PreviousMood::default())
-           .add_systems(Update, (physics_actions, physics_step).chain().run_if(in_state(AppState::Gameplay)));
+           .add_systems(Update, (physics_actions, ans_jitter, physics_step).chain().run_if(in_state(AppState::Gameplay)));
     }
 }
 
@@ -111,6 +111,28 @@ fn physics_actions(
                 body.velocity.x += stumble;
             }
             _ => {}
+        }
+    }
+}
+
+/// Sympathetic arousal adds subtle movement jitter (restless, twitchy).
+fn ans_jitter(
+    ans: Option<Res<crate::mind::autonomic::AutonomicState>>,
+    mut query: Query<&mut PhysicsBody, With<CreatureRoot>>,
+) {
+    let Some(ref ans) = ans else { return };
+
+    // Only jitter when sympathetic is high
+    if ans.level < 0.5 { return; }
+
+    let intensity = (ans.level - 0.5) * 2.0; // 0.0 at 0.5, 1.0 at 1.0
+    let mut rng = rand::rng();
+
+    for mut body in query.iter_mut() {
+        if body.grounded {
+            // Small random horizontal nudge (restless shifting)
+            let jitter = rng.random_range(-1.0..1.0) * intensity * 2.0;
+            body.velocity.x += jitter;
         }
     }
 }

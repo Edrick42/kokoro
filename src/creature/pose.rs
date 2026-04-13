@@ -150,11 +150,19 @@ fn init_pose_system(
 }
 
 /// Advance active animation and push target angles to PoseState.
+/// Ticks at ~10fps (not every frame) so animations play at readable speed.
 fn animation_tick_system(
+    time: Res<Time>,
+    mut elapsed: Local<f32>,
     mut active: ResMut<ActiveAnimation>,
     mut pose: ResMut<PoseState>,
 ) {
     let Some(ref mut anim) = active.animation else { return };
+
+    // Animation ticks at 10fps for visible, readable movement
+    *elapsed += time.delta_secs();
+    if *elapsed < 0.1 { return; }
+    *elapsed -= 0.1;
 
     if let Some(targets) = anim.tick() {
         pose.set_targets(targets.clone());

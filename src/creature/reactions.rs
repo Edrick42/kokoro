@@ -246,8 +246,17 @@ fn process_reactions(
 }
 
 /// Ticks down expression override timer.
-fn tick_expression(mut expression: ResMut<ExpressionOverride>) {
-    if expression.ticks > 0 {
+fn tick_expression(
+    mut expression: ResMut<ExpressionOverride>,
+    time: Res<Time>,
+    mut elapsed: Local<f32>,
+) {
+    if expression.ticks == 0 { return; }
+
+    // Count at ~1 tick per second (not per frame)
+    *elapsed += time.delta_secs();
+    if *elapsed >= 1.0 {
+        *elapsed -= 1.0;
         expression.ticks -= 1;
         if expression.ticks == 0 {
             expression.clear();

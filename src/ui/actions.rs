@@ -74,15 +74,10 @@ impl Plugin for ActionsPlugin {
         app.insert_resource(MenuState::default())
            .add_systems(OnEnter(AppState::Gameplay), setup_menu)
            .add_systems(Update, (
-               handle_menu_toggle,
-               handle_action_press,
-               handle_food_press,
-               handle_species_press,
-               toggle_food_description,
-               sync_visibility,
-               animate_buttons,
-               smooth_button_scale,
-           ).run_if(in_state(AppState::Gameplay)));
+               (handle_menu_toggle, handle_action_press, handle_food_press, handle_species_press),
+               (sync_visibility, toggle_food_description),
+               (animate_buttons, smooth_button_scale),
+           ).chain().run_if(in_state(AppState::Gameplay)));
     }
 }
 

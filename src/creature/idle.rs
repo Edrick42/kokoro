@@ -52,12 +52,19 @@ fn idle_behavior_system(
     ans: Res<AutonomicState>,
     mind: Res<Mind>,
     genome: Res<Genome>,
+    time: Res<Time>,
     mut timer: ResMut<IdleTimer>,
+    mut elapsed: Local<f32>,
     mut active_anim: ResMut<ActiveAnimation>,
     mut expression: ResMut<ExpressionOverride>,
 ) {
     // Don't interrupt player-triggered animations
     if active_anim.animation.is_some() { return; }
+
+    // Count at ~1 tick per second (not per frame)
+    *elapsed += time.delta_secs();
+    if *elapsed < 1.0 { return; }
+    *elapsed -= 1.0;
 
     // Tick down
     if timer.ticks_until_next > 0 {

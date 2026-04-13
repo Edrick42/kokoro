@@ -2,22 +2,32 @@
 //! All route definitions live here in one place.
 
 use std::sync::Arc;
-use axum::{routing::{get, post}, Router};
-use tower_http::cors::{Any, CorsLayer};
+use axum::{routing::{get, post, delete}, Router};
+use axum::http::{HeaderValue, header};
+use tower_http::cors::CorsLayer;
+use tower_http::set_header::SetResponseHeaderLayer;
 
 use crate::constants::{routes, auth};
 use crate::controllers;
 use crate::db::Database;
 
 /// Creates the application router with all routes and middleware.
-///
-/// The `db` parameter is shared across all handlers via Axum's
-/// State extractor. `Arc` provides cheap cloning for thread safety.
 pub fn create_router(db: Arc<Database>) -> Router {
+    // CORS — restrictive in production, permissive in dev
+    let allowed_origins = std::env::var("ALLOWED_ORIGINS")
+        .unwrap_or_else(|_| "http://localhost:3000".to_string());
+    let origins: Vec<HeaderValue> = allowed_origins.split(',')
+        .filter_map(|o| o.trim().parse().ok())
+        .collect();
+
     let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
+        .allow_origin(origins)
+        .allow_methods([
+            axum::http::Method::GET,
+            axum::http::Method::POST,
+            axum::http::Method::DELETE,
+        ])
+        .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION]);
 
     Router::new()
         // Public endpoints
@@ -39,7 +49,25 @@ pub fn create_router(db: Arc<Database>) -> Router {
         .route(routes::SHOP_CHECKOUT, post(controllers::shop::checkout))
         .route(routes::SHOP_WEBHOOK, post(controllers::shop::webhook))
         .route(routes::SHOP_PURCHASE, post(controllers::shop::purchase_item))
+        // Privacy endpoints (LGPD/GDPR compliance)
+        .route(routes::USER_DATA_EXPORT, get(controllers::auth::data_export))
+        .route(routes::USER_DELETE_ACCOUNT, delete(controllers::auth::delete_account))
+        // Donation endpoint
+        .route(routes::DONATE_CHECKOUT, post(controllers::shop::donate_checkout))
         // Shared state + middleware
         .with_state(db)
         .layer(cors)
+        // Security headers
+        .layer(SetResponseHeaderLayer::overriding(
+            header::X_CONTENT_TYPE_OPTIONS,
+            HeaderValue::from_static("nosniff"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::X_FRAME_OPTIONS,
+            HeaderValue::from_static("DENY"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::STRICT_TRANSPORT_SECURITY,
+            HeaderValue::from_static("max-age=31536000; includeSubDomains"),
+        ))
 }

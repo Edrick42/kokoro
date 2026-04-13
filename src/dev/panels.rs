@@ -7,19 +7,19 @@
 use bevy::prelude::*;
 use bevy_egui::{EguiContexts, egui};
 
-use crate::creature::collection::CreatureCollection;
-use crate::creature::physics::PhysicsBody;
-use crate::creature::species::CreatureRoot;
+use crate::creature::lifecycle::collection::CreatureCollection;
+use crate::creature::interaction::physics::PhysicsBody;
+use crate::creature::identity::species::CreatureRoot;
 use crate::genome::Genome;
 use crate::mind::{Mind, MoodState};
 use crate::visuals::evolution::{GrowthState, GrowthStage};
 use crate::creature::anatomy::AnatomyState;
-use crate::creature::pose::PoseState;
-use crate::creature::reactions::ExpressionOverride;
+use crate::creature::behavior::pose::PoseState;
+use crate::creature::behavior::reactions::ExpressionOverride;
 use crate::mind::hygiene::HygieneState;
-use crate::mind::disease::DiseaseState;
 use crate::world::environment::EnvironmentState;
 use crate::mind::autonomic::AutonomicState as ANS;
+use crate::creature::behavior::involuntary::InvoluntaryState;
 use crate::mind::neural::{OUTPUT_SIZE, build_input, index_to_mood};
 use crate::mind::plugin::NeuralMind;
 use crate::visuals::breathing::{BreathingState, HeartbeatState};
@@ -37,12 +37,12 @@ pub fn dev_panels_system(
     mut growth: Option<ResMut<GrowthState>>,
     pose: Option<Res<PoseState>>,
     expression: Option<Res<ExpressionOverride>>,
-    mut reaction_events: EventWriter<crate::creature::reactions::CreatureReaction>,
+    mut reaction_events: EventWriter<crate::creature::behavior::reactions::CreatureReaction>,
     anatomy: Option<Res<AnatomyState>>,
     hygiene: Option<Res<HygieneState>>,
-    disease: Option<Res<DiseaseState>>,
     environment: Option<Res<EnvironmentState>>,
     ans: Option<Res<ANS>>,
+    inv: Option<Res<InvoluntaryState>>,
     physics_q: Query<(&PhysicsBody, &BreathingState, &HeartbeatState, &ResonanceGlow), With<CreatureRoot>>,
 ) {
     let Ok(ctx) = contexts.ctx_mut() else { return };
@@ -91,6 +91,20 @@ pub fn dev_panels_system(
                             ui.colored_label(egui::Color32::YELLOW, format!("Conflict: {:.0}%", ans.conflict * 100.0));
                         }
                     });
+
+                    // Involuntary state (shown under ANS)
+                    if let Some(ref inv) = inv {
+                        ui.label(format!("Pupil: {:.0}%", inv.pupil * 100.0));
+                        ui.label(format!("Tension: {:.0}%", inv.tension * 100.0));
+                        if inv.blink_active > 0.0 {
+                            ui.colored_label(egui::Color32::YELLOW, "BLINK");
+                        }
+                        ui.label(format!("Next blink: {:.1}s", inv.blink_timer));
+                        if inv.startle_ticks > 0.0 {
+                            ui.colored_label(egui::Color32::RED, format!("STARTLE {:.1}s", inv.startle_ticks));
+                        }
+                    }
+
                     ui.separator();
                 }
 
@@ -110,17 +124,7 @@ pub fn dev_panels_system(
                         let color = if hyg.level < 30.0 { egui::Color32::RED } else { egui::Color32::GREEN };
                         ui.colored_label(color, format!("Hygiene: {:.0}", hyg.level));
                     }
-                    if let Some(ref dis) = disease {
-                        if dis.is_sick() {
-                            ui.separator();
-                            for c in &dis.conditions {
-                                ui.colored_label(
-                                    egui::Color32::RED,
-                                    format!("{}: {}t left", c.condition.label(), c.remaining_ticks),
-                                );
-                            }
-                        }
-                    }
+                    // Disease display removed (param limit — see HUD vitals panel instead)
                     if let Some(ref env) = environment {
                         ui.separator();
                         ui.label(format!("Temp: {:.1}°C", env.temperature));
@@ -165,7 +169,7 @@ pub fn dev_panels_system(
                 if dev_state.show_cheats {
                     ui.label("Test reactions:");
                     ui.horizontal(|ui| {
-                        use crate::creature::reactions::CreatureReaction;
+                        use crate::creature::behavior::reactions::CreatureReaction;
                         use crate::config::nutrition::FoodType;
                         if ui.small_button("Eat").clicked() {
                             reaction_events.write(CreatureReaction::Eating {
@@ -184,7 +188,7 @@ pub fn dev_panels_system(
                         }
                     });
                     ui.horizontal(|ui| {
-                        use crate::creature::reactions::CreatureReaction;
+                        use crate::creature::behavior::reactions::CreatureReaction;
                         if ui.small_button("Sleep").clicked() {
                             reaction_events.write(CreatureReaction::FallingAsleep);
                         }

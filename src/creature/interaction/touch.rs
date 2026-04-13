@@ -10,7 +10,7 @@ use bevy::window::PrimaryWindow;
 use crate::game::state::AppState;
 
 use crate::config::nervous_system as nerv;
-use crate::creature::species::{BodyPartSlot, CreatureRoot};
+use crate::creature::identity::species::{BodyPartSlot, CreatureRoot};
 use crate::genome::Genome;
 use crate::mind::Mind;
 
@@ -89,7 +89,8 @@ fn apply_touch_effects(
     mut events: EventReader<TouchEvent>,
     mut mind: ResMut<Mind>,
     genome: Res<Genome>,
-    mut reaction_events: EventWriter<crate::creature::reactions::CreatureReaction>,
+    mut involuntary: ResMut<crate::creature::behavior::involuntary::InvoluntaryState>,
+    mut reaction_events: EventWriter<crate::creature::behavior::reactions::CreatureReaction>,
 ) {
     for event in events.read() {
         let sens = nerv::sensitivity(&genome.species, &event.slot);
@@ -101,11 +102,13 @@ fn apply_touch_effects(
 
         // Fire visual reaction based on pleasure vs pain
         if event.pain > 0.5 {
-            reaction_events.write(crate::creature::reactions::CreatureReaction::Flinched {
+            // Startle reflex: instant pupil dilation + tension
+            crate::creature::behavior::involuntary::trigger_startle(&mut involuntary);
+            reaction_events.write(crate::creature::behavior::reactions::CreatureReaction::Flinched {
                 pain: event.pain,
             });
         } else if event.pleasure > 0.3 {
-            reaction_events.write(crate::creature::reactions::CreatureReaction::Petted {
+            reaction_events.write(crate::creature::behavior::reactions::CreatureReaction::Petted {
                 pleasure: event.pleasure,
             });
         }

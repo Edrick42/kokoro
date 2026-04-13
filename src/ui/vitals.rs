@@ -6,7 +6,7 @@
 use bevy::prelude::*;
 
 use crate::config::ui::{palette, fonts, PixelFont};
-use crate::creature::species::CreatureRoot;
+use crate::creature::identity::species::CreatureRoot;
 use crate::game::state::{AppState, GameplayEntity};
 use crate::visuals::breathing::{BreathingState, HeartbeatState};
 

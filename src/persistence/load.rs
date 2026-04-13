@@ -107,7 +107,7 @@ fn load_mind(conn: &Connection) -> Result<Option<(Mind, i64)>> {
 
 /// Loads the full creature collection from the `creatures` table.
 /// Returns None if the table is empty (first run or pre-migration).
-pub fn load_collection(conn: &Connection) -> Result<Option<Vec<crate::creature::collection::StoredCreature>>> {
+pub fn load_collection(conn: &Connection) -> Result<Option<Vec<crate::creature::lifecycle::collection::StoredCreature>>> {
     let mut stmt = conn.prepare(
         "SELECT slot, name, species, curiosity, loneliness_sensitivity, appetite,
                 circadian, resilience, learning_rate, hue,
@@ -115,7 +115,7 @@ pub fn load_collection(conn: &Connection) -> Result<Option<Vec<crate::creature::
          FROM creatures ORDER BY slot ASC",
     )?;
 
-    let creatures: Vec<crate::creature::collection::StoredCreature> = stmt.query_map([], |row| {
+    let creatures: Vec<crate::creature::lifecycle::collection::StoredCreature> = stmt.query_map([], |row| {
         let species_str: String = row.get(2)?;
         let mood_str: String = row.get(14)?;
         {
@@ -131,9 +131,9 @@ pub fn load_collection(conn: &Connection) -> Result<Option<Vec<crate::creature::
                 hue: row.get(9)?,
             };
             let anatomy = AnatomyState::new_for(&species, &genome);
-            Ok(crate::creature::collection::StoredCreature {
+            Ok(crate::creature::lifecycle::collection::StoredCreature {
                 name: row.get(1)?,
-                egg: crate::creature::egg::EggData { progress: 1.0, hatched: true },
+                egg: crate::creature::lifecycle::egg::EggData { progress: 1.0, hatched: true },
                 anatomy,
                 mind: Mind {
                     stats: VitalStats {

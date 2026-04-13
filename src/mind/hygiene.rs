@@ -96,7 +96,7 @@ fn clean_action_system(
     mut hygiene: ResMut<HygieneState>,
     mut mind: ResMut<Mind>,
     genome: Res<Genome>,
-    mut reaction_events: EventWriter<crate::creature::reactions::CreatureReaction>,
+    mut reaction_events: EventWriter<crate::creature::behavior::reactions::CreatureReaction>,
 ) {
     for _event in events.read() {
         let effectiveness = match genome.species {
@@ -121,7 +121,7 @@ fn clean_action_system(
         mind.stats.happiness = (mind.stats.happiness + 3.0).min(100.0);
 
         // Visual reaction
-        reaction_events.write(crate::creature::reactions::CreatureReaction::Cleaning);
+        reaction_events.write(crate::creature::behavior::reactions::CreatureReaction::Cleaning);
     }
 }
 

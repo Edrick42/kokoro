@@ -17,7 +17,7 @@ use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use image::{RgbaImage, Rgba};
 
 use crate::mind::{Mind, MoodState};
-use crate::creature::species::CreatureRoot;
+use crate::creature::identity::species::CreatureRoot;
 
 const EFFECT_SIZE: u32 = 16;
 const EFFECT_SCALE: f32 = 4.0;

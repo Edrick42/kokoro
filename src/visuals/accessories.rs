@@ -11,7 +11,7 @@
 use bevy::prelude::*;
 use crate::game::state::AppState;
 use crate::mind::Mind;
-use crate::creature::species::CreatureRoot;
+use crate::creature::identity::species::CreatureRoot;
 
 pub struct AccessoriesPlugin;
 

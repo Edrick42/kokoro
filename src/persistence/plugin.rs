@@ -73,7 +73,7 @@ fn autosave_system(
     db:         Res<DbConnection>,
     genome:     Res<Genome>,
     mind:       Res<Mind>,
-    collection: Option<Res<crate::creature::collection::CreatureCollection>>,
+    collection: Option<Res<crate::creature::lifecycle::collection::CreatureCollection>>,
     web_session: Res<crate::web::WebSession>,
 ) {
     if mind.age_ticks % config::AUTOSAVE_INTERVAL == 0 && mind.age_ticks > 0 {
@@ -100,7 +100,7 @@ fn save_on_exit(
     db:         Res<DbConnection>,
     genome:     Res<Genome>,
     mind:       Res<Mind>,
-    collection: Option<Res<crate::creature::collection::CreatureCollection>>,
+    collection: Option<Res<crate::creature::lifecycle::collection::CreatureCollection>>,
 ) {
     for _ in exit_events.read() {
         let conn = db.0.lock().expect("DB lock poisoned");

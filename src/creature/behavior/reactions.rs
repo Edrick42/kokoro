@@ -30,9 +30,9 @@
 use bevy::prelude::*;
 
 use crate::config::nutrition::FoodType;
-use crate::creature::pose::{ActiveAnimation, PoseAnimation, pose_from};
-use crate::creature::physics::PhysicsBody;
-use crate::creature::species::CreatureRoot;
+use crate::creature::behavior::pose::{ActiveAnimation, PoseAnimation, pose_from};
+use crate::creature::interaction::physics::PhysicsBody;
+use crate::creature::identity::species::CreatureRoot;
 use crate::game::state::AppState;
 use crate::genome::{Genome, Species};
 use crate::mind::{Mind, MoodState};
@@ -44,6 +44,7 @@ use crate::mind::{Mind, MoodState};
 /// A creature reaction triggered by player action or game event.
 /// Any system can write these. The ReactionPlugin reads and animates them.
 #[derive(Event, Debug, Clone)]
+#[allow(dead_code)]
 pub enum CreatureReaction {
     // Feeding
     Eating { food: FoodType, preferred: bool },

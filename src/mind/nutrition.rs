@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::game::state::AppState;
 
 use crate::config::nutrition::{FoodType, NutrientProfile, self as nutr};
-use crate::creature::species::CreatureRoot;
+use crate::creature::identity::species::CreatureRoot;
 use crate::genome::Genome;
 use crate::mind::Mind;
 

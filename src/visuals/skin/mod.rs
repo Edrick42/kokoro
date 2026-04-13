@@ -19,9 +19,10 @@ type BevyImage = Image;
 
 use crate::game::state::AppState;
 use crate::creature::anatomy::AnatomyState;
-use crate::creature::pose::PoseState;
-use crate::creature::reactions::ExpressionOverride;
-use crate::creature::species::CreatureRoot;
+use crate::creature::behavior::involuntary::InvoluntaryState;
+use crate::creature::behavior::pose::PoseState;
+use crate::creature::behavior::reactions::ExpressionOverride;
+use crate::creature::identity::species::CreatureRoot;
 use crate::genome::{Genome, Species};
 use crate::mind::{Mind, MoodState};
 use crate::visuals::evolution::{GrowthState, GrowthStage};
@@ -63,6 +64,7 @@ fn attach_skin(
     mind: Res<Mind>,
     growth: Res<GrowthState>,
     anatomy: Option<Res<AnatomyState>>,
+    involuntary: Res<InvoluntaryState>,
     pose: Res<PoseState>,
     expression: Res<ExpressionOverride>,
 ) {
@@ -74,7 +76,7 @@ fn attach_skin(
             let sp = anatomy.as_ref()
                 .map(|a| SkinParams::from_anatomy(a, &genome.species, &growth.stage))
                 .unwrap_or_else(SkinParams::healthy_default);
-            draw_creature(&mut buf, &genome.species, &mind.mood, &growth.stage, &sp, &pose, &expression);
+            draw_creature(&mut buf, &genome.species, &mind.mood, &growth.stage, &sp, &pose, &expression, &involuntary);
             if let Some(ref mut data) = image.data {
                 data.copy_from_slice(buf.as_raw());
             }
@@ -103,6 +105,7 @@ fn update_skin(
     mind: Res<Mind>,
     growth: Res<GrowthState>,
     anatomy: Option<Res<AnatomyState>>,
+    involuntary: Res<InvoluntaryState>,
     pose: Res<PoseState>,
     expression: Res<ExpressionOverride>,
     mut images: ResMut<Assets<BevyImage>>,
@@ -116,14 +119,15 @@ fn update_skin(
 
     let anatomy_changed = anatomy.as_ref().map_or(false, |a| a.is_changed());
     if !mind.is_changed() && !genome.is_changed() && !growth.is_changed()
-        && !anatomy_changed && !pose.is_changed() && !expression.is_changed() {
+        && !anatomy_changed && !pose.is_changed() && !expression.is_changed()
+        && !involuntary.is_changed() {
         return;
     }
 
     let sp = anatomy.as_ref()
         .map(|a| SkinParams::from_anatomy(a, &genome.species, &growth.stage))
         .unwrap_or_else(SkinParams::healthy_default);
-    draw_creature(buf, &genome.species, &mind.mood, &growth.stage, &sp, &pose, &expression);
+    draw_creature(buf, &genome.species, &mind.mood, &growth.stage, &sp, &pose, &expression, &involuntary);
 
     for sprite in creature_q.iter() {
         if let Some(image) = images.get_mut(&sprite.image) {
@@ -222,18 +226,7 @@ pub fn fade(c: Rgba<u8>, amount: f32) -> Rgba<u8> {
 // MAIN DRAW DISPATCH
 // ===================================================================
 
-/// Computed pixel offsets from skeletal pose — passed to draw functions.
-#[allow(dead_code)]
-pub struct PoseOffsets {
-    /// Head horizontal shift (from neck angle).
-    pub head_dx: i32,
-    /// Head vertical dip (from neck angle).
-    pub head_dy: i32,
-    /// Tail horizontal swing.
-    pub tail_dx: i32,
-}
-
-fn draw_creature(img: &mut RgbaImage, species: &Species, mood: &MoodState, stage: &GrowthStage, sp: &SkinParams, pose: &PoseState, expr: &ExpressionOverride) {
+fn draw_creature(img: &mut RgbaImage, species: &Species, mood: &MoodState, stage: &GrowthStage, sp: &SkinParams, _pose: &PoseState, expr: &ExpressionOverride, inv: &InvoluntaryState) {
     let cx = img.width() as i32 / 2;
 
     // Clear canvas
@@ -241,38 +234,31 @@ fn draw_creature(img: &mut RgbaImage, species: &Species, mood: &MoodState, stage
         *pixel = Rgba([0, 0, 0, 0]);
     }
 
-    // Compute pixel offsets from pose joint angles
-    let neck = pose.angle("neck");
-    let tail = pose.angle("tail");
-    let offsets = PoseOffsets {
-        head_dx: (neck.to_radians().sin() * 4.0) as i32,
-        head_dy: (neck.to_radians().sin().abs() * 2.0) as i32,
-        tail_dx: (tail.to_radians().sin() * 3.0) as i32,
-    };
+    // Blink: during active blink, force eyes closed (sleeping appearance)
+    let is_blinking = inv.blink_active > 0.0;
 
-    // Override mood for expression if active
-    let effective_mood = if expr.is_active() {
-        // Map expression override to a temporary mood for eye/mouth rendering
+    // Override mood for expression/blink
+    let effective_mood = if is_blinking {
+        MoodState::Sleeping  // closed eyes during blink
+    } else if expr.is_active() {
         match (expr.eyes, expr.mouth) {
-            (2, _)  => MoodState::Sleeping,  // half-closed eyes → sleeping look
-            (1, 2)  => MoodState::Playful,   // wide eyes + big smile → playful
-            (-1, _) => MoodState::Sick,      // squint → sick look
-            (_, 1)  => MoodState::Hungry,    // mouth open → hungry look
+            (2, _)  => MoodState::Sleeping,
+            (1, 2)  => MoodState::Playful,
+            (-1, _) => MoodState::Sick,
+            (_, 1)  => MoodState::Hungry,
             _       => mood.clone(),
         }
     } else {
         mood.clone()
     };
 
-    // Body shifts opposite to head (natural counterbalance)
-    let body_dx = -offsets.head_dx / 2;
-
+    // Pose offsets now applied via Transform (not pixel level) for visibility
     match stage {
         GrowthStage::Egg   => draw_egg(img, species),
-        GrowthStage::Cub   => draw_cub(img, species, &effective_mood, cx + offsets.head_dx, sp),
-        GrowthStage::Young => draw_young(img, species, &effective_mood, cx + offsets.head_dx + body_dx, sp),
-        GrowthStage::Adult => draw_adult(img, species, &effective_mood, cx + offsets.head_dx + body_dx, sp),
-        GrowthStage::Elder => draw_elder(img, species, &effective_mood, cx + offsets.head_dx + body_dx, sp),
+        GrowthStage::Cub   => draw_cub(img, species, &effective_mood, cx, sp),
+        GrowthStage::Young => draw_young(img, species, &effective_mood, cx, sp),
+        GrowthStage::Adult => draw_adult(img, species, &effective_mood, cx, sp),
+        GrowthStage::Elder => draw_elder(img, species, &effective_mood, cx, sp),
     }
 }
 

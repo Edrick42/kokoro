@@ -6,7 +6,7 @@
 use bevy::prelude::*;
 use bevy::audio::PlaybackSettings;
 
-use crate::creature::species::CreatureRoot;
+use crate::creature::identity::species::CreatureRoot;
 use crate::visuals::breathing::HeartbeatState;
 use super::SoundBank;
 

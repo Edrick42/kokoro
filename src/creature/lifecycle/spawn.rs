@@ -12,9 +12,9 @@ use image::RgbaImage;
 
 use crate::genome::{Genome, Species};
 use crate::mind::Mind;
-use crate::creature::collection::CreatureCollection;
-use crate::creature::egg::EggEntity;
-use crate::creature::physics::{PhysicsBody, GROUND_Y};
+use crate::creature::lifecycle::collection::CreatureCollection;
+use crate::creature::lifecycle::egg::EggEntity;
+use crate::creature::interaction::physics::{PhysicsBody, GROUND_Y};
 use crate::visuals::species_behavior::SpeciesBehavior;
 use crate::visuals::skin;
 use crate::audio::VocalRepertoire;
@@ -23,7 +23,7 @@ use crate::mind::nutrition::NutrientState;
 use crate::mind::preferences::PreferenceMemory;
 use crate::visuals::breathing::{BreathingState, HeartbeatState};
 use crate::game::state::{AppState, GameplayEntity};
-use super::species::*;
+use crate::creature::identity::species::*;
 
 pub struct CreatureVisualsPlugin;
 

@@ -6,6 +6,10 @@ pub struct RegisterRequest {
     pub email: String,
     pub display_name: String,
     pub password: String,
+    /// Year of birth — for COPPA age gate. Must be 13+ to register.
+    pub birth_year: Option<i32>,
+    /// User consents to privacy policy (required).
+    pub privacy_consent: Option<bool>,
 }
 
 /// Login request body.

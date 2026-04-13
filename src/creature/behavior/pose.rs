@@ -69,6 +69,7 @@ impl PoseState {
     }
 
     /// Get current angle for a joint (0.0 if not found).
+    #[allow(dead_code)]
     pub fn angle(&self, joint: &str) -> f32 {
         self.angles.get(joint).copied().unwrap_or(0.0)
     }

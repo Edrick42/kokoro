@@ -87,7 +87,7 @@ pub fn log_event(
 /// Saves the entire creature collection to the `creatures` table.
 pub fn save_collection(
     conn: &Connection,
-    collection: &crate::creature::collection::CreatureCollection,
+    collection: &crate::creature::lifecycle::collection::CreatureCollection,
 ) -> Result<()> {
     for (i, creature) in collection.creatures.iter().enumerate() {
         conn.execute(

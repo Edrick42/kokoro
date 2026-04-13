@@ -89,3 +89,57 @@ pub async fn purchase_item(
         remaining_balance: remaining,
     }))
 }
+
+/// POST /api/donate — Create a Stripe Checkout for a one-time donation ("buy me a coffee").
+///
+/// No auth required — anyone can donate.
+pub async fn donate_checkout(
+    Json(body): Json<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let amount_cents = body["amount_cents"].as_i64()
+        .ok_or_else(|| ApiError::internal("Missing amount_cents"))?;
+
+    if amount_cents < 100 || amount_cents > 50000 {
+        return Err(ApiError::internal("Amount must be between $1.00 and $500.00"));
+    }
+
+    let stripe_key = std::env::var("STRIPE_SECRET_KEY")
+        .map_err(|_| ApiError::internal("STRIPE_SECRET_KEY not set"))?;
+
+    let client = stripe::Client::new(&stripe_key);
+
+    let success_url = std::env::var("DONATE_SUCCESS_URL")
+        .unwrap_or_else(|_| "http://localhost:3000/?donated=true".to_string());
+    let cancel_url = std::env::var("DONATE_CANCEL_URL")
+        .unwrap_or_else(|_| "http://localhost:3000/".to_string());
+
+    let mut params = stripe::CreateCheckoutSession::new();
+    params.mode = Some(stripe::CheckoutSessionMode::Payment);
+    params.success_url = Some(&success_url);
+    params.cancel_url = Some(&cancel_url);
+    params.line_items = Some(vec![stripe::CreateCheckoutSessionLineItems {
+        quantity: Some(1),
+        price_data: Some(stripe::CreateCheckoutSessionLineItemsPriceData {
+            currency: stripe::Currency::USD,
+            unit_amount: Some(amount_cents),
+            product_data: Some(stripe::CreateCheckoutSessionLineItemsPriceDataProductData {
+                name: "Support Kokoro Development".to_string(),
+                ..Default::default()
+            }),
+            ..Default::default()
+        }),
+        ..Default::default()
+    }]);
+
+    let session = stripe::CheckoutSession::create(&client, params)
+        .await
+        .map_err(|e| ApiError::internal(format!("Stripe error: {e}")))?;
+
+    let checkout_url = session.url
+        .ok_or_else(|| ApiError::internal("No checkout URL"))?;
+
+    Ok(Json(serde_json::json!({
+        "checkout_url": checkout_url,
+        "amount_cents": amount_cents,
+    })))
+}

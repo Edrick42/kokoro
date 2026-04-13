@@ -44,7 +44,7 @@ impl Plugin for EggPlugin {
 
 /// Advances incubation naturally each tick.
 fn natural_incubation(
-    mut collection: ResMut<crate::creature::collection::CreatureCollection>,
+    mut collection: ResMut<crate::creature::lifecycle::collection::CreatureCollection>,
 ) {
     let idx = collection.active_index;
     let Some(creature) = collection.creatures.get_mut(idx) else { return };
@@ -66,7 +66,7 @@ fn natural_incubation(
 /// When the player taps the egg (via the "Warm" action), boost incubation.
 fn handle_egg_tap(
     mut events: EventReader<EggTapEvent>,
-    mut collection: ResMut<crate::creature::collection::CreatureCollection>,
+    mut collection: ResMut<crate::creature::lifecycle::collection::CreatureCollection>,
 ) {
     for _ in events.read() {
         let idx = collection.active_index;

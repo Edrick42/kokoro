@@ -35,6 +35,11 @@ impl ApiError {
         Self { error: msg.into(), code: 401 }
     }
 
+    /// 403 Forbidden — action not allowed (age gate, missing consent).
+    pub fn forbidden(msg: impl Into<String>) -> Self {
+        Self { error: msg.into(), code: 403 }
+    }
+
     /// 409 Conflict — resource already exists (e.g. duplicate email).
     pub fn conflict(msg: impl Into<String>) -> Self {
         Self { error: msg.into(), code: 409 }

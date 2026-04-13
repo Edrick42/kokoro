@@ -12,7 +12,7 @@ use rand::Rng;
 
 use crate::game::state::AppState;
 
-use crate::creature::species::CreatureRoot;
+use crate::creature::identity::species::CreatureRoot;
 use crate::mind::{Mind, MoodState};
 
 /// Re-export ground Y from config for external use.

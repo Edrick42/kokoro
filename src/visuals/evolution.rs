@@ -21,7 +21,7 @@ use bevy::prelude::*;
 use crate::config;
 use crate::game::state::AppState;
 use crate::mind::Mind;
-use crate::creature::species::CreatureRoot;
+use crate::creature::identity::species::CreatureRoot;
 
 /// Tracks the creature's current growth stage for visual evolution.
 #[derive(Resource)]

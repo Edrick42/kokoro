@@ -17,7 +17,7 @@ use crate::genome::Genome;
 use crate::mind::hygiene::HygieneState;
 use crate::mind::nutrition::NutrientState;
 use crate::mind::{Mind, MoodState};
-use crate::creature::species::CreatureRoot;
+use crate::creature::identity::species::CreatureRoot;
 
 /// A specific disease condition.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -124,7 +124,7 @@ fn disease_trigger_system(
     anatomy: Option<Res<AnatomyState>>,
     nutrient_q: Query<&NutrientState, With<CreatureRoot>>,
     mut disease: ResMut<DiseaseState>,
-    mut reaction_events: EventWriter<crate::creature::reactions::CreatureReaction>,
+    mut reaction_events: EventWriter<crate::creature::behavior::reactions::CreatureReaction>,
 ) {
     let had_conditions = disease.conditions.len();
 
@@ -162,7 +162,7 @@ fn disease_trigger_system(
 
     // Fire visual reaction if new conditions appeared
     if disease.conditions.len() > had_conditions {
-        reaction_events.write(crate::creature::reactions::CreatureReaction::GotSick);
+        reaction_events.write(crate::creature::behavior::reactions::CreatureReaction::GotSick);
     }
 }
 
@@ -171,7 +171,7 @@ fn disease_tick_system(
     mut disease: ResMut<DiseaseState>,
     mut mind: ResMut<Mind>,
     ans: Option<Res<crate::mind::autonomic::AutonomicState>>,
-    mut reaction_events: EventWriter<crate::creature::reactions::CreatureReaction>,
+    mut reaction_events: EventWriter<crate::creature::behavior::reactions::CreatureReaction>,
 ) {
     // ANS: parasympathetic rest speeds recovery; sympathetic stress slows it
     let calm = ans.as_ref().map(|a| a.calm_multiplier()).unwrap_or(1.0);
@@ -192,7 +192,7 @@ fn disease_tick_system(
 
     // Fire recovery reaction if conditions cleared
     if before > 0 && disease.conditions.is_empty() {
-        reaction_events.write(crate::creature::reactions::CreatureReaction::Recovered);
+        reaction_events.write(crate::creature::behavior::reactions::CreatureReaction::Recovered);
     }
 
     // Override mood to Sick when conditions are active

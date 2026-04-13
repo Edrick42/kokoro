@@ -12,7 +12,7 @@ use rand::Rng;
 use crate::game::state::AppState;
 
 use crate::config;
-use crate::creature::species::{BodyPartSlot, CreatureRoot};
+use crate::creature::identity::species::CreatureRoot;
 use crate::mind::{Mind, MoodState};
 
 /// Breathing state attached to the creature root.
@@ -61,6 +61,7 @@ impl HeartbeatState {
 
 /// Stores the genome-derived base body scale so breathing can compose with it.
 #[derive(Component)]
+#[allow(dead_code)]
 pub struct BaseBodyScale(pub Vec2);
 
 pub struct BreathingPlugin;
@@ -114,7 +115,7 @@ fn update_breathing_params(
 fn breathing_system(
     time: Res<Time>,
     mut root_q: Query<(&mut BreathingState, &Children), With<CreatureRoot>>,
-    mut body_q: Query<(&BodyPartSlot, &mut Transform, &BaseBodyScale), Without<CreatureRoot>>,
+    mut skin_q: Query<&mut Transform, With<crate::visuals::skin::CreatureSkin>>,
 ) {
     let dt = time.delta_secs();
 
@@ -131,12 +132,11 @@ fn breathing_system(
         let breath_factor_y = 1.0 + breathing.phase.sin() * breathing.amplitude
             * config::breathing::Y_AMPLITUDE_RATIO;
 
+        // Animate the whole CreatureSkin sprite (not individual body parts)
         for child in children.iter() {
-            if let Ok((slot, mut transform, base_scale)) = body_q.get_mut(child) {
-                if slot.0 == "body" {
-                    transform.scale.x = base_scale.0.x * breath_factor_x;
-                    transform.scale.y = base_scale.0.y * breath_factor_y;
-                }
+            if let Ok(mut transform) = skin_q.get_mut(child) {
+                transform.scale.x = breath_factor_x;
+                transform.scale.y = breath_factor_y;
             }
         }
     }

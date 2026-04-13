@@ -16,8 +16,8 @@ use crate::mind::Mind;
 use crate::mind::training::build_event_payload;
 use crate::persistence::plugin::DbConnection;
 use crate::persistence::save;
-use crate::creature::collection::{CreatureCollection, SelectSpeciesEvent};
-use crate::creature::egg::EggTapEvent;
+use crate::creature::lifecycle::collection::{CreatureCollection, SelectSpeciesEvent};
+use crate::creature::lifecycle::egg::EggTapEvent;
 use super::style::*;
 
 // ===================================================================
@@ -367,7 +367,7 @@ fn handle_action_press(
     db: Res<DbConnection>,
     collection: Res<CreatureCollection>,
     mut egg_events: EventWriter<EggTapEvent>,
-    mut reaction_events: EventWriter<crate::creature::reactions::CreatureReaction>,
+    mut reaction_events: EventWriter<crate::creature::behavior::reactions::CreatureReaction>,
     mut clean_events: EventWriter<crate::mind::hygiene::CleanEvent>,
     mut ability_events: EventWriter<crate::creature::abilities::ActivateAbilityEvent>,
     mut state: ResMut<MenuState>,
@@ -390,7 +390,7 @@ fn handle_action_press(
                 mind.play(&genome);
                 state.food_expanded = false;
                 play_action_sound(&bank, crate::audio::ActionSound::Play, &mut commands);
-                reaction_events.write(crate::creature::reactions::CreatureReaction::PlayStart);
+                reaction_events.write(crate::creature::behavior::reactions::CreatureReaction::PlayStart);
                 let payload = build_event_payload(&mind.stats, &mind.mood, "played");
                 let conn = db.0.lock().expect("DB lock poisoned");
                 let _ = save::log_event(&conn, mind.age_ticks, "played", Some(&payload));
@@ -399,7 +399,7 @@ fn handle_action_press(
                 mind.sleep(&genome);
                 state.food_expanded = false;
                 play_action_sound(&bank, crate::audio::ActionSound::Sleep, &mut commands);
-                reaction_events.write(crate::creature::reactions::CreatureReaction::FallingAsleep);
+                reaction_events.write(crate::creature::behavior::reactions::CreatureReaction::FallingAsleep);
                 let payload = build_event_payload(&mind.stats, &mind.mood, "slept");
                 let conn = db.0.lock().expect("DB lock poisoned");
                 let _ = save::log_event(&conn, mind.age_ticks, "slept", Some(&payload));
@@ -426,9 +426,9 @@ fn handle_food_press(
     db: Res<DbConnection>,
     collection: Res<CreatureCollection>,
     mut egg_events: EventWriter<EggTapEvent>,
-    mut reaction_events: EventWriter<crate::creature::reactions::CreatureReaction>,
-    mut nutrient_q: Query<&mut crate::mind::nutrition::NutrientState, With<crate::creature::species::CreatureRoot>>,
-    pref_q: Query<&crate::mind::preferences::PreferenceMemory, With<crate::creature::species::CreatureRoot>>,
+    mut reaction_events: EventWriter<crate::creature::behavior::reactions::CreatureReaction>,
+    mut nutrient_q: Query<&mut crate::mind::nutrition::NutrientState, With<crate::creature::identity::species::CreatureRoot>>,
+    pref_q: Query<&crate::mind::preferences::PreferenceMemory, With<crate::creature::identity::species::CreatureRoot>>,
     bank: Res<crate::audio::SoundBank>,
     mut commands: Commands,
 ) {
@@ -449,7 +449,7 @@ fn handle_food_press(
 
         if refuses {
             // Creature refuses! Visual reaction but no feeding
-            reaction_events.write(crate::creature::reactions::CreatureReaction::RefusingFood);
+            reaction_events.write(crate::creature::behavior::reactions::CreatureReaction::RefusingFood);
             continue;
         }
 
@@ -461,7 +461,7 @@ fn handle_food_press(
         play_action_sound(&bank, crate::audio::ActionSound::Eat, &mut commands);
 
         // Fire reaction event — creature visually reacts!
-        reaction_events.write(crate::creature::reactions::CreatureReaction::Eating {
+        reaction_events.write(crate::creature::behavior::reactions::CreatureReaction::Eating {
             food,
             preferred,
         });

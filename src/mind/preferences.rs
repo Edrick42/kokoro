@@ -11,7 +11,7 @@ use crate::game::state::AppState;
 use serde::{Deserialize, Serialize};
 
 use crate::config::nutrition::FoodType;
-use crate::creature::species::CreatureRoot;
+use crate::creature::identity::species::CreatureRoot;
 use crate::genome::Genome;
 use crate::mind::Mind;
 use crate::mind::nutrition::is_preferred_food;

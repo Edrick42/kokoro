@@ -17,18 +17,19 @@ use bevy::prelude::*;
 use audio::SoundPlugin;
 use creature::{
     anatomy::AnatomyPlugin,
-    collection::MultiCreaturePlugin,
-    egg::EggPlugin,
-    physics::PhysicsPlugin,
-    spawn::CreatureVisualsPlugin,
-    touch::TouchPlugin,
+    lifecycle::collection::MultiCreaturePlugin,
+    lifecycle::egg::EggPlugin,
+    lifecycle::spawn::CreatureVisualsPlugin,
+    interaction::physics::PhysicsPlugin,
+    interaction::touch::TouchPlugin,
 };
 use game::state::{AppState, GameStatePlugin};
 use web::WebPlugin;
 use creature::abilities::AbilityPlugin;
-use creature::idle::IdleBehaviorPlugin;
-use creature::pose::PosePlugin;
-use creature::reactions::ReactionPlugin;
+use creature::behavior::idle::IdleBehaviorPlugin;
+use creature::behavior::involuntary::InvoluntaryPlugin;
+use creature::behavior::pose::PosePlugin;
+use creature::behavior::reactions::ReactionPlugin;
 use mind::autonomic::AutonomicPlugin;
 use mind::disease::DiseasePlugin;
 use mind::hygiene::HygienePlugin;
@@ -100,7 +101,7 @@ fn main() {
         // UI plugins (gameplay)
         .add_plugins((StatsPlugin, ActionsPlugin, VitalsPlugin, SideMenuPlugin))
         // Creature lifecycle — collection management + egg incubation + anatomy
-        .add_plugins((MultiCreaturePlugin, EggPlugin, TouchPlugin, PreferencePlugin, SoundPlugin, LifecyclePlugin, AnatomyPlugin, AbilityPlugin, PosePlugin, ReactionPlugin, IdleBehaviorPlugin))
+        .add_plugins((MultiCreaturePlugin, EggPlugin, TouchPlugin, PreferencePlugin, SoundPlugin, LifecyclePlugin, AnatomyPlugin, AbilityPlugin, PosePlugin, ReactionPlugin, IdleBehaviorPlugin, InvoluntaryPlugin))
         // Physics — gravity, collision, buoyancy
         .add_plugins(PhysicsPlugin)
         // Visual plugins — effects, animation, evolution, accessories, organic behavior

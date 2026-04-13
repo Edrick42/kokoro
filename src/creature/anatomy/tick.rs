@@ -15,7 +15,7 @@ use crate::config::nutrition as nutr;
 use crate::genome::Genome;
 use crate::mind::{Mind, MoodState};
 use crate::mind::nutrition::NutrientState;
-use crate::creature::species::CreatureRoot;
+use crate::creature::identity::species::CreatureRoot;
 
 use super::AnatomyState;
 use super::skeleton::SkeletonType;

@@ -26,3 +26,10 @@ pub const SHOP_BALANCE: &str = "/api/shop/balance";
 pub const SHOP_CHECKOUT: &str = "/api/shop/checkout";
 pub const SHOP_WEBHOOK: &str = "/api/shop/webhook";
 pub const SHOP_PURCHASE: &str = "/api/shop/purchase";
+
+// Donation (buy me a coffee)
+pub const DONATE_CHECKOUT: &str = "/api/donate";
+
+// Privacy (LGPD/GDPR)
+pub const USER_DATA_EXPORT: &str = "/api/user/data-export";
+pub const USER_DELETE_ACCOUNT: &str = "/api/user/account";

@@ -43,8 +43,8 @@ use bevy::audio::PlaybackSettings;
 use crate::game::state::AppState;
 
 use crate::config;
-use crate::creature::species::CreatureRoot;
-use crate::creature::touch::TouchEvent;
+use crate::creature::identity::species::CreatureRoot;
+use crate::creature::interaction::touch::TouchEvent;
 use crate::genome::{Genome, Species};
 use crate::mind::{Mind, MoodState};
 use crate::visuals::evolution::{GrowthState, GrowthStage};

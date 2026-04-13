@@ -15,7 +15,7 @@ use bevy::prelude::*;
 
 use crate::game::state::AppState;
 use crate::config::lifecycle as lc;
-use crate::creature::species::CreatureRoot;
+use crate::creature::identity::species::CreatureRoot;
 use crate::genome::Genome;
 use crate::mind::Mind;
 use crate::mind::nutrition::NutrientState;

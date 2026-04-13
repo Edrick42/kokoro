@@ -17,7 +17,7 @@ use crate::game::state::AppState;
 use crate::creature::anatomy::AnatomyState;
 use crate::genome::{Genome, Species};
 use crate::mind::Mind;
-use crate::creature::egg::EggData;
+use crate::creature::lifecycle::egg::EggData;
 use crate::persistence::plugin::DbConnection;
 use crate::persistence::load;
 

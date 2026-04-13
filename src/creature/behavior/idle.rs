@@ -17,8 +17,8 @@ use bevy::prelude::*;
 use rand::Rng;
 
 use crate::config::autonomic as cfg;
-use crate::creature::pose::{ActiveAnimation, PoseAnimation, pose_from};
-use crate::creature::reactions::ExpressionOverride;
+use crate::creature::behavior::pose::{ActiveAnimation, PoseAnimation, pose_from};
+use crate::creature::behavior::reactions::ExpressionOverride;
 use crate::game::state::AppState;
 use crate::genome::{Genome, Species};
 use crate::mind::autonomic::AutonomicState;

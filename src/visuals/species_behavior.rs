@@ -11,7 +11,7 @@ use bevy::prelude::*;
 
 use crate::game::state::AppState;
 
-use crate::creature::species::{BodyPartSlot, CreatureRoot};
+use crate::creature::identity::species::CreatureRoot;
 use crate::genome::Species;
 use crate::mind::absence::AbsenceState;
 
@@ -54,7 +54,7 @@ fn species_idle_system(
     time: Res<Time>,
     absence: Option<Res<AbsenceState>>,
     mut root_q: Query<(&mut SpeciesBehavior, &Children), With<CreatureRoot>>,
-    mut part_q: Query<(&BodyPartSlot, &mut Transform, &BasePosition), Without<CreatureRoot>>,
+    mut skin_q: Query<&mut Transform, With<crate::visuals::skin::CreatureSkin>>,
 ) {
     let dt = time.delta_secs();
     let intensity = absence
@@ -66,16 +66,41 @@ fn species_idle_system(
         behavior.elapsed += dt;
         let t = behavior.elapsed;
 
+        // Find the CreatureSkin child and apply whole-sprite sway
         for child in children.iter() {
-            let Ok((slot, mut transform, base)) = part_q.get_mut(child) else {
-                continue;
-            };
+            let Ok(mut transform) = skin_q.get_mut(child) else { continue };
 
             match behavior.species {
-                Species::Moluun => animate_moluun(&slot.0, t, &mut transform, base, intensity),
-                Species::Pylum  => animate_pylum(&slot.0, t, &mut transform, base, intensity),
-                Species::Skael  => animate_skael(&slot.0, t, &mut transform, base, intensity),
-                Species::Nyxal  => animate_nyxal(&slot.0, t, &mut transform, base, intensity),
+                Species::Moluun => {
+                    // Gentle side-to-side sway (±3px)
+                    let sway = (t * 0.4 * TAU).sin() * 3.0 * intensity;
+                    transform.translation.x = sway;
+                    // Reunion bounce
+                    if intensity > 1.1 {
+                        let bounce = (t * 4.0 * intensity * TAU).sin().abs() * 5.0 * (intensity - 1.0);
+                        transform.translation.y = 5.0 + bounce;
+                    }
+                }
+                Species::Pylum => {
+                    // Subtle vertical bob
+                    let bob = (t * 1.5 * TAU).sin() * 4.0 * intensity;
+                    transform.translation.y = 5.0 + bob;
+                    // Slight tilt
+                    let tilt = (t * 0.6 * TAU).sin() * 0.03 * intensity;
+                    transform.rotation = Quat::from_rotation_z(tilt);
+                }
+                Species::Skael => {
+                    // Very slow side shift (reptile stillness with weight shifting)
+                    let shift = (t * 0.3 * TAU).sin() * 2.0;
+                    transform.translation.x = shift;
+                }
+                Species::Nyxal => {
+                    // Undulation — sine wave vertical + slight rotation
+                    let wave = (t * 0.5 * TAU).sin() * 5.0 * intensity;
+                    let rot = (t * 0.3 * TAU).sin() * 0.04 * intensity;
+                    transform.translation.y = 5.0 + wave;
+                    transform.rotation = Quat::from_rotation_z(rot);
+                }
             }
         }
     }
@@ -85,6 +110,8 @@ fn species_idle_system(
 // Moluun — gentle ear twitches
 // ---------------------------------------------------------------------------
 
+// Legacy per-part animations — kept for future body-part mode
+#[allow(dead_code)]
 fn animate_moluun(slot: &str, t: f32, transform: &mut Transform, base: &BasePosition, intensity: f32) {
     transform.translation = base.0;
 
@@ -110,6 +137,7 @@ fn animate_moluun(slot: &str, t: f32, transform: &mut Transform, base: &BasePosi
 // Pylum — wing flutter, head bob, tail sway
 // ---------------------------------------------------------------------------
 
+#[allow(dead_code)]
 fn animate_pylum(slot: &str, t: f32, transform: &mut Transform, base: &BasePosition, intensity: f32) {
     if slot.contains("wing") {
         // Flutter at ~3Hz, ±8 degrees — more intense during reunion (excited flutter)
@@ -135,6 +163,7 @@ fn animate_pylum(slot: &str, t: f32, transform: &mut Transform, base: &BasePosit
 // Skael — slow tail sway, rigid crests
 // ---------------------------------------------------------------------------
 
+#[allow(dead_code)]
 fn animate_skael(slot: &str, t: f32, transform: &mut Transform, base: &BasePosition, intensity: f32) {
     transform.translation = base.0;
 
@@ -155,6 +184,7 @@ fn animate_skael(slot: &str, t: f32, transform: &mut Transform, base: &BasePosit
 // Nyxal — tentacle undulation, mantle rotation
 // ---------------------------------------------------------------------------
 
+#[allow(dead_code)]
 fn animate_nyxal(slot: &str, t: f32, transform: &mut Transform, base: &BasePosition, intensity: f32) {
     if slot.contains("tentacle") {
         // Each tentacle gets a different phase offset

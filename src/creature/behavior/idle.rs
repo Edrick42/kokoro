@@ -269,10 +269,11 @@ fn ear_twitch_animation(_species: &Species) -> PoseAnimation {
 }
 
 fn look_around_animation(_species: &Species) -> PoseAnimation {
+    // Look around: small neck turns (slight head movement) + shoulder shifts
     PoseAnimation::new(vec![
-        (pose_from(&[("neck", -12.0)]), 4),  // look left
-        (pose_from(&[("neck", 0.0)]), 2),     // center
-        (pose_from(&[("neck", 12.0)]), 4),   // look right
+        (pose_from(&[("neck", -5.0), ("shoulder_left", 3.0)]), 4),  // glance left (head up slightly)
+        (pose_from(&[("neck", 3.0)]), 3),                            // center, slight dip
+        (pose_from(&[("neck", -5.0), ("shoulder_right", 3.0)]), 4), // glance right
         (pose_from(&[]), 3),
     ])
 }

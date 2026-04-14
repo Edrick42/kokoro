@@ -132,7 +132,7 @@ fn do_spawn_egg(
 fn do_spawn_creature(
     mut commands: Commands,
     genome: &Genome,
-    _mind: &Mind,
+    mind: &Mind,
 ) {
     // Physics body: land creatures fall, aquatic creatures float
     let physics = match genome.species {
@@ -140,7 +140,18 @@ fn do_spawn_creature(
         _ => PhysicsBody::land_creature(GROUND_Y),
     };
 
-    // Spawn root entity — PixelCreaturePlugin will attach the visual sprite
+    // Initialize soft body physics for this species + growth stage
+    use crate::creature::interaction::soft_body;
+    use crate::visuals::evolution::GrowthStage;
+    let stage = GrowthStage::from_age_pub(mind.age_ticks);
+    let soft_body = match (&genome.species, stage) {
+        (Species::Moluun, GrowthStage::Cub) => soft_body::moluun_cub(),
+        (Species::Moluun, _) => soft_body::moluun_adult(),
+        _ => soft_body::moluun_adult(), // TODO: other species
+    };
+    commands.insert_resource(soft_body);
+
+    // Spawn root entity — SkinPlugin will attach the visual sprite
     commands.spawn((
         CreatureRoot,
         GameplayEntity,

@@ -79,16 +79,25 @@ pub struct ExpressionOverride {
     pub blush: f32,
     /// Ticks remaining before reverting to mood-based expression.
     pub ticks: u32,
+    /// Chewing animation phase (radians). Oscillates when mouth=1 (eating).
+    /// sin(chew_phase) > 0 = mouth open, <= 0 = mouth closed (chewing cycle).
+    pub chew_phase: f32,
 }
 
 impl ExpressionOverride {
     pub fn is_active(&self) -> bool { self.ticks > 0 }
+
+    /// Returns true when mouth is in the "open" part of the chewing cycle.
+    pub fn is_mouth_open(&self) -> bool {
+        self.chew_phase.sin() > 0.0
+    }
 
     pub fn set(&mut self, eyes: i8, mouth: i8, blush: f32, ticks: u32) {
         self.eyes = eyes;
         self.mouth = mouth;
         self.blush = blush;
         self.ticks = ticks;
+        self.chew_phase = 0.0;
     }
 
     fn clear(&mut self) {
@@ -96,6 +105,7 @@ impl ExpressionOverride {
         self.mouth = 0;
         self.blush = 0.0;
         self.ticks = 0;
+        self.chew_phase = 0.0;
     }
 }
 
@@ -212,12 +222,12 @@ fn process_reactions(
                     body.velocity.y = 3.0;
                 }
 
-                expression.set(1, 1, 0.0, 5); // wide eyes, mouth open (surprise)
+                expression.set(1, -1, 0.0, 5); // wide eyes, tight mouth (shock)
             }
 
             CreatureReaction::FallingAsleep => {
                 active_anim.animation = Some(sleep_animation(species));
-                expression.set(-1, -1, 0.0, 15); // squint, closed mouth (drowsy)
+                expression.set(2, 0, 0.0, 6); // half-closed eyes (peaceful drowsy), neutral mouth
             }
 
             CreatureReaction::WakingUp => {
@@ -233,7 +243,7 @@ fn process_reactions(
                 if let Ok(mut body) = physics_q.single_mut() {
                     body.velocity.y = -3.0; // sag
                 }
-                expression.set(-1, 1, 0.0, 15); // droopy eyes, mouth open (discomfort)
+                expression.set(-1, -1, 0.0, 8); // droopy eyes, grimace (discomfort)
             }
 
             CreatureReaction::Recovered => {
@@ -246,7 +256,7 @@ fn process_reactions(
     }
 }
 
-/// Ticks down expression override timer.
+/// Ticks down expression override timer and advances chewing animation.
 fn tick_expression(
     mut expression: ResMut<ExpressionOverride>,
     time: Res<Time>,
@@ -254,8 +264,16 @@ fn tick_expression(
 ) {
     if expression.ticks == 0 { return; }
 
-    // Count at ~1 tick per second (not per frame)
-    *elapsed += time.delta_secs();
+    let dt = time.delta_secs();
+
+    // Chewing animation: advance phase every frame when eating (mouth=1).
+    // ~4 chews per second (frequency = 8π/s, sin completes cycle every 2π).
+    if expression.mouth == 1 {
+        expression.chew_phase += dt * 8.0 * std::f32::consts::PI;
+    }
+
+    // Count ticks at ~1 tick per second (not per frame)
+    *elapsed += dt;
     if *elapsed >= 1.0 {
         *elapsed -= 1.0;
         expression.ticks -= 1;
@@ -274,10 +292,16 @@ fn tick_expression(
 fn eating_animation(species: &Species) -> PoseAnimation {
     match species {
         Species::Moluun => PoseAnimation::new(vec![
-            (pose_from(&[("neck", 20.0), ("shoulder_left", 5.0), ("shoulder_right", 5.0)]), 3),
-            (pose_from(&[("neck", -5.0)]), 2),  // head back (chomp)
-            (pose_from(&[("neck", 15.0)]), 3),   // second bite
-            (pose_from(&[]), 4),                  // return to neutral
+            // Head dips DOWN to food (neck positive = down)
+            (pose_from(&[("neck", 25.0), ("shoulder_left", 5.0), ("shoulder_right", 5.0)]), 3),
+            // Head comes back UP (chomp/chew)
+            (pose_from(&[("neck", -8.0)]), 2),
+            // Second dip (another bite)
+            (pose_from(&[("neck", 20.0)]), 3),
+            // Head comes up, chewing
+            (pose_from(&[("neck", -5.0)]), 2),
+            // Return to neutral
+            (pose_from(&[]), 4),
         ]),
         Species::Pylum => PoseAnimation::new(vec![
             (pose_from(&[("neck", 35.0), ("tail", 5.0)]), 2),    // sharp peck
@@ -302,9 +326,13 @@ fn eating_animation(species: &Species) -> PoseAnimation {
 fn refusal_animation(species: &Species) -> PoseAnimation {
     match species {
         Species::Moluun => PoseAnimation::new(vec![
-            (pose_from(&[("neck", -15.0), ("hip_left", -5.0), ("hip_right", -5.0)]), 3), // turn away
-            (pose_from(&[("neck", 15.0)]), 3),   // shake other way
-            (pose_from(&[("neck", -10.0)]), 3),   // shake back
+            // Head pulls BACK/UP (refusing — negative neck = up)
+            (pose_from(&[("neck", -20.0), ("shoulder_left", -5.0), ("shoulder_right", -5.0)]), 3),
+            // Slight forward (hesitation)
+            (pose_from(&[("neck", -10.0)]), 2),
+            // Back again (firm refusal)
+            (pose_from(&[("neck", -18.0)]), 3),
+            // Return
             (pose_from(&[]), 4),
         ]),
         Species::Pylum => PoseAnimation::new(vec![
@@ -327,9 +355,15 @@ fn refusal_animation(species: &Species) -> PoseAnimation {
 fn play_animation(species: &Species) -> PoseAnimation {
     match species {
         Species::Moluun => PoseAnimation::new(vec![
-            (pose_from(&[("hip_left", 15.0), ("hip_right", 15.0), ("shoulder_left", 10.0), ("shoulder_right", 10.0)]), 3),
-            (pose_from(&[("hip_left", -10.0), ("hip_right", -10.0)]), 3), // bounce
-            (pose_from(&[("hip_left", 15.0), ("hip_right", 15.0)]), 3),
+            // Crouch (hips flex, head dips)
+            (pose_from(&[("hip_left", 15.0), ("hip_right", 15.0), ("neck", 10.0), ("shoulder_left", 15.0), ("shoulder_right", 15.0)]), 2),
+            // Jump! (hips extend, arms up, head up)
+            (pose_from(&[("hip_left", -15.0), ("hip_right", -15.0), ("neck", -15.0), ("shoulder_left", -10.0), ("shoulder_right", -10.0)]), 2),
+            // Land (hips absorb)
+            (pose_from(&[("hip_left", 10.0), ("hip_right", 10.0), ("neck", 5.0)]), 2),
+            // Bounce again
+            (pose_from(&[("hip_left", -10.0), ("hip_right", -10.0), ("neck", -10.0)]), 2),
+            // Settle
             (pose_from(&[]), 4),
         ]),
         Species::Pylum => PoseAnimation::new(vec![
@@ -354,10 +388,11 @@ fn play_animation(species: &Species) -> PoseAnimation {
 
 fn petted_animation(species: &Species) -> PoseAnimation {
     match species {
-        // Moluun: lean in, relax
+        // Moluun: lean in (head dips toward touch), arms relax down
         Species::Moluun => PoseAnimation::new(vec![
-            (pose_from(&[("neck", 8.0), ("shoulder_left", -3.0), ("shoulder_right", -3.0)]), 6),
-            (pose_from(&[("neck", 5.0)]), 8), // hold (enjoying)
+            (pose_from(&[("neck", 12.0), ("shoulder_left", 8.0), ("shoulder_right", 8.0)]), 5),  // lean in
+            (pose_from(&[("neck", 10.0), ("shoulder_left", 5.0), ("shoulder_right", 5.0)]), 8),  // hold (enjoying)
+            (pose_from(&[("neck", 8.0)]), 5),  // slowly relax
             (pose_from(&[]), 4),
         ]),
         // Pylum: slight wing spread (comfort)
@@ -381,9 +416,11 @@ fn petted_animation(species: &Species) -> PoseAnimation {
 
 fn flinch_animation(species: &Species) -> PoseAnimation {
     match species {
+        // Moluun flinch: head snaps UP/BACK, arms retract, feet brace
         Species::Moluun => PoseAnimation::new(vec![
-            (pose_from(&[("neck", -20.0), ("shoulder_left", -15.0), ("shoulder_right", -15.0)]), 3),
-            (pose_from(&[]), 5),
+            (pose_from(&[("neck", -25.0), ("shoulder_left", -15.0), ("shoulder_right", -15.0), ("hip_left", 8.0), ("hip_right", 8.0)]), 2),
+            (pose_from(&[("neck", -10.0)]), 3),  // recovering
+            (pose_from(&[]), 4),
         ]),
         Species::Pylum => PoseAnimation::new(vec![
             (pose_from(&[("wing_left", 50.0), ("wing_right", 50.0), ("neck", -25.0)]), 3), // startle display
@@ -402,10 +439,10 @@ fn flinch_animation(species: &Species) -> PoseAnimation {
 
 fn sleep_animation(species: &Species) -> PoseAnimation {
     match species {
-        // Moluun: curl into ball
+        // Moluun: head dips DOWN, arms drop, feet settle — curling into ball
         Species::Moluun => PoseAnimation::new(vec![
-            (pose_from(&[("neck", 10.0), ("shoulder_left", 5.0), ("shoulder_right", 5.0), ("hip_left", 10.0), ("hip_right", 10.0)]), 8),
-            (pose_from(&[("neck", 15.0), ("hip_left", 15.0), ("hip_right", 15.0)]), 15), // hold (sleeping)
+            (pose_from(&[("neck", 15.0), ("shoulder_left", 10.0), ("shoulder_right", 10.0), ("hip_left", 10.0), ("hip_right", 10.0)]), 6),
+            (pose_from(&[("neck", 20.0), ("shoulder_left", 15.0), ("shoulder_right", 15.0), ("hip_left", 15.0), ("hip_right", 15.0)]), 15), // hold (deeply asleep — everything droops)
         ]),
         // Pylum: tuck head under wing
         Species::Pylum => PoseAnimation::new(vec![

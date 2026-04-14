@@ -23,6 +23,7 @@ pub struct BasePosition(pub Vec3);
 /// Drives per-species idle animation on a creature.
 #[derive(Component)]
 pub struct SpeciesBehavior {
+    #[allow(dead_code)]
     pub species: Species,
     pub elapsed: f32,
 }
@@ -53,8 +54,8 @@ fn reunion_intensity(absence: &AbsenceState) -> f32 {
 fn species_idle_system(
     time: Res<Time>,
     absence: Option<Res<AbsenceState>>,
-    mut root_q: Query<(&mut SpeciesBehavior, &Children), With<CreatureRoot>>,
-    mut skin_q: Query<&mut Transform, With<crate::visuals::skin::CreatureSkin>>,
+    mut root_q: Query<&mut SpeciesBehavior, With<CreatureRoot>>,
+    mut soft_body: Option<ResMut<crate::creature::interaction::soft_body::SoftBody>>,
 ) {
     let dt = time.delta_secs();
     let intensity = absence
@@ -62,46 +63,17 @@ fn species_idle_system(
         .map(|a| reunion_intensity(a))
         .unwrap_or(1.0);
 
-    for (mut behavior, children) in root_q.iter_mut() {
+    for mut behavior in root_q.iter_mut() {
         behavior.elapsed += dt;
-        let t = behavior.elapsed;
 
-        // Find the CreatureSkin child and apply whole-sprite sway
-        for child in children.iter() {
-            let Ok(mut transform) = skin_q.get_mut(child) else { continue };
+        // Soft body idle: very subtle forces to keep the creature looking alive
+        // No more whole-sprite sway — the soft body physics creates natural micro-movement
+        let Some(ref mut body) = soft_body else { continue };
 
-            match behavior.species {
-                Species::Moluun => {
-                    // Gentle side-to-side sway (±3px)
-                    let sway = (t * 0.4 * TAU).sin() * 3.0 * intensity;
-                    transform.translation.x = sway;
-                    // Reunion bounce
-                    if intensity > 1.1 {
-                        let bounce = (t * 4.0 * intensity * TAU).sin().abs() * 5.0 * (intensity - 1.0);
-                        transform.translation.y = 5.0 + bounce;
-                    }
-                }
-                Species::Pylum => {
-                    // Subtle vertical bob
-                    let bob = (t * 1.5 * TAU).sin() * 4.0 * intensity;
-                    transform.translation.y = 5.0 + bob;
-                    // Slight tilt
-                    let tilt = (t * 0.6 * TAU).sin() * 0.03 * intensity;
-                    transform.rotation = Quat::from_rotation_z(tilt);
-                }
-                Species::Skael => {
-                    // Very slow side shift (reptile stillness with weight shifting)
-                    let shift = (t * 0.3 * TAU).sin() * 2.0;
-                    transform.translation.x = shift;
-                }
-                Species::Nyxal => {
-                    // Undulation — sine wave vertical + slight rotation
-                    let wave = (t * 0.5 * TAU).sin() * 5.0 * intensity;
-                    let rot = (t * 0.3 * TAU).sin() * 0.04 * intensity;
-                    transform.translation.y = 5.0 + wave;
-                    transform.rotation = Quat::from_rotation_z(rot);
-                }
-            }
+        // Reunion: excited impulses on head
+        if intensity > 1.1 {
+            let bounce_force = (behavior.elapsed * 4.0 * intensity * TAU).sin() * 15.0 * (intensity - 1.0);
+            body.impulse("head", bevy::prelude::Vec2::new(0.0, -bounce_force * dt));
         }
     }
 }

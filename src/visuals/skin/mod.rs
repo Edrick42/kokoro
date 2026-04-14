@@ -20,9 +20,9 @@ type BevyImage = Image;
 use crate::game::state::AppState;
 use crate::creature::anatomy::AnatomyState;
 use crate::creature::behavior::involuntary::InvoluntaryState;
-use crate::creature::behavior::pose::PoseState;
 use crate::creature::behavior::reactions::ExpressionOverride;
 use crate::creature::identity::species::CreatureRoot;
+use crate::creature::interaction::soft_body::SoftBody;
 use crate::genome::{Genome, Species};
 use crate::mind::{Mind, MoodState};
 use crate::visuals::evolution::{GrowthState, GrowthStage};
@@ -65,9 +65,15 @@ fn attach_skin(
     growth: Res<GrowthState>,
     anatomy: Option<Res<AnatomyState>>,
     involuntary: Res<InvoluntaryState>,
-    pose: Res<PoseState>,
+    soft_body: Option<Res<SoftBody>>,
     expression: Res<ExpressionOverride>,
+    #[cfg(feature = "dev")] dev_state: Option<Res<crate::dev::DevModeState>>,
 ) {
+    #[cfg(feature = "dev")]
+    let debug_overlay = dev_state.map_or(false, |s| s.active);
+    #[cfg(not(feature = "dev"))]
+    let debug_overlay = false;
+
     for entity in query.iter() {
         let handle = create_skin_texture(&mut images);
 
@@ -76,7 +82,7 @@ fn attach_skin(
             let sp = anatomy.as_ref()
                 .map(|a| SkinParams::from_anatomy(a, &genome.species, &growth.stage))
                 .unwrap_or_else(SkinParams::healthy_default);
-            draw_creature(&mut buf, &genome.species, &mind.mood, &growth.stage, &sp, &pose, &expression, &involuntary);
+            draw_creature(&mut buf, &genome.species, &mind.mood, &growth.stage, &sp, &soft_body, &expression, &involuntary, debug_overlay);
             if let Some(ref mut data) = image.data {
                 data.copy_from_slice(buf.as_raw());
             }
@@ -106,20 +112,28 @@ fn update_skin(
     growth: Res<GrowthState>,
     anatomy: Option<Res<AnatomyState>>,
     involuntary: Res<InvoluntaryState>,
-    pose: Res<PoseState>,
+    soft_body: Option<Res<SoftBody>>,
     expression: Res<ExpressionOverride>,
     mut images: ResMut<Assets<BevyImage>>,
     creature_q: Query<&Sprite, With<CreatureSkin>>,
     mut pixel_buf: Local<Option<RgbaImage>>,
+    #[cfg(feature = "dev")] dev_state: Option<Res<crate::dev::DevModeState>>,
 ) {
+    #[cfg(feature = "dev")]
+    let debug_overlay = dev_state.map_or(false, |s| s.active);
+    #[cfg(not(feature = "dev"))]
+    let debug_overlay = false;
+
     if pixel_buf.is_none() {
         *pixel_buf = Some(RgbaImage::new(CANVAS_W, CANVAS_H));
     }
     let buf = pixel_buf.as_mut().unwrap();
 
+    // Soft body changes every frame (physics) — always redraw when soft body exists
+    let has_soft_body = soft_body.is_some();
     let anatomy_changed = anatomy.as_ref().map_or(false, |a| a.is_changed());
-    if !mind.is_changed() && !genome.is_changed() && !growth.is_changed()
-        && !anatomy_changed && !pose.is_changed() && !expression.is_changed()
+    if !has_soft_body && !mind.is_changed() && !genome.is_changed() && !growth.is_changed()
+        && !anatomy_changed && !expression.is_changed()
         && !involuntary.is_changed() {
         return;
     }
@@ -127,7 +141,7 @@ fn update_skin(
     let sp = anatomy.as_ref()
         .map(|a| SkinParams::from_anatomy(a, &genome.species, &growth.stage))
         .unwrap_or_else(SkinParams::healthy_default);
-    draw_creature(buf, &genome.species, &mind.mood, &growth.stage, &sp, &pose, &expression, &involuntary);
+    draw_creature(buf, &genome.species, &mind.mood, &growth.stage, &sp, &soft_body, &expression, &involuntary, debug_overlay);
 
     for sprite in creature_q.iter() {
         if let Some(image) = images.get_mut(&sprite.image) {
@@ -226,7 +240,7 @@ pub fn fade(c: Rgba<u8>, amount: f32) -> Rgba<u8> {
 // MAIN DRAW DISPATCH
 // ===================================================================
 
-fn draw_creature(img: &mut RgbaImage, species: &Species, mood: &MoodState, stage: &GrowthStage, sp: &SkinParams, _pose: &PoseState, expr: &ExpressionOverride, inv: &InvoluntaryState) {
+fn draw_creature(img: &mut RgbaImage, species: &Species, mood: &MoodState, stage: &GrowthStage, sp: &SkinParams, soft_body: &Option<Res<SoftBody>>, expr: &ExpressionOverride, inv: &InvoluntaryState, debug_overlay: bool) {
     let cx = img.width() as i32 / 2;
 
     // Clear canvas
@@ -237,40 +251,113 @@ fn draw_creature(img: &mut RgbaImage, species: &Species, mood: &MoodState, stage
     // Blink: during active blink, force eyes closed (sleeping appearance)
     let is_blinking = inv.blink_active > 0.0;
 
-    // Override mood for expression/blink
-    let effective_mood = if is_blinking {
-        MoodState::Sleeping  // closed eyes during blink
+    // Two separate moods: one for eyes, one for mouth.
+    // When creature is actually Sleeping, ALWAYS show sleeping face — no overrides.
+    // This prevents the "sad sleep" bug where expression overrides mapped to frown/squint.
+    let eye_mood = if *mood == MoodState::Sleeping || is_blinking {
+        MoodState::Sleeping
     } else if expr.is_active() {
-        match (expr.eyes, expr.mouth) {
-            (2, _)  => MoodState::Sleeping,
-            (1, 2)  => MoodState::Playful,
-            (-1, _) => MoodState::Sick,
-            (_, 1)  => MoodState::Hungry,
-            _       => mood.clone(),
+        match expr.eyes {
+            2  => MoodState::Sleeping,  // half-closed (savoring, drowsy)
+            1  => MoodState::Playful,   // wide open (surprise, excitement)
+            -1 => MoodState::Sick,      // squint (pain, discomfort)
+            _  => mood.clone(),
         }
     } else {
         mood.clone()
     };
 
-    // Pose offsets now applied via Transform (not pixel level) for visibility
+    let mouth_mood = if *mood == MoodState::Sleeping || is_blinking {
+        MoodState::Sleeping
+    } else if expr.is_active() {
+        match expr.mouth {
+            2  => MoodState::Playful,   // big smile
+            1  => MoodState::Hungry,    // mouth open (eating!)
+            -1 => MoodState::Lonely,    // frown
+            _  => mood.clone(),
+        }
+    } else {
+        mood.clone()
+    };
+
+    // Use eye_mood for draw_eyes, mouth_mood for draw_mouth
+    let effective_mood = eye_mood.clone();
+
     match stage {
         GrowthStage::Egg   => draw_egg(img, species),
-        GrowthStage::Cub   => draw_cub(img, species, &effective_mood, cx, sp),
-        GrowthStage::Young => draw_young(img, species, &effective_mood, cx, sp),
-        GrowthStage::Adult => draw_adult(img, species, &effective_mood, cx, sp),
-        GrowthStage::Elder => draw_elder(img, species, &effective_mood, cx, sp),
+        GrowthStage::Cub   => draw_cub(img, species, &effective_mood, cx, sp, soft_body),
+        GrowthStage::Young => draw_young(img, species, &effective_mood, cx, sp, soft_body),
+        GrowthStage::Adult => draw_adult(img, species, &effective_mood, cx, sp, soft_body),
+        GrowthStage::Elder => draw_elder(img, species, &effective_mood, cx, sp, soft_body),
     }
+
+    // Draw mouth AFTER species draw, with mouth_mood (not eye_mood).
+    if *stage != GrowthStage::Egg {
+        let mouth_color = palette(species).mouth;
+        let (head_x, head_y) = soft_body.as_ref()
+            .map(|b| b.point("head").px())
+            .unwrap_or((cx, 14));
+        let mouth_y = head_y + 13;
+
+        // Priority order:
+        // 1. Blinking = no mouth (very brief, eyes closed)
+        // 2. Active eating = CHEWING animation (mouth opens and closes)
+        // 3. Sleeping = no mouth (peaceful face)
+        // 4. Normal mood mouth (only for expressive moods)
+        if is_blinking {
+            // Brief blink — no mouth for a fraction of a second
+        } else if expr.is_active() && expr.mouth == 1 {
+            // Chewing: alternates between open mouth and closed mouth
+            if expr.is_mouth_open() {
+                draw_eating_mouth(img, head_x, mouth_y, mouth_color);
+            } else {
+                draw_chewing_closed(img, head_x, mouth_y, mouth_color);
+            }
+        } else if mouth_mood != MoodState::Sleeping {
+            draw_mouth(img, head_x, mouth_y, &mouth_mood, mouth_color);
+        }
+    }
+
+    // === DEBUG OVERLAY: soft body points + springs ===
+    // Only visible in dev builds when F12 panel is active.
+    if debug_overlay {
+    if let Some(body) = soft_body.as_ref() {
+        let debug_color = Rgba([255, 0, 0, 255]); // bright red
+        let debug_spring = Rgba([255, 255, 0, 180]); // yellow for springs
+
+        // Draw springs as yellow lines between connected points
+        for spring in &body.springs {
+            let (ax, ay) = body.points[spring.a].px();
+            let (bx, by) = body.points[spring.b].px();
+            // Simple line: just draw at midpoint and quarter points
+            let mx = (ax + bx) / 2;
+            let my = (ay + by) / 2;
+            put(img, mx, my, debug_spring);
+            put(img, (ax + mx) / 2, (ay + my) / 2, debug_spring);
+            put(img, (bx + mx) / 2, (by + my) / 2, debug_spring);
+        }
+
+        // Draw points as 3x3 red crosses
+        for point in &body.points {
+            let (px, py) = point.px();
+            put(img, px, py, debug_color);
+            put(img, px - 1, py, debug_color);
+            put(img, px + 1, py, debug_color);
+            put(img, px, py - 1, debug_color);
+            put(img, px, py + 1, debug_color);
+        }
+    }
+    } // debug_overlay
 }
 
-fn draw_cub(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32, sp: &SkinParams) {
+fn draw_cub(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32, sp: &SkinParams, sb: &Option<Res<SoftBody>>) {
     let p = palette(species);
-    // Cubs: fat affects belly size slightly (baby fat)
-    let belly_mod = 0.8 + sp.belly * 0.4; // 0.8 to 1.2
+    let belly_mod = 0.8 + sp.belly * 0.4;
     match species {
-        Species::Moluun => moluun::draw_cub(img, &p, cx, mood),
-        Species::Pylum  => pylum::draw_cub(img, &p, cx, mood),
-        Species::Skael  => skael::draw_cub(img, &p, cx, mood),
-        Species::Nyxal  => nyxal::draw_cub(img, &p, cx, mood),
+        Species::Moluun => moluun::draw_cub(img, &p, cx, mood, sb),
+        Species::Pylum  => pylum::draw_cub(img, &p, cx, mood, sb),
+        Species::Skael  => skael::draw_cub(img, &p, cx, mood, sb),
+        Species::Nyxal  => nyxal::draw_cub(img, &p, cx, mood, sb),
     }
     // Overlay: belly modulated by fat (draw extra belly pixels if fat)
     if belly_mod > 1.05 {
@@ -282,13 +369,13 @@ fn draw_cub(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32, s
     }
 }
 
-fn draw_young(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32, sp: &SkinParams) {
+fn draw_young(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32, sp: &SkinParams, sb: &Option<Res<SoftBody>>) {
     let p = palette(species);
     match species {
-        Species::Moluun => moluun::draw_young(img, &p, cx, mood),
-        Species::Pylum  => pylum::draw_young(img, &p, cx, mood),
-        Species::Skael  => skael::draw_young(img, &p, cx, mood),
-        Species::Nyxal  => nyxal::draw_young(img, &p, cx, mood),
+        Species::Moluun => moluun::draw_young(img, &p, cx, mood, sb),
+        Species::Pylum  => pylum::draw_young(img, &p, cx, mood, sb),
+        Species::Skael  => skael::draw_young(img, &p, cx, mood, sb),
+        Species::Nyxal  => nyxal::draw_young(img, &p, cx, mood, sb),
     }
     // Fat overlay: wider belly when well-fed
     if sp.belly > 0.6 {
@@ -301,13 +388,13 @@ fn draw_young(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32,
     }
 }
 
-fn draw_adult(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32, sp: &SkinParams) {
+fn draw_adult(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32, sp: &SkinParams, sb: &Option<Res<SoftBody>>) {
     let p = palette(species);
     match species {
-        Species::Moluun => moluun::draw_adult(img, &p, cx, mood),
-        Species::Pylum  => pylum::draw_adult(img, &p, cx, mood),
-        Species::Skael  => skael::draw_adult(img, &p, cx, mood),
-        Species::Nyxal  => nyxal::draw_adult(img, &p, cx, mood),
+        Species::Moluun => moluun::draw_adult(img, &p, cx, mood, sb),
+        Species::Pylum  => pylum::draw_adult(img, &p, cx, mood, sb),
+        Species::Skael  => skael::draw_adult(img, &p, cx, mood, sb),
+        Species::Nyxal  => nyxal::draw_adult(img, &p, cx, mood, sb),
     }
     // Fat affects adult body visibly: wider body when bulk > 1.0, thinner when < 0.9
     let bulk_extra = ((sp.bulk - 1.0) * 10.0) as i32; // -3 to +3 px
@@ -336,25 +423,25 @@ fn draw_adult(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32,
     }
 }
 
-fn draw_elder(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32, _sp: &SkinParams) {
+fn draw_elder(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32, _sp: &SkinParams, sb: &Option<Res<SoftBody>>) {
     let p = elder_palette(species);
     let base_p = palette(species);
 
     match species {
         Species::Moluun => {
-            moluun::draw_adult(img, &p, cx, mood);
+            moluun::draw_adult(img, &p, cx, mood, sb);
             moluun::draw_elder_details(img, cx);
         }
         Species::Pylum => {
-            pylum::draw_adult(img, &p, cx, mood);
+            pylum::draw_adult(img, &p, cx, mood, sb);
             pylum::draw_elder_details(img, &base_p, cx);
         }
         Species::Skael => {
-            skael::draw_adult(img, &p, cx, mood);
+            skael::draw_adult(img, &p, cx, mood, sb);
             skael::draw_elder_details(img, &base_p, cx);
         }
         Species::Nyxal => {
-            nyxal::draw_adult(img, &p, cx, mood);
+            nyxal::draw_adult(img, &p, cx, mood, sb);
             nyxal::draw_elder_details(img, cx);
         }
     }
@@ -420,12 +507,84 @@ pub fn fill_ellipse(img: &mut RgbaImage, cx: i32, cy: i32, rx: i32, ry: i32, col
 
 pub fn draw_eyes(img: &mut RgbaImage, cx: i32, ey: i32, size: i32, gap: i32, mood: &MoodState, color: Rgba<u8>) {
     if *mood == MoodState::Sleeping {
+        // Closed eyes — horizontal slits (zzz)
         fill_rect(img, cx - gap - size, ey + size / 3, size, 2, color);
         fill_rect(img, cx + gap, ey + size / 3, size, 2, color);
+    } else if *mood == MoodState::Sick {
+        // Droopy eyes — smaller, lower
+        fill_rect(img, cx - gap - size, ey + 1, size, size - 2, color);
+        fill_rect(img, cx + gap, ey + 1, size, size - 2, color);
     } else {
+        // Normal open eyes
         fill_rect(img, cx - gap - size, ey, size, size, color);
         fill_rect(img, cx + gap, ey, size, size, color);
     }
+}
+
+/// Draws a mood-reactive mouth at the given position.
+/// This is the key missing piece — the mouth changes shape per mood.
+pub fn draw_mouth(img: &mut RgbaImage, cx: i32, my: i32, mood: &MoodState, color: Rgba<u8>) {
+    match mood {
+        // === NEUTRAL STATES: no mouth drawn (like classic tamagotchi) ===
+        // A calm creature shows no mouth. Mouth only appears for expressive moods.
+        MoodState::Sleeping | MoodState::Happy | MoodState::Hungry => {
+            // No mouth — peaceful/neutral face.
+            // Eating reaction uses draw_eating_mouth() separately.
+        }
+
+        // === EXPRESSIVE STATES: mouth only when creature is emoting ===
+        MoodState::Playful => {
+            // Smile — curved line (happy/excited)
+            put(img, cx - 2, my, color);
+            put(img, cx - 1, my + 1, color);
+            put(img, cx,     my + 1, color);
+            put(img, cx + 1, my + 1, color);
+            put(img, cx + 2, my, color);
+        }
+        MoodState::Tired => {
+            // Small yawn — round opening
+            fill_rect(img, cx - 1, my, 3, 2, color);
+        }
+        MoodState::Lonely => {
+            // Frown — inverted curve
+            put(img, cx - 2, my + 1, color);
+            put(img, cx - 1, my, color);
+            put(img, cx,     my, color);
+            put(img, cx + 1, my, color);
+            put(img, cx + 2, my + 1, color);
+        }
+        MoodState::Sick => {
+            // Grimace — wavy uneven line
+            put(img, cx - 2, my, color);
+            put(img, cx - 1, my + 1, color);
+            put(img, cx,     my, color);
+            put(img, cx + 1, my + 1, color);
+            put(img, cx + 2, my, color);
+        }
+    }
+}
+
+/// Draws a WIDE OPEN eating mouth — only used during eating reaction.
+/// Separate from draw_mouth so the hungry mood has a subtle expression
+/// and only the actual eating action shows a dramatic open mouth.
+pub fn draw_eating_mouth(img: &mut RgbaImage, cx: i32, my: i32, color: Rgba<u8>) {
+    // Wide open mouth with tongue
+    fill_rect(img, cx - 3, my, 7, 4, color);
+    // Tongue (pink/red)
+    fill_rect(img, cx - 1, my + 2, 3, 1, Rgba([200, 110, 110, 255]));
+    // Teeth
+    put(img, cx - 2, my, Rgba([230, 220, 210, 255]));
+    put(img, cx + 2, my, Rgba([230, 220, 210, 255]));
+}
+
+/// Draws a CLOSED chewing mouth — lips pressed together, cheeks puffed.
+/// Alternates with draw_eating_mouth to create chewing animation.
+pub fn draw_chewing_closed(img: &mut RgbaImage, cx: i32, my: i32, color: Rgba<u8>) {
+    // Pressed lips — wider than normal, slight bulge from food
+    fill_rect(img, cx - 3, my, 7, 1, color);
+    // Puffed cheeks (small bumps on sides)
+    put(img, cx - 4, my, color);
+    put(img, cx + 4, my, color);
 }
 
 // ===================================================================

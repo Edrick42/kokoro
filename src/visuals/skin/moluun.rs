@@ -6,7 +6,9 @@
 //! - Adult: body dominates, defined limbs, broad shoulders, full features
 //! - Elder: slightly hunched, thinner, fading resonance
 
+use bevy::prelude::Res;
 use image::{RgbaImage, Rgba};
+use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
 use super::{Palette, fill_circle, fill_rect, fill_ellipse, put, draw_eyes, fade};
 
@@ -41,64 +43,65 @@ pub fn draw_egg(img: &mut RgbaImage, p: &Palette, cx: i32) {
 // Head radius ~16px, body just a small bump underneath (~8px).
 // Ears tiny. Feet are round stubs. No arms at all.
 
-pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
-    // HEAD is the dominant shape — centered high
-    let hy = 20;   // head center (high up)
-    let hr = 16;   // head radius (BIG)
+pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+    // Soft body positions (cub uses head and feet)
+    let (hx, hy) = sb.as_ref().map(|b| b.point("head").px()).unwrap_or((cx, 20));
+    let (fl_x, fl_y) = sb.as_ref().map(|b| b.point("foot_l").px()).unwrap_or((cx - 5, 46));
+    let (fr_x, fr_y) = sb.as_ref().map(|b| b.point("foot_r").px()).unwrap_or((cx + 5, 46));
+    let hr = 16;
 
-    // Tiny ears (nubs on top of the big head)
-    fill_circle(img, cx - 10, hy - 12, 4, p.accent);
-    fill_circle(img, cx + 10, hy - 12, 4, p.accent);
-    fill_circle(img, cx - 10, hy - 12, 2, EAR_INNER);
-    fill_circle(img, cx + 10, hy - 12, 2, EAR_INNER);
+    // Tiny ears (nubs on top of the big head, move with head)
+    fill_circle(img, hx - 10, hy - 12, 4, p.accent);
+    fill_circle(img, hx + 10, hy - 12, 4, p.accent);
+    fill_circle(img, hx - 10, hy - 12, 2, EAR_INNER);
+    fill_circle(img, hx + 10, hy - 12, 2, EAR_INNER);
 
-    // BIG round head
-    fill_circle(img, cx, hy, hr, p.body);
+    // BIG round head (moves with neck)
+    fill_circle(img, hx, hy, hr, p.body);
 
-    // Soft fur on head (sparse)
+    // Soft fur on head (sparse, moves with head)
     for &(dx, dy) in &[(-7,-5), (7,-4), (-3,-10), (6,7)] {
-        put(img, cx + dx, hy + dy, p.accent);
+        put(img, hx + dx, hy + dy, p.accent);
     }
 
-    // Small body underneath the head (like a pouch/bump)
-    let body_y = hy + hr + 4;  // below the head
-    fill_ellipse(img, cx, body_y, 10, 7, p.body);
-    // Belly on the small body
-    fill_ellipse(img, cx, body_y + 1, 7, 5, p.body_light);
+    // Small body underneath (reads from soft body "body" point)
+    let (bx, body_y) = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 40));
 
-    // Kokoro-sac glow (faint — just forming)
-    fill_circle(img, cx, body_y, 3, RESONANCE);
+    // Neck connection — fill between head and body centers
+    let neck_cx = (hx + bx) / 2;
+    let neck_top = hy.min(body_y);
+    let neck_h = (hy - body_y).unsigned_abs() as i32 + 1;
+    fill_rect(img, neck_cx - 5, neck_top, 11, neck_h, p.body);
 
-    // Tiny stub feet poking out under the body
-    fill_circle(img, cx - 5, body_y + 6, 3, p.body);
-    fill_circle(img, cx + 5, body_y + 6, 3, p.body);
+    // Body ellipse (on top of neck)
+    fill_ellipse(img, bx, body_y, 10, 7, p.body);
+    fill_ellipse(img, bx, body_y + 1, 7, 5, p.body_light);
 
-    // NO arms
+    // Kokoro-sac glow
+    fill_circle(img, bx, body_y, 3, RESONANCE);
 
-    // HUGE eyes on the big head (6x6)
-    draw_eyes(img, cx, hy + 2, 6, 4, mood, p.eye);
+    // Tiny stub feet (soft body positions)
+    fill_circle(img, fl_x, fl_y, 3, p.body);
+    fill_circle(img, fr_x, fr_y, 3, p.body);
+
+    // HUGE eyes on the big head (6x6, move with head)
+    draw_eyes(img, hx, hy + 2, 6, 4, mood, p.eye);
     if *mood != MoodState::Sleeping {
-        put(img, cx - 6, hy + 2, HIGHLIGHT);
-        put(img, cx - 5, hy + 2, HIGHLIGHT);
-        put(img, cx + 2, hy + 2, HIGHLIGHT);
-        put(img, cx + 3, hy + 2, HIGHLIGHT);
+        put(img, hx - 6, hy + 2, HIGHLIGHT);
+        put(img, hx - 5, hy + 2, HIGHLIGHT);
+        put(img, hx + 2, hy + 2, HIGHLIGHT);
+        put(img, hx + 3, hy + 2, HIGHLIGHT);
     }
 
-    // Big blush (baby cheeks)
-    fill_rect(img, cx - 12, hy + 6, 3, 2, BLUSH);
-    fill_rect(img, cx + 10, hy + 6, 3, 2, BLUSH);
+    // Big blush (on head, moves with head)
+    fill_rect(img, hx - 12, hy + 6, 3, 2, BLUSH);
+    fill_rect(img, hx + 10, hy + 6, 3, 2, BLUSH);
 
-    // Tiny nose (just a dot)
-    put(img, cx, hy + 10, NOSE_COLOR);
-    put(img, cx + 1, hy + 10, NOSE_COLOR);
+    // Tiny nose (on head)
+    put(img, hx, hy + 10, NOSE_COLOR);
+    put(img, hx + 1, hy + 10, NOSE_COLOR);
 
-    // Tiny mouth
-    if *mood == MoodState::Happy || *mood == MoodState::Playful {
-        put(img, cx - 1, hy + 12, p.mouth);
-        put(img, cx + 1, hy + 12, p.mouth);
-    } else if *mood != MoodState::Sleeping {
-        put(img, cx, hy + 12, p.mouth);
-    }
+    // Tiny mouth (on head)
 }
 
 // ===================================================================
@@ -108,79 +111,74 @@ pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
 // Short arms sprout. Ears grow noticeably. Feet get bigger.
 // Think Charmeleon — awkward middle stage, clearly transitioning.
 
-pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
-    // Head and body roughly equal now
-    let hy = 18;    // head center
-    let hr = 13;    // head radius (shrunk from 16)
-    let body_y = 32; // body center (lower, separated)
-    let body_r = 12; // body radius (grown from 7-height ellipse)
+pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+    // Soft body positions
+    let (hx, hy) = sb.as_ref().map(|b| b.point("head").px()).unwrap_or((cx, 18));
+    let (bx, by) = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 32));
+    let (sl_x, sl_y) = sb.as_ref().map(|b| b.point("shoulder_l").px()).unwrap_or((cx - 13, 29));
+    let (sr_x, sr_y) = sb.as_ref().map(|b| b.point("shoulder_r").px()).unwrap_or((cx + 13, 29));
+    let (fl_x, fl_y) = sb.as_ref().map(|b| b.point("foot_l").px()).unwrap_or((cx - 6, 43));
+    let (fr_x, fr_y) = sb.as_ref().map(|b| b.point("foot_r").px()).unwrap_or((cx + 6, 43));
+    let hr = 13;
+    let body_r = 12;
 
-    // Ears growing out (bigger than cub, clearly visible)
-    fill_circle(img, cx - 10, hy - 10, 5, p.accent);
-    fill_circle(img, cx + 10, hy - 10, 5, p.accent);
-    fill_circle(img, cx - 10, hy - 10, 3, EAR_INNER);
-    fill_circle(img, cx + 10, hy - 10, 3, EAR_INNER);
-    // Faint ear glow starting
-    put(img, cx - 12, hy - 13, EAR_GLOW);
-    put(img, cx + 12, hy - 13, EAR_GLOW);
+    // Ears (on head, soft body position)
+    fill_circle(img, hx - 10, hy - 10, 5, p.accent);
+    fill_circle(img, hx + 10, hy - 10, 5, p.accent);
+    fill_circle(img, hx - 10, hy - 10, 3, EAR_INNER);
+    fill_circle(img, hx + 10, hy - 10, 3, EAR_INNER);
+    put(img, hx - 12, hy - 13, EAR_GLOW);
+    put(img, hx + 12, hy - 13, EAR_GLOW);
 
-    // Head (smaller proportionally)
-    fill_circle(img, cx, hy, hr, p.body);
-    // Fur on head
+    // Head (soft body position)
+    fill_circle(img, hx, hy, hr, p.body);
     for &(dx, dy) in &[(-6,-4), (5,-3), (-3,-8)] {
-        put(img, cx + dx, hy + dy, p.accent);
+        put(img, hx + dx, hy + dy, p.accent);
     }
 
-    // Neck connecting head to body (new! didn't exist in cub)
-    fill_rect(img, cx - 5, hy + hr - 2, 11, 5, p.body);
+    // Neck — filled zone between head and body centers (NEVER gaps)
+    let neck_cx = (hx + bx) / 2;
+    let neck_top = hy.min(by);
+    let neck_bottom = hy.max(by);
+    let neck_height = (neck_bottom - neck_top).max(1);
+    fill_rect(img, neck_cx - 5, neck_top, 11, neck_height, p.body);
 
-    // Body (round, growing)
-    fill_circle(img, cx, body_y, body_r, p.body);
-    // Fur texture on body
+    // Body (soft body position)
+    fill_circle(img, bx, by, body_r, p.body);
     for &(dx, dy) in &[(-5,-3), (4,2), (-3,5), (6,-1), (-7,1)] {
-        put(img, cx + dx, body_y + dy, p.accent);
+        put(img, bx + dx, by + dy, p.accent);
     }
-    // Belly
-    fill_circle(img, cx, body_y + 2, 8, p.body_light);
+    fill_circle(img, bx, by + 2, 8, p.body_light);
 
-    // Kokoro-sac glow (brighter)
-    fill_circle(img, cx, body_y + 1, 4, RESONANCE);
-    // Resonance lines starting on flanks
-    put(img, cx - 9, body_y - 2, RESONANCE);
-    put(img, cx + 9, body_y - 2, RESONANCE);
+    // Kokoro-sac
+    fill_circle(img, bx, by + 1, 4, RESONANCE);
 
-    // Short arms! (new feature — stubby but visible)
-    fill_rect(img, cx - body_r - 1, body_y - 3, 4, 6, p.body);
-    fill_rect(img, cx + body_r - 2, body_y - 3, 4, 6, p.body);
+    // Arms (soft body positions)
+    fill_rect(img, sl_x, sl_y, 4, 6, p.body);
+    fill_rect(img, sr_x - 3, sr_y, 4, 6, p.body);
 
-    // Feet (bigger than cub, pads starting)
-    fill_circle(img, cx - 6, body_y + body_r - 1, 4, p.body);
-    fill_circle(img, cx + 6, body_y + body_r - 1, 4, p.body);
+    // Feet (soft body positions)
+    fill_circle(img, fl_x, fl_y, 4, p.body);
+    fill_circle(img, fr_x, fr_y, 4, p.body);
     for dx in [-1, 1] {
-        put(img, cx - 6 + dx, body_y + body_r + 2, p.accent);
-        put(img, cx + 6 + dx, body_y + body_r + 2, p.accent);
+        put(img, fl_x + dx, fl_y + 3, p.accent);
+        put(img, fr_x + dx, fr_y + 3, p.accent);
     }
 
-    // Eyes — 5x5 on head (maturing)
-    draw_eyes(img, cx, hy + 2, 5, 4, mood, p.eye);
+    // Face (on head)
+    draw_eyes(img, hx, hy + 2, 5, 4, mood, p.eye);
     if *mood != MoodState::Sleeping {
-        put(img, cx - 5, hy + 2, HIGHLIGHT);
-        put(img, cx + 2, hy + 2, HIGHLIGHT);
+        put(img, hx - 5, hy + 2, HIGHLIGHT);
+        put(img, hx + 2, hy + 2, HIGHLIGHT);
     }
 
-    // Blush
-    fill_rect(img, cx - 10, hy + 5, 2, 2, BLUSH);
-    fill_rect(img, cx + 9, hy + 5, 2, 2, BLUSH);
+    fill_rect(img, hx - 10, hy + 5, 2, 2, BLUSH);
+    fill_rect(img, hx + 9, hy + 5, 2, 2, BLUSH);
 
-    // Nose forming triangle shape
-    fill_rect(img, cx - 1, hy + 8, 3, 2, NOSE_COLOR);
-    put(img, cx, hy + 10, NOSE_COLOR);
+    fill_rect(img, hx - 1, hy + 8, 3, 2, NOSE_COLOR);
+    put(img, hx, hy + 10, NOSE_COLOR);
 
-    // Mouth
-    if *mood != MoodState::Sleeping {
-        put(img, cx - 1, hy + 12, p.mouth);
-        put(img, cx + 1, hy + 12, p.mouth);
-    }
+    // Mouth (mood-reactive)
 }
 
 // ===================================================================
@@ -190,99 +188,107 @@ pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
 // Full arms with paws. Thick legs with toe pads. Dense fur everywhere.
 // Think Charizard-level transformation — powerful, mature, complete.
 
-pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
-    // Body-dominant proportions
-    let hy = 14;    // head center (high up, smaller)
-    let hr = 11;    // head radius (much smaller than cub's 16!)
-    let body_y = 30; // body center
-    let body_r = 16; // body radius (dominant)
+pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+    // === SOFT BODY POSITIONS ===
+    // All positions come from physics simulation. Fallback to defaults if no soft body.
+    let (hx, hy) = sb.as_ref().map(|b| b.point("head").px()).unwrap_or((cx, 14));
+    let (bx, by) = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 30));
+    let (belly_x, belly_y) = sb.as_ref().map(|b| b.point("belly").px()).unwrap_or((cx, 33));
+    let (sl_x, sl_y) = sb.as_ref().map(|b| b.point("shoulder_l").px()).unwrap_or((cx - 17, 26));
+    let (pl_x, pl_y) = sb.as_ref().map(|b| b.point("paw_l").px()).unwrap_or((cx - 17, 36));
+    let (sr_x, sr_y) = sb.as_ref().map(|b| b.point("shoulder_r").px()).unwrap_or((cx + 17, 26));
+    let (pr_x, pr_y) = sb.as_ref().map(|b| b.point("paw_r").px()).unwrap_or((cx + 17, 36));
+    let (fl_x, fl_y) = sb.as_ref().map(|b| b.point("foot_l").px()).unwrap_or((cx - 8, 46));
+    let (fr_x, fr_y) = sb.as_ref().map(|b| b.point("foot_r").px()).unwrap_or((cx + 8, 46));
+    let (ear_x, ear_y) = sb.as_ref().map(|b| b.point("ear_anchor").px()).unwrap_or((cx, 6));
 
-    // Full-sized ears with detailed pink inner
-    fill_circle(img, cx - 10, hy - 8, 7, p.accent);
-    fill_circle(img, cx + 10, hy - 8, 7, p.accent);
-    fill_circle(img, cx - 10, hy - 8, 4, EAR_INNER);
-    fill_circle(img, cx + 10, hy - 8, 4, EAR_INNER);
-    // Bioluminescent ear tips
-    put(img, cx - 12, hy - 13, EAR_GLOW);
-    put(img, cx - 11, hy - 14, EAR_GLOW);
-    put(img, cx + 12, hy - 13, EAR_GLOW);
-    put(img, cx + 11, hy - 14, EAR_GLOW);
+    let body_r = 16;
+    let hr = 11;
 
-    // Head
-    fill_circle(img, cx, hy, hr, p.body);
+    // === DRAW ORDER: body first (bottom), then neck, then head on top ===
+
+    // Body FIRST (pinned anchor — always in position)
+    fill_circle(img, bx, by, body_r, p.body);
+
+    // Neck — thick rectangle connecting body center to head center.
+    // Drawn OVER body, UNDER head. ALWAYS visible, NEVER a gap.
+    let neck_cx = (hx + bx) / 2;
+    let neck_top = hy;               // from head center
+    let neck_bottom = by;            // to body center
+    let neck_y = neck_top.min(neck_bottom);
+    let neck_h = (neck_top - neck_bottom).unsigned_abs() as i32 + 1;
+    fill_rect(img, neck_cx - 7, neck_y, 15, neck_h, p.body);
+
+    // Head ON TOP of neck (so it covers the joint)
+    fill_circle(img, hx, hy, hr, p.body);
     for &(dx, dy) in &[(-5,-4), (4,-3), (-2,-7), (3,5)] {
-        put(img, cx + dx, hy + dy, p.accent);
+        put(img, hx + dx, hy + dy, p.accent);
     }
 
-    // Thick neck / shoulders connecting to body
-    fill_rect(img, cx - 7, hy + hr - 2, 15, 6, p.body);
-
-    // Large body
-    fill_circle(img, cx, body_y, body_r, p.body);
-
-    // Dense fur texture
+    // Ears (on head)
+    fill_circle(img, ear_x - 10, ear_y, 7, p.accent);
+    fill_circle(img, ear_x + 10, ear_y, 7, p.accent);
+    fill_circle(img, ear_x - 10, ear_y, 4, EAR_INNER);
+    fill_circle(img, ear_x + 10, ear_y, 4, EAR_INNER);
+    put(img, ear_x - 12, ear_y - 5, EAR_GLOW);
+    put(img, ear_x + 12, ear_y - 5, EAR_GLOW);
     for &(dx, dy) in &[(-8,-6), (7,-4), (-5,3), (9,1), (-3,-10), (6,7), (-10,4), (4,-7), (-6,9)] {
-        put(img, cx + dx, body_y + dy, p.accent);
+        put(img, bx + dx, by + dy, p.accent);
     }
 
-    // Warm belly with fur detail
-    fill_circle(img, cx, body_y + 3, 11, p.body_light);
+    // Belly (oscillates with breathing via soft body)
+    fill_circle(img, belly_x, belly_y, 11, p.body_light);
     for &(dx, dy) in &[(-3, 2), (4, 3), (-1, 5), (2, 7)] {
-        put(img, cx + dx, body_y + 3 + dy, fade(p.body_light, 0.1));
+        put(img, belly_x + dx, belly_y + dy, fade(p.body_light, 0.1));
     }
 
-    // Kokoro-sac glow — bright core
-    fill_circle(img, cx, body_y + 2, 5, RESONANCE_BRIGHT);
-    fill_circle(img, cx, body_y + 2, 3, RESONANCE);
+    // Kokoro-sac glow (on belly)
+    fill_circle(img, belly_x, belly_y - 1, 5, RESONANCE_BRIGHT);
+    fill_circle(img, belly_x, belly_y - 1, 3, RESONANCE);
 
-    // Resonance lines along flanks
-    for &(dx, dy) in &[(-12,-2), (-13,0), (-14,2), (12,-2), (13,0), (14,2)] {
-        put(img, cx + dx, body_y + dy, RESONANCE);
-    }
+    // Left arm (shoulder → paw, soft body positions)
+    let al_h = (pl_y - sl_y).max(3);
+    fill_rect(img, sl_x, sl_y, 5, al_h, p.body);
+    fill_circle(img, pl_x, pl_y, 3, p.accent);
 
-    // Full arms with paws
-    fill_rect(img, cx - body_r - 1, body_y - 4, 5, 10, p.body);
-    fill_rect(img, cx + body_r - 3, body_y - 4, 5, 10, p.body);
-    fill_circle(img, cx - body_r, body_y + 6, 3, p.accent);
-    fill_circle(img, cx + body_r, body_y + 6, 3, p.accent);
+    // Right arm
+    let ar_h = (pr_y - sr_y).max(3);
+    fill_rect(img, sr_x - 4, sr_y, 5, ar_h, p.body);
+    fill_circle(img, pr_x, pr_y, 3, p.accent);
 
-    // Sturdy feet with toe pads
-    fill_circle(img, cx - 8, body_y + body_r - 1, 6, p.body);
-    fill_circle(img, cx + 8, body_y + body_r - 1, 6, p.body);
+    // Left foot (soft body position)
+    fill_circle(img, fl_x, fl_y, 6, p.body);
     for dx in [-3, -1, 1, 3] {
-        put(img, cx - 8 + dx, body_y + body_r + 4, p.accent);
-        put(img, cx + 8 + dx, body_y + body_r + 4, p.accent);
+        put(img, fl_x + dx, fl_y + 5, p.accent);
     }
 
-    // Eyes on head — 5x5 with glow aura
-    draw_eyes(img, cx, hy + 2, 5, 3, mood, p.eye);
+    // Right foot
+    fill_circle(img, fr_x, fr_y, 6, p.body);
+    for dx in [-3, -1, 1, 3] {
+        put(img, cx + 8 + dx, fr_y + 5, p.accent);
+    }
+
+    // === FACE (on head, moves with head) ===
+
+    // Eyes
+    draw_eyes(img, hx, hy + 2, 5, 3, mood, p.eye);
     if *mood != MoodState::Sleeping {
-        put(img, cx - 4, hy + 2, HIGHLIGHT);
-        put(img, cx + 2, hy + 2, HIGHLIGHT);
-        // Eye glow aura
-        put(img, cx - 7, hy + 3, RESONANCE);
-        put(img, cx + 7, hy + 3, RESONANCE);
+        put(img, hx - 4, hy + 2, HIGHLIGHT);
+        put(img, hx + 2, hy + 2, HIGHLIGHT);
+        put(img, hx - 7, hy + 3, RESONANCE);
+        put(img, hx + 7, hy + 3, RESONANCE);
     }
 
-    // Subtle blush
-    fill_rect(img, cx - 8, hy + 5, 2, 2, BLUSH);
-    fill_rect(img, cx + 7, hy + 5, 2, 2, BLUSH);
+    // Blush (on head)
+    fill_rect(img, hx - 8, hy + 5, 2, 2, BLUSH);
+    fill_rect(img, hx + 7, hy + 5, 2, 2, BLUSH);
 
-    // Broad triangular nose
-    fill_rect(img, cx - 2, hy + 8, 5, 2, NOSE_COLOR);
-    fill_rect(img, cx - 1, hy + 10, 3, 1, NOSE_COLOR);
-    put(img, cx, hy + 11, NOSE_COLOR);
+    // Nose (on head)
+    fill_rect(img, hx - 2, hy + 8, 5, 2, NOSE_COLOR);
+    fill_rect(img, hx - 1, hy + 10, 3, 1, NOSE_COLOR);
+    put(img, hx, hy + 11, NOSE_COLOR);
 
-    // Mood mouth
-    if *mood == MoodState::Happy || *mood == MoodState::Playful {
-        fill_rect(img, cx - 2, hy + 13, 5, 1, p.mouth);
-        put(img, cx - 3, hy + 12, p.mouth);
-        put(img, cx + 4, hy + 12, p.mouth);
-    } else if *mood == MoodState::Hungry {
-        fill_rect(img, cx - 1, hy + 13, 3, 2, p.mouth);
-    } else if *mood != MoodState::Sleeping {
-        fill_rect(img, cx - 1, hy + 13, 3, 1, p.mouth);
-    }
+    // Mouth drawn centrally in draw_creature
 }
 
 // ===================================================================

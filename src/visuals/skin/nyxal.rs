@@ -7,6 +7,8 @@
 //! - Elder: dimmer glow, wisdom rings on mantle, thinner tentacles
 
 use image::{RgbaImage, Rgba};
+use bevy::prelude::Res;
+use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
 use super::{Palette, fill_circle, fill_rect, put, draw_eyes, fade};
 
@@ -37,7 +39,7 @@ pub fn draw_egg(img: &mut RgbaImage, p: &Palette, cx: i32) {
 // Planktonic larva: huge mantle dome with tiny tentacle nubs underneath.
 // Nearly transparent. Almost no glow. Alien blob.
 
-pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
+pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _sb: &Option<Res<SoftBody>>) {
     // HUGE mantle dome (this IS the creature)
     let my = 18;   // mantle center
     let mr = 16;   // mantle radius — dominates everything
@@ -72,7 +74,7 @@ pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
 // Allometric growth: tentacles grow MUCH faster than the dome.
 // The creature is transitioning from blob to cephalopod.
 
-pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
+pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _sb: &Option<Res<SoftBody>>) {
     let my = 16;    // mantle center (smaller)
     let mr = 12;    // mantle radius (shrank!)
 
@@ -120,7 +122,7 @@ pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
 // Complete transformation: tentacles are now the defining feature.
 // Dome is proportionally small. Rich chromatophore patterns. Side fins.
 
-pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
+pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _sb: &Option<Res<SoftBody>>) {
     let my = 14;    // mantle center (small, high up)
     let mr = 11;    // mantle radius (proportionally small now!)
 

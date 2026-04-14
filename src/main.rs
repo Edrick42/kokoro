@@ -20,7 +20,9 @@ use creature::{
     lifecycle::collection::MultiCreaturePlugin,
     lifecycle::egg::EggPlugin,
     lifecycle::spawn::CreatureVisualsPlugin,
+    interaction::impulse::ImpulsePlugin,
     interaction::physics::PhysicsPlugin,
+    interaction::soft_body::SoftBodyPlugin,
     interaction::touch::TouchPlugin,
 };
 use game::state::{AppState, GameStatePlugin};
@@ -103,7 +105,7 @@ fn main() {
         // Creature lifecycle — collection management + egg incubation + anatomy
         .add_plugins((MultiCreaturePlugin, EggPlugin, TouchPlugin, PreferencePlugin, SoundPlugin, LifecyclePlugin, AnatomyPlugin, AbilityPlugin, PosePlugin, ReactionPlugin, IdleBehaviorPlugin, InvoluntaryPlugin))
         // Physics — gravity, collision, buoyancy
-        .add_plugins(PhysicsPlugin)
+        .add_plugins((PhysicsPlugin, SoftBodyPlugin, ImpulsePlugin))
         // Visual plugins — effects, animation, evolution, accessories, organic behavior
         .add_plugins((EffectsPlugin, AnimationPlugin, EvolutionPlugin, AccessoriesPlugin, BackgroundPlugin))
         .add_plugins((BreathingPlugin, SpeciesBehaviorPlugin, ResonanceGlowPlugin, SkinPlugin))

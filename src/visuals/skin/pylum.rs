@@ -7,6 +7,8 @@
 //! - Elder: white crest tip, faded wing edges
 
 use image::{RgbaImage, Rgba};
+use bevy::prelude::Res;
+use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
 use super::{Palette, fill_circle, fill_rect, fill_ellipse, put, draw_eyes, fade, NEAR_BLACK_PX};
 
@@ -33,7 +35,7 @@ pub fn draw_egg(img: &mut RgbaImage, p: &Palette, cx: i32) {
 // CUB — fluffy down ball
 // ===================================================================
 
-pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
+pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _sb: &Option<Res<SoftBody>>) {
     let by = 22;
     let br = 17;
 
@@ -66,7 +68,7 @@ pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
 // YOUNG — gangly: LEGS explode, body small on top
 // ===================================================================
 
-pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
+pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _sb: &Option<Res<SoftBody>>) {
     let by = 16;
     let br = 11;
 
@@ -112,7 +114,7 @@ pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
 // ADULT — tall imposing: casque, wings, talons
 // ===================================================================
 
-pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState) {
+pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _sb: &Option<Res<SoftBody>>) {
     let hy = 10;
     let hr = 9;
     let body_y = 24;

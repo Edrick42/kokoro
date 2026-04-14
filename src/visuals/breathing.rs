@@ -114,12 +114,12 @@ fn update_breathing_params(
 
 fn breathing_system(
     time: Res<Time>,
-    mut root_q: Query<(&mut BreathingState, &Children), With<CreatureRoot>>,
-    mut skin_q: Query<&mut Transform, With<crate::visuals::skin::CreatureSkin>>,
+    mut root_q: Query<&mut BreathingState, With<CreatureRoot>>,
+    mut soft_body: Option<ResMut<crate::creature::interaction::soft_body::SoftBody>>,
 ) {
     let dt = time.delta_secs();
 
-    for (mut breathing, children) in root_q.iter_mut() {
+    for mut breathing in root_q.iter_mut() {
         let lerp_speed = 2.0 * dt;
         breathing.rate += (breathing.target_rate - breathing.rate) * lerp_speed;
         breathing.amplitude += (breathing.target_amplitude - breathing.amplitude) * lerp_speed;
@@ -128,16 +128,11 @@ fn breathing_system(
             breathing.phase -= TAU;
         }
 
-        let breath_factor_x = 1.0 + breathing.phase.sin() * breathing.amplitude;
-        let breath_factor_y = 1.0 + breathing.phase.sin() * breathing.amplitude
-            * config::breathing::Y_AMPLITUDE_RATIO;
-
-        // Animate the whole CreatureSkin sprite (not individual body parts)
-        for child in children.iter() {
-            if let Ok(mut transform) = skin_q.get_mut(child) {
-                transform.scale.x = breath_factor_x;
-                transform.scale.y = breath_factor_y;
-            }
+        // Apply breathing force to belly point via soft body
+        // Only belly moves — head stays still because springs absorb
+        if let Some(ref mut body) = soft_body {
+            let breath_force = breathing.phase.sin() * breathing.amplitude * 80.0;
+            body.point_mut("belly").velocity.y += breath_force;
         }
     }
 }

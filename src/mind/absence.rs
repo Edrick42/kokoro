@@ -86,6 +86,12 @@ pub fn apply_absence_effects(
         mind.mood = MoodState::Sick;
     }
 
+    // Survival floor: the creature always comes back alive with minimal stats.
+    // No matter how long the absence, the player gets a chance to care for it.
+    // Health floor prevents instant death from accumulated decay systems.
+    mind.stats.health = mind.stats.health.max(15.0);
+    mind.stats.energy = mind.stats.energy.max(5.0);
+
     if secs >= config::absence::TRIVIAL {
         info!(
             "Absence: {} seconds ({}) — hunger +{:.0}, happiness -{:.0}",

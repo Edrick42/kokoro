@@ -181,15 +181,23 @@ fn neural_mood_system(
 }
 
 /// Periodically trains the MLP on recent interaction history.
+/// Uses a Local to track the last tick we trained on, preventing
+/// the bug where training fires every frame of the same tick.
 fn neural_train_system(
     mind: Res<Mind>,
     genome: Res<Genome>,
     db: Res<DbConnection>,
     mut neural: ResMut<NeuralMind>,
+    mut last_train_tick: Local<u64>,
 ) {
     if mind.age_ticks == 0 || mind.age_ticks % TRAIN_INTERVAL != 0 {
         return;
     }
+    // Only train ONCE per interval — not every frame of the same tick
+    if mind.age_ticks == *last_train_tick {
+        return;
+    }
+    *last_train_tick = mind.age_ticks;
 
     let conn = db.0.lock().expect("DB lock poisoned");
 

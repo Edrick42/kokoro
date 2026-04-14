@@ -37,6 +37,16 @@ fn migrate(conn: &Connection) -> Result<()> {
         [],
     ); // Silently ignores if column already exists
 
+    // Migration: add thirst column to creature and creatures tables
+    let _ = conn.execute(
+        "ALTER TABLE creature ADD COLUMN thirst REAL NOT NULL DEFAULT 30.0",
+        [],
+    );
+    let _ = conn.execute(
+        "ALTER TABLE creatures ADD COLUMN thirst REAL NOT NULL DEFAULT 30.0",
+        [],
+    );
+
     conn.execute_batch("
         PRAGMA journal_mode = WAL;
         PRAGMA foreign_keys = ON;
@@ -45,6 +55,7 @@ fn migrate(conn: &Connection) -> Result<()> {
         CREATE TABLE IF NOT EXISTS creature (
             id               INTEGER PRIMARY KEY CHECK (id = 1),
             hunger           REAL    NOT NULL DEFAULT 30.0,
+            thirst           REAL    NOT NULL DEFAULT 30.0,
             happiness        REAL    NOT NULL DEFAULT 70.0,
             energy           REAL    NOT NULL DEFAULT 80.0,
             health           REAL    NOT NULL DEFAULT 100.0,
@@ -79,6 +90,7 @@ fn migrate(conn: &Connection) -> Result<()> {
             learning_rate           REAL    NOT NULL,
             hue                     REAL    NOT NULL,
             hunger                  REAL    NOT NULL DEFAULT 30.0,
+            thirst                  REAL    NOT NULL DEFAULT 30.0,
             happiness               REAL    NOT NULL DEFAULT 70.0,
             energy                  REAL    NOT NULL DEFAULT 80.0,
             health                  REAL    NOT NULL DEFAULT 100.0,

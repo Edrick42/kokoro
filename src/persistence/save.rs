@@ -46,10 +46,11 @@ fn save_mind(conn: &Connection, mind: &Mind) -> Result<()> {
 
     conn.execute(
         "INSERT OR REPLACE INTO creature
-         (id, hunger, happiness, energy, health, mood, age_ticks, last_session_end)
-         VALUES (1, ?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+         (id, hunger, thirst, happiness, energy, health, mood, age_ticks, last_session_end)
+         VALUES (1, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
         params![
             mind.stats.hunger,
+            mind.stats.thirst,
             mind.stats.happiness,
             mind.stats.energy,
             mind.stats.health,
@@ -94,8 +95,8 @@ pub fn save_collection(
             "INSERT OR REPLACE INTO creatures
              (slot, name, species, curiosity, loneliness_sensitivity, appetite,
               circadian, resilience, learning_rate, hue,
-              hunger, happiness, energy, health, mood, age_ticks)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
+              hunger, thirst, happiness, energy, health, mood, age_ticks)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
             params![
                 i as i64,
                 creature.name,
@@ -108,6 +109,7 @@ pub fn save_collection(
                 creature.genome.learning_rate,
                 creature.genome.hue,
                 creature.mind.stats.hunger,
+                creature.mind.stats.thirst,
                 creature.mind.stats.happiness,
                 creature.mind.stats.energy,
                 creature.mind.stats.health,
@@ -123,6 +125,7 @@ fn mood_to_str(mood: &MoodState) -> &'static str {
     match mood {
         MoodState::Happy    => "Happy",
         MoodState::Hungry   => "Hungry",
+        MoodState::Thirsty  => "Thirsty",
         MoodState::Tired    => "Tired",
         MoodState::Lonely   => "Lonely",
         MoodState::Playful  => "Playful",

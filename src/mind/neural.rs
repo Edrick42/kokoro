@@ -1,12 +1,12 @@
 //! Minimal MLP (Multi-Layer Perceptron) neural network in pure Rust.
 //!
-//! Architecture: **12 → 8 → 7**
+//! Architecture: **13 → 8 → 8**
 //!
-//! - **Input (12)**: 4 vital stats + 7 genome genes + 1 time-of-day
+//! - **Input (13)**: 5 vital stats + 7 genome genes + 1 time-of-day
 //! - **Hidden (8)**: ReLU activation
-//! - **Output (7)**: One per mood state, softmax for probabilities
+//! - **Output (8)**: One per mood state, softmax for probabilities
 //!
-//! Total parameters: (12×8 + 8) + (8×7 + 7) = 104 + 63 = **167 weights + biases**
+//! Total parameters: (13×8 + 8) + (8×8 + 8) = 112 + 72 = **184 weights + biases**
 //!
 //! The network learns each Kobara's owner interaction patterns locally.
 //! It does NOT replace the FSM — instead it *suggests* mood transitions
@@ -15,12 +15,12 @@
 use serde::{Deserialize, Serialize};
 use rand::Rng;
 
-/// Number of input neurons (4 stats + 7 genes + 1 time_of_day).
-pub const INPUT_SIZE: usize = 12;
+/// Number of input neurons (5 stats + 7 genes + 1 time_of_day).
+pub const INPUT_SIZE: usize = 13;
 /// Number of hidden neurons.
 pub const HIDDEN_SIZE: usize = 8;
 /// Number of output neurons (one per MoodState).
-pub const OUTPUT_SIZE: usize = 7;
+pub const OUTPUT_SIZE: usize = 8;
 
 /// A small feedforward neural network with one hidden layer.
 ///
@@ -216,6 +216,7 @@ pub fn mood_to_index(mood: &crate::mind::MoodState) -> usize {
         MoodState::Playful  => 4,
         MoodState::Sick     => 5,
         MoodState::Sleeping => 6,
+        MoodState::Thirsty  => 7,
     }
 }
 
@@ -230,6 +231,7 @@ pub fn index_to_mood(idx: usize) -> crate::mind::MoodState {
         4 => MoodState::Playful,
         5 => MoodState::Sick,
         6 => MoodState::Sleeping,
+        7 => MoodState::Thirsty,
         _ => MoodState::Happy,
     }
 }
@@ -237,7 +239,7 @@ pub fn index_to_mood(idx: usize) -> crate::mind::MoodState {
 /// Builds the 12-element input vector from current game state.
 ///
 /// All values are normalized to roughly [0, 1]:
-/// - hunger, happiness, energy, health: divided by 100
+/// - hunger, thirst, happiness, energy, health: divided by 100
 /// - genome genes: already [0, 1] (except hue which is /360)
 /// - time_of_day: hour / 24
 pub fn build_input(
@@ -246,8 +248,9 @@ pub fn build_input(
     hour: f32,
 ) -> [f32; INPUT_SIZE] {
     [
-        // Vital stats (4)
+        // Vital stats (5)
         stats.hunger / 100.0,
+        stats.thirst / 100.0,
         stats.happiness / 100.0,
         stats.energy / 100.0,
         stats.health / 100.0,
@@ -282,7 +285,7 @@ mod tests {
     #[test]
     fn train_step_reduces_loss() {
         let mut mlp = MLP::new();
-        let input = [0.3, 0.7, 0.5, 0.9, 0.4, 0.6, 0.2, 0.8, 0.5, 0.3, 0.5, 0.5];
+        let input = [0.3, 0.7, 0.5, 0.9, 0.4, 0.6, 0.2, 0.8, 0.5, 0.3, 0.5, 0.5, 0.4];
         let target = 2; // Tired
 
         let loss1 = mlp.train_step(&input, target, 0.01);

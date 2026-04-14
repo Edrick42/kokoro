@@ -527,7 +527,7 @@ pub fn draw_mouth(img: &mut RgbaImage, cx: i32, my: i32, mood: &MoodState, color
     match mood {
         // === NEUTRAL STATES: no mouth drawn (like classic tamagotchi) ===
         // A calm creature shows no mouth. Mouth only appears for expressive moods.
-        MoodState::Sleeping | MoodState::Happy | MoodState::Hungry => {
+        MoodState::Sleeping | MoodState::Happy | MoodState::Hungry | MoodState::Thirsty => {
             // No mouth — peaceful/neutral face.
             // Eating reaction uses draw_eating_mouth() separately.
         }

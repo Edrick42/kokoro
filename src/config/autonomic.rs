@@ -21,6 +21,7 @@ pub mod mood_drive {
             MoodState::Tired    => 0.20,  // winding down
             MoodState::Lonely   => 0.45,  // mild anxiety
             MoodState::Hungry   => 0.55,  // growing urgency
+            MoodState::Thirsty  => 0.55,  // growing urgency
             MoodState::Playful  => 0.70,  // high arousal (positive)
             MoodState::Sick     => 0.75,  // body under stress
         }

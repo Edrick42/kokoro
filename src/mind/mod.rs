@@ -45,6 +45,7 @@ pub mod training;
 pub enum MoodState {
     Happy,
     Hungry,
+    Thirsty,
     Tired,
     Lonely,
     Playful,
@@ -57,6 +58,7 @@ impl MoodState {
         match self {
             MoodState::Happy    => "Happy",
             MoodState::Hungry   => "Hungry",
+            MoodState::Thirsty  => "Thirsty",
             MoodState::Tired    => "Tired",
             MoodState::Lonely   => "Lonely",
             MoodState::Playful  => "Playful",
@@ -70,6 +72,7 @@ impl MoodState {
         match self {
             MoodState::Happy    => "idle",
             MoodState::Hungry   => "hungry",
+            MoodState::Thirsty  => "thirsty",
             MoodState::Tired    => "tired",
             MoodState::Lonely   => "lonely",
             MoodState::Playful  => "playful",
@@ -87,6 +90,7 @@ impl MoodState {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VitalStats {
     pub hunger: f32,
+    pub thirst: f32,
     pub happiness: f32,
     pub energy: f32,
     pub health: f32,
@@ -97,6 +101,7 @@ impl VitalStats {
         use crate::config::initial_stats;
         Self {
             hunger:    initial_stats::HUNGER,
+            thirst:    initial_stats::THIRST,
             happiness: initial_stats::HAPPINESS,
             energy:    initial_stats::ENERGY,
             health:    initial_stats::HEALTH,
@@ -198,6 +203,11 @@ impl Mind {
             crate::genome::Species::Pylum  => mt::HUNGER_PYLUM,
             _ => mt::HUNGER_DEFAULT,
         };
+        let thirst_threshold = match genome.species {
+            crate::genome::Species::Skael  => mt::THIRST_SKAEL,
+            crate::genome::Species::Nyxal  => mt::THIRST_NYXAL,
+            _ => mt::THIRST_DEFAULT,
+        };
         let playful_threshold = match genome.species {
             crate::genome::Species::Pylum  => mt::PLAYFUL_PYLUM,
             crate::genome::Species::Skael  => mt::PLAYFUL_SKAEL,
@@ -210,6 +220,8 @@ impl Mind {
             MoodState::Sick
         } else if self.stats.hunger > hunger_threshold {
             MoodState::Hungry
+        } else if self.stats.thirst > thirst_threshold {
+            MoodState::Thirsty
         } else if self.stats.happiness < mt::HAPPINESS_SAD {
             if genome.loneliness_sensitivity > mt::LONELINESS_GENE_THRESHOLD {
                 MoodState::Lonely
@@ -239,6 +251,7 @@ impl Mind {
         // --- Natural stat decay ---
         let hunger_rate = config::stat_decay::HUNGER_BASE + genome.appetite * config::stat_decay::HUNGER_APPETITE_MULTIPLIER;
         self.stats.hunger    = (self.stats.hunger + hunger_rate).min(100.0);
+        self.stats.thirst    = (self.stats.thirst + config::stat_decay::THIRST_BASE).min(100.0);
         self.stats.energy    = (self.stats.energy - config::stat_decay::ENERGY_DECAY).max(0.0);
         self.stats.happiness = (self.stats.happiness - config::stat_decay::HAPPINESS_DECAY).max(0.0);
 

@@ -65,21 +65,25 @@ pub fn apply_absence_effects(
     if secs < config::absence::SHORT {
         // 1-30 minutes: slight effects
         mind.stats.hunger = (mind.stats.hunger + 10.0 * resilience_factor).min(100.0);
+        mind.stats.thirst = (mind.stats.thirst + 12.0 * resilience_factor).min(100.0);
         mind.stats.happiness = (mind.stats.happiness - 8.0 * loneliness_factor).max(0.0);
     } else if secs < config::absence::MEDIUM {
         // 30 min - 4 hours: significant effects
         mind.stats.hunger = (mind.stats.hunger + 25.0 * resilience_factor).min(100.0);
+        mind.stats.thirst = (mind.stats.thirst + 30.0 * resilience_factor).min(100.0);
         mind.stats.happiness = (mind.stats.happiness - 20.0 * loneliness_factor).max(0.0);
         mind.stats.energy = (mind.stats.energy - 10.0 * resilience_factor).max(0.0);
     } else if secs < config::absence::LONG {
         // 4-24 hours: severe effects
         mind.stats.hunger = (mind.stats.hunger + 40.0 * resilience_factor).min(100.0);
+        mind.stats.thirst = (mind.stats.thirst + 50.0 * resilience_factor).min(100.0);
         mind.stats.happiness = (mind.stats.happiness - 35.0 * loneliness_factor).max(0.0);
         mind.stats.energy = (mind.stats.energy - 20.0 * resilience_factor).max(0.0);
         mind.mood = MoodState::Lonely;
     } else {
         // 24+ hours: critical neglect
         mind.stats.hunger = (mind.stats.hunger + 55.0 * resilience_factor).min(100.0);
+        mind.stats.thirst = (mind.stats.thirst + 65.0 * resilience_factor).min(100.0);
         mind.stats.happiness = (mind.stats.happiness - 50.0 * loneliness_factor).max(0.0);
         mind.stats.energy = (mind.stats.energy - 30.0 * resilience_factor).max(0.0);
         mind.stats.health = (mind.stats.health - 10.0 * resilience_factor).max(0.0);

@@ -68,6 +68,7 @@ fn update_resonance_glow(
             MoodState::Happy    => config::resonance::FREQ_HAPPY,
             MoodState::Playful  => config::resonance::FREQ_PLAYFUL,
             MoodState::Hungry   => config::resonance::FREQ_HUNGRY,
+            MoodState::Thirsty  => config::resonance::FREQ_HUNGRY,
             MoodState::Lonely   => config::resonance::FREQ_LONELY,
             MoodState::Sick     => config::resonance::FREQ_SICK,
         };
@@ -77,6 +78,7 @@ fn update_resonance_glow(
             MoodState::Happy    => config::resonance::INTENSITY_HAPPY,
             MoodState::Tired    => config::resonance::INTENSITY_TIRED,
             MoodState::Hungry   => config::resonance::INTENSITY_HUNGRY,
+            MoodState::Thirsty  => config::resonance::INTENSITY_HUNGRY,
             MoodState::Lonely   => config::resonance::INTENSITY_LONELY,
             MoodState::Playful  => config::resonance::INTENSITY_PLAYFUL,
             MoodState::Sick     => config::resonance::INTENSITY_SICK,

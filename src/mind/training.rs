@@ -83,6 +83,7 @@ pub fn extract_samples(conn: &Connection, genome: &Genome, limit: usize) -> Vec<
 fn parse_payload(payload: &str, genome: &Genome, created_at: i64) -> Option<TrainingSample> {
     // Simple JSON parsing without serde_json dependency
     let hunger = extract_f32(payload, "hunger")?;
+    let thirst = extract_f32(payload, "thirst").unwrap_or(30.0);
     let happiness = extract_f32(payload, "happiness")?;
     let energy = extract_f32(payload, "energy")?;
     let health = extract_f32(payload, "health")?;
@@ -91,7 +92,7 @@ fn parse_payload(payload: &str, genome: &Genome, created_at: i64) -> Option<Trai
     // Approximate hour from Unix timestamp
     let hour = ((created_at % 86400) as f32 / 3600.0).clamp(0.0, 23.99);
 
-    let stats = crate::mind::VitalStats { hunger, happiness, energy, health };
+    let stats = crate::mind::VitalStats { hunger, thirst, happiness, energy, health };
     let input = build_input(&stats, genome, hour);
     let target = mood_str_to_index(&mood_str)?;
 
@@ -129,8 +130,8 @@ pub fn build_event_payload(
     action: &str,
 ) -> String {
     format!(
-        r#"{{"hunger":{:.1},"happiness":{:.1},"energy":{:.1},"health":{:.1},"mood":"{}","action":"{}"}}"#,
-        stats.hunger, stats.happiness, stats.energy, stats.health,
+        r#"{{"hunger":{:.1},"thirst":{:.1},"happiness":{:.1},"energy":{:.1},"health":{:.1},"mood":"{}","action":"{}"}}"#,
+        stats.hunger, stats.thirst, stats.happiness, stats.energy, stats.health,
         mood.label(), action
     )
 }
@@ -163,6 +164,7 @@ fn mood_str_to_index(s: &str) -> Option<usize> {
         "Playful"  => Some(4),
         "Sick"     => Some(5),
         "Sleeping" => Some(6),
+        "Thirsty"  => Some(7),
         _          => None,
     }
 }

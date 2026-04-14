@@ -72,17 +72,19 @@ fn load_genome(conn: &Connection) -> Result<Option<Genome>> {
 
 fn load_mind(conn: &Connection) -> Result<Option<(Mind, i64)>> {
     let mut stmt = conn.prepare(
-        "SELECT hunger, happiness, energy, health, mood, age_ticks, last_session_end
+        "SELECT hunger, happiness, energy, health, mood, age_ticks, last_session_end, thirst
          FROM creature WHERE id = 1",
     )?;
 
     let result = stmt.query_row([], |row| {
         let mood_str: String = row.get(4)?;
         let last_session_end: i64 = row.get(6)?;
+        let thirst: f32 = row.get::<_, f32>(7).unwrap_or(30.0);
         Ok((
             Mind {
                 stats: VitalStats {
                     hunger:    row.get(0)?,
+                    thirst,
                     happiness: row.get(1)?,
                     energy:    row.get(2)?,
                     health:    row.get(3)?,
@@ -111,13 +113,14 @@ pub fn load_collection(conn: &Connection) -> Result<Option<Vec<crate::creature::
     let mut stmt = conn.prepare(
         "SELECT slot, name, species, curiosity, loneliness_sensitivity, appetite,
                 circadian, resilience, learning_rate, hue,
-                hunger, happiness, energy, health, mood, age_ticks
+                hunger, happiness, energy, health, mood, age_ticks, thirst
          FROM creatures ORDER BY slot ASC",
     )?;
 
     let creatures: Vec<crate::creature::lifecycle::collection::StoredCreature> = stmt.query_map([], |row| {
         let species_str: String = row.get(2)?;
         let mood_str: String = row.get(14)?;
+        let thirst: f32 = row.get::<_, f32>(16).unwrap_or(30.0);
         {
             let species = str_to_species(&species_str);
             let genome = Genome {
@@ -138,6 +141,7 @@ pub fn load_collection(conn: &Connection) -> Result<Option<Vec<crate::creature::
                 mind: Mind {
                     stats: VitalStats {
                         hunger: row.get(10)?,
+                        thirst,
                         happiness: row.get(11)?,
                         energy: row.get(12)?,
                         health: row.get(13)?,
@@ -174,6 +178,7 @@ fn str_to_species(s: &str) -> Species {
 fn str_to_mood(s: &str) -> MoodState {
     match s {
         "Hungry"   => MoodState::Hungry,
+        "Thirsty"  => MoodState::Thirsty,
         "Tired"    => MoodState::Tired,
         "Lonely"   => MoodState::Lonely,
         "Playful"  => MoodState::Playful,

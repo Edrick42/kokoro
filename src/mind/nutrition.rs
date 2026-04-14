@@ -174,6 +174,9 @@ fn nutrient_decay_system(
     let fullness = nutrients.average_fullness();
     mind.stats.hunger = (100.0 - fullness).clamp(0.0, 100.0);
 
+    // Derive thirst from water nutrient (inverted: 100 water = 0 thirst)
+    mind.stats.thirst = (100.0 - nutrients.water).clamp(0.0, 100.0);
+
     // Deficiency effects
     let threshold = nutr::DEFICIENCY_THRESHOLD;
 

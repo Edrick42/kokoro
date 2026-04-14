@@ -255,6 +255,7 @@ fn draw_stats_panel(ui: &mut egui::Ui, mind: Option<&Mind>, genome: Option<&Geno
             ui.add_space(4.0);
 
             stat_bar(ui, "Hunger", mind.stats.hunger, egui::Color32::from_rgb(230, 140, 40));
+            stat_bar(ui, "Thirst", mind.stats.thirst, egui::Color32::from_rgb(60, 160, 220));
             stat_bar(ui, "Happiness", mind.stats.happiness, egui::Color32::from_rgb(80, 200, 80));
             stat_bar(ui, "Energy", mind.stats.energy, egui::Color32::from_rgb(80, 140, 230));
             stat_bar(ui, "Health", mind.stats.health, egui::Color32::from_rgb(220, 60, 60));
@@ -281,6 +282,7 @@ fn mood_to_egui_color(mood: &crate::mind::MoodState) -> egui::Color32 {
     match mood {
         MoodState::Happy    => egui::Color32::from_rgb(100, 220, 100),
         MoodState::Hungry   => egui::Color32::from_rgb(230, 160, 50),
+        MoodState::Thirsty  => egui::Color32::from_rgb(60, 160, 220),
         MoodState::Tired    => egui::Color32::from_rgb(140, 140, 180),
         MoodState::Lonely   => egui::Color32::from_rgb(120, 120, 200),
         MoodState::Playful  => egui::Color32::from_rgb(240, 200, 60),
@@ -405,7 +407,7 @@ fn draw_neural_panel(
                 ui.label("Last loss: --");
             }
 
-            ui.label("Arch: 12 -> 8 -> 7 (167 params)");
+            ui.label("Arch: 13 -> 8 -> 8 (184 params)");
 
             // Live prediction
             if let (Some(mind), Some(genome)) = (mind, genome) {

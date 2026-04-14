@@ -31,6 +31,8 @@ pub struct LifecycleState {
     pub zero_health_ticks: u32,
     /// Consecutive ticks at hunger 100 (starvation counter).
     pub starvation_ticks: u32,
+    /// Consecutive ticks at thirst >= 99 (dehydration counter).
+    pub dehydration_ticks: u32,
     /// Whether the creature is alive.
     pub alive: bool,
     /// Cause of death (if dead).
@@ -66,6 +68,7 @@ impl LifecycleState {
             care_quality: 0.5,
             zero_health_ticks: 0,
             starvation_ticks: 0,
+            dehydration_ticks: 0,
             alive: true,
             cause_of_death: None,
         }
@@ -145,6 +148,16 @@ fn starvation_system(
         lifecycle.starvation_ticks = 0;
     }
 
+    // Dehydration: thirst at max for too long
+    if mind.stats.thirst >= 99.0 {
+        lifecycle.dehydration_ticks += 1;
+        if lifecycle.dehydration_ticks > lc::STARVATION_THRESHOLD_TICKS {
+            mind.stats.health = (mind.stats.health - lc::DEHYDRATION_HEALTH_DECAY).max(0.0);
+        }
+    } else {
+        lifecycle.dehydration_ticks = 0;
+    }
+
     // Dehydration: water nutrient at 0
     if let Ok(nutrients) = nutrient_q.single() {
         if nutrients.water < 1.0 {
@@ -173,6 +186,8 @@ fn death_check_system(
                 DeathCause::OldAge
             } else if lifecycle.starvation_ticks > lc::STARVATION_THRESHOLD_TICKS {
                 DeathCause::Starvation
+            } else if lifecycle.dehydration_ticks > lc::STARVATION_THRESHOLD_TICKS {
+                DeathCause::Dehydration
             } else if lifecycle.care_quality < 0.2 {
                 DeathCause::Neglect
             } else {

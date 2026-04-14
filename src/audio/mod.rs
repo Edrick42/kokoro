@@ -26,9 +26,7 @@
 
 #[allow(dead_code)]
 mod synth;
-#[allow(dead_code)]
 mod wav;
-#[allow(dead_code)]
 mod species_sounds;
 pub mod heartbeat;
 #[allow(dead_code)]
@@ -388,10 +386,18 @@ impl Plugin for SoundPlugin {
 // Startup: scan and load .ogg files
 // ===================================================================
 
-fn init_sound_bank(mut bank: ResMut<SoundBank>, asset_server: Res<AssetServer>) {
+fn init_sound_bank(
+    mut bank: ResMut<SoundBank>,
+    asset_server: Res<AssetServer>,
+    mut audio_sources: ResMut<Assets<AudioSource>>,
+) {
     let mut loaded = 0u32;
 
-    // Vocalizations: species × stage × mood
+    // === PROCEDURAL SOUNDS (generated from synth, no files needed) ===
+    let proc_loaded = load_procedural_sounds(&mut bank, &mut audio_sources);
+    loaded += proc_loaded;
+
+    // Vocalizations: species × stage × mood (from .ogg files if they exist)
     let species_keys = [SpeciesKey::Moluun, SpeciesKey::Pylum, SpeciesKey::Skael, SpeciesKey::Nyxal];
     let stage_keys = [StageKey::Cub, StageKey::Young, StageKey::Adult, StageKey::Elder];
     let mood_sounds = [
@@ -457,6 +463,56 @@ fn init_sound_bank(mut bank: ResMut<SoundBank>, asset_server: Res<AssetServer>) 
     } else {
         info!("SoundBank: no .ogg files found — drop files in assets/sounds/");
     }
+}
+
+/// Generates procedural chiptune sounds and registers them in the SoundBank.
+/// This runs before file scanning — .ogg files override procedural versions.
+fn load_procedural_sounds(bank: &mut SoundBank, sources: &mut Assets<AudioSource>) -> u32 {
+    use crate::genome::Species;
+    let mut count = 0u32;
+
+    let species_list = [
+        (SpeciesKey::Moluun, Species::Moluun),
+        (SpeciesKey::Pylum,  Species::Pylum),
+        (SpeciesKey::Skael,  Species::Skael),
+        (SpeciesKey::Nyxal,  Species::Nyxal),
+    ];
+
+    // Generate vocalizations: 3 moods × 4 species = 12 sounds
+    // Register for ALL stage keys (same synth sound, pitch varies at playback via VocalRepertoire)
+    for (sk, species) in &species_list {
+        let happy = species_sounds::vocalize_happy(species);
+        let hungry = species_sounds::vocalize_hungry(species);
+        let sleepy = species_sounds::vocalize_sleepy(species);
+
+        let h_happy  = sources.add(wav::samples_to_source(&happy));
+        let h_hungry = sources.add(wav::samples_to_source(&hungry));
+        let h_sleepy = sources.add(wav::samples_to_source(&sleepy));
+
+        for stk in [StageKey::Cub, StageKey::Young, StageKey::Adult, StageKey::Elder] {
+            bank.add(SoundKey::Vocal(*sk, stk, MoodSound::Happy),  h_happy.clone());
+            bank.add(SoundKey::Vocal(*sk, stk, MoodSound::Hungry), h_hungry.clone());
+            bank.add(SoundKey::Vocal(*sk, stk, MoodSound::Sleepy), h_sleepy.clone());
+        }
+        count += 3;
+    }
+
+    // Eating sound (universal)
+    let eat_samples = species_sounds::eating_sound();
+    let h_eat = sources.add(wav::samples_to_source(&eat_samples));
+    bank.add(SoundKey::Action(ActionSound::Eat), h_eat);
+    count += 1;
+
+    // Heartbeat thump (universal)
+    let thump_samples = species_sounds::heartbeat_thump();
+    let h_thump = sources.add(wav::samples_to_source(&thump_samples));
+    bank.add(SoundKey::Heartbeat, h_thump);
+    count += 1;
+
+    if count > 0 {
+        info!("SoundBank: generated {} procedural sounds", count);
+    }
+    count
 }
 
 /// Loads a sound file + all its variants.

@@ -147,7 +147,12 @@ fn do_spawn_creature(
     let soft_body = match (&genome.species, stage) {
         (Species::Moluun, GrowthStage::Cub) => soft_body::moluun_cub(),
         (Species::Moluun, _) => soft_body::moluun_adult(),
-        _ => soft_body::moluun_adult(), // TODO: other species
+        (Species::Pylum, GrowthStage::Cub) => soft_body::pylum_cub(),
+        (Species::Pylum, _) => soft_body::pylum_adult(),
+        (Species::Skael, GrowthStage::Cub) => soft_body::skael_cub(),
+        (Species::Skael, _) => soft_body::skael_adult(),
+        (Species::Nyxal, GrowthStage::Cub) => soft_body::nyxal_cub(),
+        (Species::Nyxal, _) => soft_body::nyxal_adult(),
     };
     commands.insert_resource(soft_body);
 

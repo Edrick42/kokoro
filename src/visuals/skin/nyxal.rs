@@ -122,59 +122,55 @@ pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _
 // Complete transformation: tentacles are now the defining feature.
 // Dome is proportionally small. Rich chromatophore patterns. Side fins.
 
-pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _sb: &Option<Res<SoftBody>>) {
-    let my = 14;    // mantle center (small, high up)
-    let mr = 11;    // mantle radius (proportionally small now!)
+pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+    let (_, my) = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 14));
+    let mr = 11;
+    let (mt_x, mt_y) = sb.as_ref().map(|b| b.point("mantle_top").px()).unwrap_or((cx, 4));
+    let (fl_x, fl_y) = sb.as_ref().map(|b| b.point("tent_fl").px()).unwrap_or((cx - 5, 22));
+    let (fr_x, fr_y) = sb.as_ref().map(|b| b.point("tent_fr").px()).unwrap_or((cx + 5, 22));
+    let (bl_x, bl_y) = sb.as_ref().map(|b| b.point("tent_bl").px()).unwrap_or((cx - 14, 22));
+    let (br_x, br_y) = sb.as_ref().map(|b| b.point("tent_br").px()).unwrap_or((cx + 14, 22));
+    let (tfl_x, tfl_y) = sb.as_ref().map(|b| b.point("tip_fl").px()).unwrap_or((cx - 5, 48));
+    let (tfr_x, tfr_y) = sb.as_ref().map(|b| b.point("tip_fr").px()).unwrap_or((cx + 5, 48));
+    let (tbl_x, tbl_y) = sb.as_ref().map(|b| b.point("tip_bl").px()).unwrap_or((cx - 14, 44));
+    let (tbr_x, tbr_y) = sb.as_ref().map(|b| b.point("tip_br").px()).unwrap_or((cx + 14, 44));
+    let (finl_x, _) = sb.as_ref().map(|b| b.point("fin_l").px()).unwrap_or((cx - 12, 12));
+    let (finr_x, _) = sb.as_ref().map(|b| b.point("fin_r").px()).unwrap_or((cx + 12, 12));
 
-    // Full mantle cap with glow rim
-    fill_circle(img, cx, my - 4, 10, p.accent);
+    // Mantle cap (moves with mantle_top)
+    fill_circle(img, mt_x, mt_y + 4, 10, p.accent);
     for dx in -8..=8 {
-        put(img, cx + dx, my - 13, GLOW_BRIGHT);
+        put(img, mt_x + dx, mt_y, GLOW_BRIGHT);
     }
-    // Mantle chromatophore spots
-    put(img, cx - 4, my - 8, GLOW_DIM);
-    put(img, cx + 3, my - 6, GLOW_DIM);
-    put(img, cx - 1, my - 10, GLOW_DIM);
+    put(img, mt_x - 4, mt_y + 2, GLOW_DIM);
+    put(img, mt_x + 3, mt_y + 4, GLOW_DIM);
 
-    // LONG flowing tentacles (dominant feature!)
-    let tent_y = my + mr - 3;
-    let tent_len = 30;  // very long
-    fill_rect(img, cx - 14, tent_y, 4, tent_len - 6, p.accent);
-    fill_rect(img, cx - 5,  tent_y, 4, tent_len, p.accent);
-    fill_rect(img, cx + 2,  tent_y, 4, tent_len, p.accent);
-    fill_rect(img, cx + 11, tent_y, 4, tent_len - 6, p.accent);
-    // Curled outer tips
-    put(img, cx - 15, tent_y + tent_len - 7, p.accent);
-    put(img, cx + 14, tent_y + tent_len - 7, p.accent);
-    // Bright glow tips!
-    fill_rect(img, cx - 14, tent_y + tent_len - 8, 4, 3, GLOW_BRIGHT);
-    fill_rect(img, cx - 5,  tent_y + tent_len - 2, 4, 3, GLOW_BRIGHT);
-    fill_rect(img, cx + 2,  tent_y + tent_len - 2, 4, 3, GLOW_BRIGHT);
-    fill_rect(img, cx + 11, tent_y + tent_len - 8, 4, 3, GLOW_BRIGHT);
-    // Sucker dots along inner tentacles
-    for i in 0..5 {
-        put(img, cx - 4, tent_y + 3 + i * 4, SPOT);
-        put(img, cx + 4, tent_y + 3 + i * 4, SPOT);
-    }
+    // Tentacles — each pair: root → tip, drawn as rects between soft body positions
+    // Inner pair (front)
+    draw_tentacle(img, fl_x, fl_y, tfl_x, tfl_y, 4, p.accent, GLOW_BRIGHT, true);
+    draw_tentacle(img, fr_x, fr_y, tfr_x, tfr_y, 4, p.accent, GLOW_BRIGHT, true);
+    // Outer pair (back, shorter)
+    draw_tentacle(img, bl_x, bl_y, tbl_x, tbl_y, 4, p.accent, GLOW_BRIGHT, false);
+    draw_tentacle(img, br_x, br_y, tbr_x, tbr_y, 4, p.accent, GLOW_BRIGHT, false);
 
-    // Side fins (new adult feature!)
+    // Side fins (flutter with soft body)
     for i in 0..4 {
-        put(img, cx - mr - 1, my - 2 + i * 2, fade(p.accent, 0.3));
-        put(img, cx + mr + 1, my - 2 + i * 2, fade(p.accent, 0.3));
+        put(img, finl_x, my - 2 + i * 2, fade(p.accent, 0.3));
+        put(img, finr_x, my - 2 + i * 2, fade(p.accent, 0.3));
     }
 
-    // Body (dome — proportionally small now)
+    // Body dome
     fill_circle(img, cx, my, mr, p.body);
     for &(dx, dy) in &[(-5,-4), (4,-2), (-2,3), (6,1), (-7,0), (3,-6), (-4,5), (7,-3)] {
         put(img, cx + dx, my + dy, SPOT);
     }
     fill_circle(img, cx, my + 3, 7, p.body_light);
 
-    // Kokoro-sac (bright with double layer)
+    // Kokoro-sac
     fill_circle(img, cx, my + 2, 5, GLOW_BRIGHT);
     fill_circle(img, cx, my + 2, 3, GLOW_DIM);
 
-    // Eyes — luminous cyan with glow aura
+    // Eyes
     draw_eyes(img, cx, my + 1, 5, 4, mood, p.eye);
     if *mood != MoodState::Sleeping {
         put(img, cx - 9, my + 2, GLOW_DIM);
@@ -189,6 +185,31 @@ pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _
         put(img, cx + 2, my + 1, GLOW_BRIGHT);
         put(img, cx, my + 5, GLOW_BRIGHT);
     }
+}
+
+/// Draws a tentacle from root to tip using a simple line of rects.
+fn draw_tentacle(img: &mut RgbaImage, rx: i32, ry: i32, tx: i32, ty: i32, w: i32, color: Rgba<u8>, glow: Rgba<u8>, has_suckers: bool) {
+    let dx = tx - rx;
+    let dy = ty - ry;
+    let len = ((dx * dx + dy * dy) as f32).sqrt().max(1.0);
+    let steps = (len / 3.0) as i32;
+
+    for i in 0..=steps {
+        let t = i as f32 / steps as f32;
+        let x = rx + (dx as f32 * t) as i32;
+        let y = ry + (dy as f32 * t) as i32;
+        // Tentacle gets thinner toward the tip
+        let seg_w = (w as f32 * (1.0 - t * 0.5)) as i32;
+        fill_rect(img, x - seg_w / 2, y, seg_w.max(1), 3, color);
+
+        // Sucker dots on inner tentacles
+        if has_suckers && i % 2 == 0 && i > 0 && i < steps {
+            put(img, x, y + 1, super::NEAR_BLACK_PX);
+        }
+    }
+
+    // Glow tip
+    fill_rect(img, tx - 1, ty - 1, 3, 3, glow);
 }
 
 // ===================================================================

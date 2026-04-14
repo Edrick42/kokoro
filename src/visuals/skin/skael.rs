@@ -163,13 +163,16 @@ pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _
 // Body is now HORIZONTAL (wider than tall). Full armor plates. Tall horns.
 // Massive muscular tail with spines. Dorsal ridge. Thick powerful legs.
 
-pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _sb: &Option<Res<SoftBody>>) {
+pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
     // HORIZONTAL body plan — wide, low, heavy
-    let hy = 14;     // head (pushed to one side conceptually, but centered for pixel art)
+    let (hx, hy) = sb.as_ref().map(|b| b.point("head").px()).unwrap_or((cx, 14));
     let hr = 10;
-    let body_y = 28;
+    let (_, body_y) = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 28));
     let body_rx = 16; // WIDE
     let body_ry = 12; // shorter than wide
+    let (t1_x, t1_y) = sb.as_ref().map(|b| b.point("tail_1").px()).unwrap_or((cx, 40));
+    let (t2_x, t2_y) = sb.as_ref().map(|b| b.point("tail_2").px()).unwrap_or((cx, 47));
+    let (t3_x, t3_y) = sb.as_ref().map(|b| b.point("tail_3").px()).unwrap_or((cx, 53));
 
     // Full horns — tall, layered
     fill_rect(img, cx - 8, hy - hr - 1, 4, 4, HORN);
@@ -179,16 +182,15 @@ pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _
     fill_rect(img, cx + 6, hy - hr - 4, 2, 3, HORN);
     put(img, cx + 6, hy - hr - 6, fade(HORN, 0.3));
 
-    // Massive tail with spines
-    fill_rect(img, cx - 3, body_y + body_ry - 3, 7, 5, p.accent);
-    fill_rect(img, cx - 2, body_y + body_ry + 2, 5, 4, p.accent);
-    fill_rect(img, cx - 1, body_y + body_ry + 6, 3, 3, p.accent);
-    fill_rect(img, cx, body_y + body_ry + 9, 2, 3, p.accent);
-    put(img, cx, body_y + body_ry + 12, p.accent);
-    // Tail spines
-    put(img, cx - 2, body_y + body_ry - 1, HORN);
-    put(img, cx - 1, body_y + body_ry + 3, HORN);
-    put(img, cx, body_y + body_ry + 7, HORN);
+    // Massive tail with spines — 3 segments from soft body
+    fill_rect(img, t1_x - 3, t1_y - 2, 7, 5, p.accent);
+    fill_rect(img, t2_x - 2, t2_y - 1, 5, 4, p.accent);
+    fill_rect(img, t3_x - 1, t3_y - 1, 3, 3, p.accent);
+    put(img, t3_x, t3_y + 2, p.accent);
+    // Tail spines (on each segment)
+    put(img, t1_x, t1_y - 3, HORN);
+    put(img, t2_x, t2_y - 2, HORN);
+    put(img, t3_x, t3_y - 2, HORN);
 
     // Thick powerful legs
     fill_rect(img, cx - body_rx + 1, body_y + 2, 5, 10, p.body);
@@ -229,15 +231,18 @@ pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _
         put(img, x, body_y - body_ry - 1, fade(HORN, 0.4));
     }
 
-    // Neck (thick)
-    fill_rect(img, cx - 5, hy + hr - 1, 11, 5, p.body);
+    // Neck (thick, connects head to body)
+    let neck_cx = (hx + cx) / 2;
+    let neck_top = hy.min(body_y);
+    let neck_h = (body_y - hy).max(1);
+    fill_rect(img, neck_cx - 5, neck_top, 11, neck_h, p.body);
 
-    // Head (armored)
-    fill_circle(img, cx, hy, hr, p.body);
+    // Head (armored, moves with soft body)
+    fill_circle(img, hx, hy, hr, p.body);
     // Head armor plates
-    put(img, cx - 4, hy - 5, SCALE_LIGHT);
-    put(img, cx + 3, hy - 5, SCALE_LIGHT);
-    put(img, cx, hy - 6, SCALE_LIGHT);
+    put(img, hx - 4, hy - 5, SCALE_LIGHT);
+    put(img, hx + 3, hy - 5, SCALE_LIGHT);
+    put(img, hx, hy - 6, SCALE_LIGHT);
 
     // Kokoro-sac glow
     fill_circle(img, cx, body_y + 2, 5, RESONANCE_BRIGHT);
@@ -247,21 +252,17 @@ pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _
         put(img, cx - 3 + i * 3, body_y - body_ry + 1, RESONANCE);
     }
 
-    // Golden eyes with slit pupil
-    draw_eyes(img, cx, hy + 1, 5, 3, mood, p.eye);
+    // Golden eyes with slit pupil (on head)
+    draw_eyes(img, hx, hy + 1, 5, 3, mood, p.eye);
     if *mood != MoodState::Sleeping {
-        put(img, cx - 4, hy + 2, PUPIL);
-        put(img, cx + 3, hy + 2, PUPIL);
+        put(img, hx - 4, hy + 2, PUPIL);
+        put(img, hx + 3, hy + 2, PUPIL);
     }
 
-    // Wide snout with nostrils
-    fill_rect(img, cx - 3, hy + 7, 7, 3, p.mouth);
-    put(img, cx - 2, hy + 7, fade(p.mouth, 0.3));
-    put(img, cx + 3, hy + 7, fade(p.mouth, 0.3));
-
-    if *mood == MoodState::Hungry {
-        fill_rect(img, cx - 2, hy + 10, 4, 2, fade(p.mouth, 0.5));
-    }
+    // Wide snout with nostrils (on head)
+    fill_rect(img, hx - 3, hy + 7, 7, 3, p.mouth);
+    put(img, hx - 2, hy + 7, fade(p.mouth, 0.3));
+    put(img, hx + 3, hy + 7, fade(p.mouth, 0.3));
 }
 
 // ===================================================================

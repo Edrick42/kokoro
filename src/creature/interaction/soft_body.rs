@@ -171,7 +171,12 @@ fn reinit_on_stage_change(
     let new_body = match (&genome.species, current) {
         (Species::Moluun, GrowthStage::Cub) => moluun_cub(),
         (Species::Moluun, _) => moluun_adult(),
-        _ => moluun_adult(), // TODO: other species
+        (Species::Pylum, GrowthStage::Cub) => pylum_cub(),
+        (Species::Pylum, _) => pylum_adult(),
+        (Species::Skael, GrowthStage::Cub) => skael_cub(),
+        (Species::Skael, _) => skael_adult(),
+        (Species::Nyxal, GrowthStage::Cub) => nyxal_cub(),
+        (Species::Nyxal, _) => nyxal_adult(),
     };
     commands.insert_resource(new_body);
 }
@@ -375,6 +380,231 @@ pub fn moluun_adult() -> SoftBody {
 
     SoftBody::new(points, springs)
 }
+
+// ===================================================================
+// PYLUM (bird) — tall, wings dominate, long legs, tail feathers
+// ===================================================================
+
+/// Pylum adult: tall body, large wings, casque crown, powerful taloned legs.
+pub fn pylum_adult() -> SoftBody {
+    let cx = 32.0;
+    let points = vec![
+        SoftPoint::new("head",      cx, 10.0, 5.0),       // small head with casque
+        SoftPoint::new("casque",    cx, 3.0, 1.0),        // crown on top
+        SoftPoint { pinned: true, ..SoftPoint::new("body", cx, 24.0, 18.0) },
+        SoftPoint::new("belly",     cx, 27.0, 4.0),
+        SoftPoint::new("wing_l",    cx - 14.0, 20.0, 3.0), // wing roots
+        SoftPoint::new("wing_r",    cx + 14.0, 20.0, 3.0),
+        SoftPoint::new("wingtip_l", cx - 20.0, 26.0, 1.5), // floppy wing tips
+        SoftPoint::new("wingtip_r", cx + 20.0, 26.0, 1.5),
+        SoftPoint::new("tail",      cx, 34.0, 2.0),       // tail feathers
+        SoftPoint::new("foot_l",    cx - 5.0, 54.0, 3.5), // powerful legs, low
+        SoftPoint::new("foot_r",    cx + 5.0, 54.0, 3.5),
+    ];
+
+    let springs = vec![
+        // Neck — bird necks are flexible
+        Spring { a: 0, b: 2, rest_length: 14.0, stiffness: 250.0, damping: 18.0 },
+        // Casque on head — rigid crown
+        Spring { a: 1, b: 0, rest_length: 7.0, stiffness: 400.0, damping: 25.0 },
+        // Belly
+        Spring { a: 2, b: 3, rest_length: 3.0, stiffness: 500.0, damping: 25.0 },
+        // Wing roots (shoulders) — medium stiffness
+        Spring { a: 4, b: 2, rest_length: 14.0, stiffness: 200.0, damping: 14.0 },
+        Spring { a: 5, b: 2, rest_length: 14.0, stiffness: 200.0, damping: 14.0 },
+        // Wing tips — FLOPPY (low stiffness, low damping = flappy!)
+        Spring { a: 6, b: 4, rest_length: 8.0, stiffness: 80.0, damping: 6.0 },
+        Spring { a: 7, b: 5, rest_length: 8.0, stiffness: 80.0, damping: 6.0 },
+        // Tail feathers — moderate flop
+        Spring { a: 8, b: 2, rest_length: 10.0, stiffness: 120.0, damping: 10.0 },
+        // Legs — long and stiff (bird legs are rigid struts)
+        Spring { a: 9, b: 2, rest_length: 30.0, stiffness: 350.0, damping: 20.0 },
+        Spring { a: 10, b: 2, rest_length: 30.0, stiffness: 350.0, damping: 20.0 },
+        // Structural: wing spread
+        Spring { a: 4, b: 5, rest_length: 28.0, stiffness: 200.0, damping: 12.0 },
+        // Structural: foot spread
+        Spring { a: 9, b: 10, rest_length: 10.0, stiffness: 200.0, damping: 12.0 },
+    ];
+
+    SoftBody::new(points, springs)
+}
+
+/// Pylum cub: fluffy ball, short legs, no real wings.
+pub fn pylum_cub() -> SoftBody {
+    let cx = 32.0;
+    let points = vec![
+        SoftPoint::new("head",   cx, 22.0, 12.0),       // head IS the creature (fluffy ball)
+        SoftPoint::new("casque", cx, 10.0, 0.5),         // tiny tuft
+        SoftPoint { pinned: true, ..SoftPoint::new("body", cx, 32.0, 8.0) },
+        SoftPoint::new("belly",  cx, 33.0, 2.0),
+        SoftPoint::new("foot_l", cx - 5.0, 42.0, 2.0),  // short stubby legs
+        SoftPoint::new("foot_r", cx + 5.0, 42.0, 2.0),
+    ];
+
+    let springs = vec![
+        Spring { a: 0, b: 2, rest_length: 10.0, stiffness: 300.0, damping: 20.0 },
+        Spring { a: 1, b: 0, rest_length: 12.0, stiffness: 200.0, damping: 15.0 },
+        Spring { a: 2, b: 3, rest_length: 1.0, stiffness: 200.0, damping: 15.0 },
+        Spring { a: 4, b: 2, rest_length: 10.0, stiffness: 100.0, damping: 8.0 },
+        Spring { a: 5, b: 2, rest_length: 10.0, stiffness: 100.0, damping: 8.0 },
+        Spring { a: 4, b: 5, rest_length: 10.0, stiffness: 50.0, damping: 4.0 },
+    ];
+
+    SoftBody::new(points, springs)
+}
+
+// ===================================================================
+// SKAEL (reptile) — horizontal, armored, long segmented tail
+// ===================================================================
+
+/// Skael adult: horizontal tank, thick legs, long tail with 3 segments.
+pub fn skael_adult() -> SoftBody {
+    let cx = 32.0;
+    let points = vec![
+        SoftPoint::new("head",    cx, 14.0, 8.0),        // armored head
+        SoftPoint::new("horn_l",  cx - 7.0, 4.0, 0.8),   // left horn
+        SoftPoint::new("horn_r",  cx + 7.0, 4.0, 0.8),   // right horn
+        SoftPoint { pinned: true, ..SoftPoint::new("body", cx, 28.0, 25.0) }, // HEAVY body
+        SoftPoint::new("belly",   cx, 31.0, 5.0),
+        SoftPoint::new("leg_l",   cx - 15.0, 38.0, 4.0), // thick front legs
+        SoftPoint::new("leg_r",   cx + 15.0, 38.0, 4.0),
+        SoftPoint::new("foot_l",  cx - 8.0, 46.0, 3.5),  // rear feet
+        SoftPoint::new("foot_r",  cx + 8.0, 46.0, 3.5),
+        SoftPoint::new("tail_1",  cx, 40.0, 4.0),        // tail base (thick)
+        SoftPoint::new("tail_2",  cx, 47.0, 2.5),        // tail mid
+        SoftPoint::new("tail_3",  cx, 53.0, 1.5),        // tail tip (light, whippy)
+    ];
+
+    let springs = vec![
+        // Neck — thick and rigid (armored)
+        Spring { a: 0, b: 3, rest_length: 14.0, stiffness: 350.0, damping: 22.0 },
+        // Horns — rigid on head
+        Spring { a: 1, b: 0, rest_length: 12.0, stiffness: 400.0, damping: 25.0 },
+        Spring { a: 2, b: 0, rest_length: 12.0, stiffness: 400.0, damping: 25.0 },
+        // Belly
+        Spring { a: 3, b: 4, rest_length: 3.0, stiffness: 500.0, damping: 25.0 },
+        // Front legs — thick, stable
+        Spring { a: 5, b: 3, rest_length: 15.0, stiffness: 300.0, damping: 18.0 },
+        Spring { a: 6, b: 3, rest_length: 15.0, stiffness: 300.0, damping: 18.0 },
+        // Rear feet
+        Spring { a: 7, b: 3, rest_length: 20.0, stiffness: 300.0, damping: 18.0 },
+        Spring { a: 8, b: 3, rest_length: 20.0, stiffness: 300.0, damping: 18.0 },
+        // TAIL CHAIN — each segment gets progressively floppier
+        Spring { a: 9, b: 3, rest_length: 12.0, stiffness: 250.0, damping: 16.0 },   // base: stiff
+        Spring { a: 10, b: 9, rest_length: 7.0, stiffness: 150.0, damping: 10.0 },   // mid: medium
+        Spring { a: 11, b: 10, rest_length: 6.0, stiffness: 80.0, damping: 6.0 },    // tip: whippy!
+        // Structural: leg spread
+        Spring { a: 5, b: 6, rest_length: 30.0, stiffness: 200.0, damping: 12.0 },
+        Spring { a: 7, b: 8, rest_length: 16.0, stiffness: 200.0, damping: 12.0 },
+    ];
+
+    SoftBody::new(points, springs)
+}
+
+/// Skael cub: upright, smooth, thin tail, no armor.
+pub fn skael_cub() -> SoftBody {
+    let cx = 32.0;
+    let points = vec![
+        SoftPoint::new("head",   cx, 16.0, 9.0),        // big head (baby)
+        SoftPoint { pinned: true, ..SoftPoint::new("body", cx, 32.0, 10.0) },
+        SoftPoint::new("belly",  cx, 34.0, 2.0),
+        SoftPoint::new("tail_1", cx, 42.0, 2.0),        // thin whip tail
+        SoftPoint::new("tail_2", cx, 48.0, 1.0),
+        SoftPoint::new("foot_l", cx - 4.0, 44.0, 2.0),
+        SoftPoint::new("foot_r", cx + 4.0, 44.0, 2.0),
+    ];
+
+    let springs = vec![
+        Spring { a: 0, b: 1, rest_length: 16.0, stiffness: 280.0, damping: 20.0 },
+        Spring { a: 1, b: 2, rest_length: 2.0, stiffness: 200.0, damping: 15.0 },
+        Spring { a: 3, b: 1, rest_length: 10.0, stiffness: 150.0, damping: 10.0 },
+        Spring { a: 4, b: 3, rest_length: 6.0, stiffness: 80.0, damping: 6.0 },
+        Spring { a: 5, b: 1, rest_length: 14.0, stiffness: 100.0, damping: 8.0 },
+        Spring { a: 6, b: 1, rest_length: 14.0, stiffness: 100.0, damping: 8.0 },
+        Spring { a: 5, b: 6, rest_length: 8.0, stiffness: 50.0, damping: 4.0 },
+    ];
+
+    SoftBody::new(points, springs)
+}
+
+// ===================================================================
+// NYXAL (cephalopod) — mantle dome + flowing tentacles, no skeleton
+// ===================================================================
+
+/// Nyxal adult: small dome, 4 long tentacles, side fins, all very soft.
+pub fn nyxal_adult() -> SoftBody {
+    let cx = 32.0;
+    let points = vec![
+        SoftPoint::new("mantle_top", cx, 4.0, 2.0),      // top of dome
+        SoftPoint { pinned: true, ..SoftPoint::new("body", cx, 14.0, 12.0) }, // mantle center
+        SoftPoint::new("belly",      cx, 17.0, 3.0),
+        SoftPoint::new("fin_l",      cx - 12.0, 12.0, 1.0), // side fins
+        SoftPoint::new("fin_r",      cx + 12.0, 12.0, 1.0),
+        SoftPoint::new("tent_fl",    cx - 5.0, 22.0, 2.0),  // front-left tentacle root
+        SoftPoint::new("tent_fr",    cx + 5.0, 22.0, 2.0),  // front-right
+        SoftPoint::new("tent_bl",    cx - 14.0, 22.0, 2.0), // back-left (outer)
+        SoftPoint::new("tent_br",    cx + 14.0, 22.0, 2.0), // back-right (outer)
+        SoftPoint::new("tip_fl",     cx - 5.0, 48.0, 0.8),  // tentacle tips — very light
+        SoftPoint::new("tip_fr",     cx + 5.0, 48.0, 0.8),
+        SoftPoint::new("tip_bl",     cx - 14.0, 44.0, 0.8),
+        SoftPoint::new("tip_br",     cx + 14.0, 44.0, 0.8),
+    ];
+
+    let springs = vec![
+        // Mantle dome — relatively rigid (the "skull")
+        Spring { a: 0, b: 1, rest_length: 10.0, stiffness: 300.0, damping: 20.0 },
+        // Belly
+        Spring { a: 1, b: 2, rest_length: 3.0, stiffness: 400.0, damping: 20.0 },
+        // Side fins — floppy, decorative
+        Spring { a: 3, b: 1, rest_length: 12.0, stiffness: 60.0, damping: 5.0 },
+        Spring { a: 4, b: 1, rest_length: 12.0, stiffness: 60.0, damping: 5.0 },
+        // Tentacle roots from body — medium flexibility
+        Spring { a: 5, b: 1, rest_length: 10.0, stiffness: 180.0, damping: 12.0 },
+        Spring { a: 6, b: 1, rest_length: 10.0, stiffness: 180.0, damping: 12.0 },
+        Spring { a: 7, b: 1, rest_length: 16.0, stiffness: 150.0, damping: 10.0 },
+        Spring { a: 8, b: 1, rest_length: 16.0, stiffness: 150.0, damping: 10.0 },
+        // Tentacle tips — VERY soft (the flowing motion comes from here)
+        Spring { a: 9, b: 5, rest_length: 26.0, stiffness: 40.0, damping: 3.0 },
+        Spring { a: 10, b: 6, rest_length: 26.0, stiffness: 40.0, damping: 3.0 },
+        Spring { a: 11, b: 7, rest_length: 22.0, stiffness: 40.0, damping: 3.0 },
+        Spring { a: 12, b: 8, rest_length: 22.0, stiffness: 40.0, damping: 3.0 },
+        // Structural: tentacle spread (prevents crossing)
+        Spring { a: 5, b: 6, rest_length: 10.0, stiffness: 100.0, damping: 8.0 },
+        Spring { a: 7, b: 8, rest_length: 28.0, stiffness: 80.0, damping: 6.0 },
+    ];
+
+    SoftBody::new(points, springs)
+}
+
+/// Nyxal cub: huge dome, tiny tentacle stubs, almost all mantle.
+pub fn nyxal_cub() -> SoftBody {
+    let cx = 32.0;
+    let points = vec![
+        SoftPoint::new("mantle_top", cx, 6.0, 3.0),
+        SoftPoint { pinned: true, ..SoftPoint::new("body", cx, 18.0, 12.0) },
+        SoftPoint::new("belly",      cx, 20.0, 2.0),
+        SoftPoint::new("tent_fl",    cx - 4.0, 32.0, 1.5),  // tiny stubs
+        SoftPoint::new("tent_fr",    cx + 4.0, 32.0, 1.5),
+        SoftPoint::new("tent_bl",    cx - 10.0, 30.0, 1.5),
+        SoftPoint::new("tent_br",    cx + 10.0, 30.0, 1.5),
+    ];
+
+    let springs = vec![
+        Spring { a: 0, b: 1, rest_length: 12.0, stiffness: 300.0, damping: 20.0 },
+        Spring { a: 1, b: 2, rest_length: 2.0, stiffness: 300.0, damping: 15.0 },
+        Spring { a: 3, b: 1, rest_length: 16.0, stiffness: 100.0, damping: 8.0 },
+        Spring { a: 4, b: 1, rest_length: 16.0, stiffness: 100.0, damping: 8.0 },
+        Spring { a: 5, b: 1, rest_length: 16.0, stiffness: 80.0, damping: 6.0 },
+        Spring { a: 6, b: 1, rest_length: 16.0, stiffness: 80.0, damping: 6.0 },
+        Spring { a: 3, b: 4, rest_length: 8.0, stiffness: 50.0, damping: 4.0 },
+    ];
+
+    SoftBody::new(points, springs)
+}
+
+// ===================================================================
+// MOLUUN (mammal) — continued
+// ===================================================================
 
 /// Creates a Moluun cub soft body (simpler — bigger head, no arms).
 #[allow(dead_code)]

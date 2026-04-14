@@ -555,31 +555,45 @@ fn try_load(bank: &mut SoundBank, asset_server: &AssetServer, key: SoundKey, pat
 // Systems
 // ===================================================================
 
-/// Plays vocalization on mood change — only if the creature KNOWS that sound.
-/// Pitch and volume are genome-driven (each individual sounds different).
+/// Plays vocalization when the MOOD changes (not when stats change).
+/// Throttled: minimum 8 seconds between vocalizations to avoid spam.
 fn sound_on_mood_change(
     mind: Res<Mind>,
     genome: Res<Genome>,
     growth: Res<GrowthState>,
     bank: Res<SoundBank>,
+    time: Res<Time>,
     repertoire_q: Query<&VocalRepertoire, With<CreatureRoot>>,
     mut commands: Commands,
+    mut prev_mood: Local<Option<MoodState>>,
+    mut cooldown: Local<f32>,
 ) {
-    if !mind.is_changed() { return; }
-    let Ok(rep) = repertoire_q.single() else { return };
+    // Tick cooldown
+    *cooldown = (*cooldown - time.delta_secs()).max(0.0);
 
-    // Can this creature vocalize for this mood?
+    // Only trigger on actual MOOD change, not every stat tweak
+    let current = mind.mood.clone();
+    let changed = prev_mood.as_ref().map_or(true, |prev| *prev != current);
+    if !changed { return; }
+    *prev_mood = Some(current);
+
+    // Cooldown: don't play sounds more than once per 8 seconds
+    if *cooldown > 0.0 { return; }
+    *cooldown = 8.0;
+
+    // Sleeping creatures don't vocalize
+    if mind.mood == MoodState::Sleeping { return; }
+
+    let Ok(rep) = repertoire_q.single() else { return };
     let Some(mood_sound) = rep.best_sound_for_mood(&mind.mood) else { return };
 
     let sk = SpeciesKey::from(&genome.species);
     let stk = StageKey::from(&growth.stage);
 
-    // Try stage-specific, fall back to adult
     let key = SoundKey::Vocal(sk, stk, mood_sound);
     let fallback = SoundKey::Vocal(sk, StageKey::Adult, mood_sound);
 
     if let Some(handle) = bank.get(&key).or_else(|| bank.get(&fallback)) {
-        // Use genome-driven pitch and volume
         commands.spawn((
             AudioPlayer::new(handle),
             rep.voice_settings(),

@@ -181,12 +181,22 @@ impl MLP {
             .expect("MLP serialization failed")
     }
 
-    /// Deserializes weights from a byte slice.
+    /// Deserializes weights from a byte slice. Validates that the loaded
+    /// dimensions match the current INPUT_SIZE/HIDDEN_SIZE/OUTPUT_SIZE; if a
+    /// previous version stored weights with different sizes (e.g. before a new
+    /// input feature was added), returns `None` so the caller can spawn a
+    /// fresh network instead of crashing on out-of-bounds indexing.
     pub fn from_bytes(data: &[u8]) -> Option<Self> {
         let config = bincode::config::standard();
-        bincode::serde::decode_from_slice(data, config)
-            .ok()
-            .map(|(mlp, _)| mlp)
+        let (mlp, _): (MLP, _) = bincode::serde::decode_from_slice(data, config).ok()?;
+        if mlp.w1.len() != INPUT_SIZE * HIDDEN_SIZE
+            || mlp.b1.len() != HIDDEN_SIZE
+            || mlp.w2.len() != HIDDEN_SIZE * OUTPUT_SIZE
+            || mlp.b2.len() != OUTPUT_SIZE
+        {
+            return None; // dimension mismatch — stored network is stale
+        }
+        Some(mlp)
     }
 }
 

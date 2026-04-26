@@ -4,3 +4,4 @@ pub mod impulse;
 pub mod physics;
 pub mod soft_body;
 pub mod touch;
+pub mod wobble;

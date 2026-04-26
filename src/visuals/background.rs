@@ -229,11 +229,9 @@ fn draw_verdance(img: &mut RgbaImage, time: &TimeOfDay) {
         }
     }
 
-    // Tree trunks
+    // Tree trunks (left and right — the center is reserved for the creature)
     fill_rect(img, 8, 14, 4, 40, trunk);
     fill_rect(img, 9, 14, 2, 40, trunk_dk);
-    fill_rect(img, 28, 10, 5, 44, trunk);
-    fill_rect(img, 29, 10, 3, 44, trunk_dk);
     fill_rect(img, 48, 15, 4, 39, trunk);
     fill_rect(img, 49, 15, 2, 39, trunk_dk);
 

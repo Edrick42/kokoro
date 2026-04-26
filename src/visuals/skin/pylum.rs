@@ -68,46 +68,70 @@ pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb:
 // YOUNG — gangly: LEGS explode, body small on top
 // ===================================================================
 
-pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _sb: &Option<Res<SoftBody>>) {
-    let by = 16;
+pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+    // Soft body positions
+    let (hx, hy) = sb.as_ref().map(|b| b.point("head").px()).unwrap_or((cx, 12));
+    let (bx, by) = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 26));
+    let (csq_x, csq_y) = sb.as_ref().map(|b| b.point("casque").px()).unwrap_or((cx, 5));
+    let (wl_x, wl_y) = sb.as_ref().map(|b| b.point("wing_l").px()).unwrap_or((cx - 11, 22));
+    let (wr_x, wr_y) = sb.as_ref().map(|b| b.point("wing_r").px()).unwrap_or((cx + 11, 22));
+    let (fl_x, fl_y) = sb.as_ref().map(|b| b.point("foot_l").px()).unwrap_or((cx - 4, 48));
+    let (fr_x, fr_y) = sb.as_ref().map(|b| b.point("foot_r").px()).unwrap_or((cx + 4, 48));
     let br = 11;
 
+    // Long legs from body to feet
     let leg_top = by + br - 2;
-    let leg_len = 28;
-    fill_rect(img, cx - 5, leg_top, 4, leg_len, p.mouth);
-    fill_rect(img, cx + 2, leg_top, 4, leg_len, p.mouth);
-    fill_rect(img, cx - 6, leg_top + 14, 6, 3, p.mouth);
-    fill_rect(img, cx + 1, leg_top + 14, 6, 3, p.mouth);
-    fill_rect(img, cx - 6, leg_top + leg_len - 1, 5, 3, p.mouth);
-    fill_rect(img, cx + 2, leg_top + leg_len - 1, 5, 3, p.mouth);
+    let ll_h = (fl_y - leg_top).max(4);
+    let lr_h = (fr_y - leg_top).max(4);
+    fill_rect(img, fl_x - 2, leg_top, 4, ll_h, p.mouth);
+    fill_rect(img, fr_x - 2, leg_top, 4, lr_h, p.mouth);
+    // Knee joints (mid-leg)
+    fill_rect(img, fl_x - 3, leg_top + ll_h / 2, 6, 3, p.mouth);
+    fill_rect(img, fr_x - 3, leg_top + lr_h / 2, 6, 3, p.mouth);
+    // Feet
+    fill_rect(img, fl_x - 3, fl_y - 1, 5, 3, p.mouth);
+    fill_rect(img, fr_x - 2, fr_y - 1, 5, 3, p.mouth);
     for dx in [-1, 1, 3] {
-        put(img, cx - 6 + dx, leg_top + leg_len + 2, CLAW);
-        put(img, cx + 2 + dx, leg_top + leg_len + 2, CLAW);
+        put(img, fl_x - 3 + dx, fl_y + 2, CLAW);
+        put(img, fr_x - 2 + dx, fr_y + 2, CLAW);
     }
 
-    fill_rect(img, cx - br - 1, by - 1, 4, 7, p.accent);
-    fill_rect(img, cx + br - 2, by - 1, 4, 7, p.accent);
+    // Sprouting wings
+    fill_rect(img, wl_x, wl_y, 4, 7, p.accent);
+    fill_rect(img, wr_x - 3, wr_y, 4, 7, p.accent);
 
-    fill_circle(img, cx, by, br, p.body);
+    // Body
+    fill_circle(img, bx, by, br, p.body);
     for &(dx, dy) in &[(-4,-3), (3,-2), (-2,3), (5,1)] {
-        put(img, cx + dx, by + dy, p.body_light);
+        put(img, bx + dx, by + dy, p.body_light);
     }
-    fill_circle(img, cx, by + 3, 7, p.body_light);
+    fill_circle(img, bx, by + 3, 7, p.body_light);
 
-    fill_rect(img, cx - 1, by - br - 2, 3, 4, p.body);
-    put(img, cx, by - br - 3, p.accent);
-    put(img, cx + 1, by - br - 3, p.accent);
+    // Neck
+    let neck_cx = (hx + bx) / 2;
+    let neck_top = hy.min(by);
+    let neck_h = (by - hy).max(1);
+    fill_rect(img, neck_cx - 3, neck_top, 7, neck_h, p.body);
 
-    fill_circle(img, cx, by + 2, 4, RESONANCE);
+    // Head
+    fill_circle(img, hx, hy, 9, p.body);
 
-    draw_eyes(img, cx, by + 1, 5, 4, mood, p.eye);
+    // Casque crown (moves with soft body)
+    fill_rect(img, csq_x - 1, csq_y, 3, 4, p.body);
+    put(img, csq_x, csq_y - 1, p.accent);
+    put(img, csq_x + 1, csq_y - 1, p.accent);
+
+    fill_circle(img, bx, by + 2, 4, RESONANCE);
+
+    draw_eyes(img, hx, hy + 1, 5, 4, mood, p.eye);
     if *mood != MoodState::Sleeping {
-        put(img, cx - 5, by + 1, HIGHLIGHT);
-        put(img, cx + 2, by + 1, HIGHLIGHT);
+        put(img, hx - 5, hy + 1, HIGHLIGHT);
+        put(img, hx + 2, hy + 1, HIGHLIGHT);
     }
 
-    fill_rect(img, cx - 2, by + 7, 5, 3, NEAR_BLACK_PX);
-    fill_rect(img, cx - 1, by + 10, 3, 2, NEAR_BLACK_PX);
+    // Beak
+    fill_rect(img, hx - 2, hy + 5, 5, 3, NEAR_BLACK_PX);
+    fill_rect(img, hx - 1, hy + 8, 3, 2, NEAR_BLACK_PX);
 }
 
 // ===================================================================

@@ -13,6 +13,7 @@ use crate::game::state::AppState;
 
 use crate::config;
 use crate::creature::identity::species::CreatureRoot;
+use crate::genome::{Genome, Species};
 use crate::mind::{Mind, MoodState};
 
 /// Breathing state attached to the creature root.
@@ -115,6 +116,7 @@ fn update_breathing_params(
 fn breathing_system(
     time: Res<Time>,
     mut root_q: Query<&mut BreathingState, With<CreatureRoot>>,
+    genome: Res<Genome>,
     mut soft_body: Option<ResMut<crate::creature::interaction::soft_body::SoftBody>>,
 ) {
     let dt = time.delta_secs();
@@ -128,11 +130,33 @@ fn breathing_system(
             breathing.phase -= TAU;
         }
 
-        // Apply breathing force to belly point via soft body
-        // Only belly moves — head stays still because springs absorb
-        if let Some(ref mut body) = soft_body {
-            let breath_force = breathing.phase.sin() * breathing.amplitude * 80.0;
-            body.point_mut("belly").velocity.y += breath_force;
+        let Some(ref mut body) = soft_body else { continue };
+        let pulse = breathing.phase.sin() * breathing.amplitude;
+
+        // Species-specific breathing signature.
+        // Positive y = downward in soft-body space.
+        match genome.species {
+            Species::Moluun => {
+                // Mammal: belly rises/falls, head subtly lifts on inhale.
+                body.impulse("belly", Vec2::new(0.0, pulse * 80.0));
+                body.impulse("head", Vec2::new(0.0, -pulse * 8.0));
+            }
+            Species::Pylum => {
+                // Bird: rapid shallow breathing — chest + tail counterbalance.
+                body.impulse("belly", Vec2::new(0.0, pulse * 70.0));
+                body.impulse("tail", Vec2::new(0.0, -pulse * 10.0));
+            }
+            Species::Skael => {
+                // Reptile: slow deep belly expansion; tail tip drifts with breath.
+                body.impulse("belly", Vec2::new(0.0, pulse * 90.0));
+                body.impulse("tail_3", Vec2::new(0.0, -pulse * 5.0));
+            }
+            Species::Nyxal => {
+                // Cephalopod: mantle pulsates dramatically — the *entire* breathing pattern.
+                // The belly pulse is dominant here because the mantle IS the body.
+                body.impulse("belly", Vec2::new(0.0, pulse * 60.0));
+                body.impulse("mantle_top", Vec2::new(0.0, -pulse * 40.0));
+            }
         }
     }
 }

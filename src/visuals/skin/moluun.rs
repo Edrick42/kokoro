@@ -45,46 +45,48 @@ pub fn draw_egg(img: &mut RgbaImage, p: &Palette, cx: i32) {
 
 pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
     // Soft body positions (cub uses head and feet)
-    let (hx, hy) = sb.as_ref().map(|b| b.point("head").px()).unwrap_or((cx, 20));
-    let (fl_x, fl_y) = sb.as_ref().map(|b| b.point("foot_l").px()).unwrap_or((cx - 5, 46));
-    let (fr_x, fr_y) = sb.as_ref().map(|b| b.point("foot_r").px()).unwrap_or((cx + 5, 46));
+    let (hx, hy) = sb.as_ref().map(|b| b.point("head").px()).unwrap_or((cx, 22));
+    let (bx, body_y) = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 42));
+    let (fl_x, fl_y) = sb.as_ref().map(|b| b.point("foot_l").px()).unwrap_or((cx - 3, 45));
+    let (fr_x, fr_y) = sb.as_ref().map(|b| b.point("foot_r").px()).unwrap_or((cx + 3, 45));
     let hr = 16;
 
-    // Tiny ears (nubs on top of the big head, move with head)
-    fill_circle(img, hx - 10, hy - 12, 4, p.accent);
-    fill_circle(img, hx + 10, hy - 12, 4, p.accent);
-    fill_circle(img, hx - 10, hy - 12, 2, EAR_INNER);
-    fill_circle(img, hx + 10, hy - 12, 2, EAR_INNER);
+    // === DRAW ORDER: feet → body → neck → head LAST so head silhouette is intact ===
 
-    // BIG round head (moves with neck)
-    fill_circle(img, hx, hy, hr, p.body);
+    // Tiny stub feet (drawn BEFORE body so body+head can overlap them subtly)
+    fill_circle(img, fl_x, fl_y, 3, p.body);
+    fill_circle(img, fr_x, fr_y, 3, p.body);
 
-    // Soft fur on head (sparse, moves with head)
-    for &(dx, dy) in &[(-7,-5), (7,-4), (-3,-10), (6,7)] {
-        put(img, hx + dx, hy + dy, p.accent);
-    }
+    // Small body ellipse underneath the head
+    fill_ellipse(img, bx, body_y, 10, 7, p.body);
+    fill_ellipse(img, bx, body_y + 1, 7, 5, p.body_light);
 
-    // Small body underneath (reads from soft body "body" point)
-    let (bx, body_y) = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 40));
+    // Kokoro-sac glow on body
+    fill_circle(img, bx, body_y, 3, RESONANCE);
 
-    // Neck connection — fill between head and body centers
+    // Neck — bridges head bottom to body center
     let neck_cx = (hx + bx) / 2;
     let neck_top = hy.min(body_y);
     let neck_h = (hy - body_y).unsigned_abs() as i32 + 1;
     fill_rect(img, neck_cx - 5, neck_top, 11, neck_h, p.body);
 
-    // Body ellipse (on top of neck)
-    fill_ellipse(img, bx, body_y, 10, 7, p.body);
-    fill_ellipse(img, bx, body_y + 1, 7, 5, p.body_light);
+    // Tiny ears (drawn BEFORE head so head silhouette covers their inner edge cleanly)
+    fill_circle(img, hx - 10, hy - 12, 4, p.accent);
+    fill_circle(img, hx + 10, hy - 12, 4, p.accent);
+    fill_circle(img, hx - 10, hy - 12, 2, EAR_INNER);
+    fill_circle(img, hx + 10, hy - 12, 2, EAR_INNER);
 
-    // Kokoro-sac glow
-    fill_circle(img, bx, body_y, 3, RESONANCE);
+    // BIG round head ON TOP of everything else — head IS the creature for cub
+    fill_circle(img, hx, hy, hr, p.body);
 
-    // Tiny stub feet (soft body positions)
-    fill_circle(img, fl_x, fl_y, 3, p.body);
-    fill_circle(img, fr_x, fr_y, 3, p.body);
+    // Soft fur on head (drawn AFTER head so dots show on the head)
+    for &(dx, dy) in &[(-7,-5), (7,-4), (-3,-10), (6,7)] {
+        put(img, hx + dx, hy + dy, p.accent);
+    }
 
-    // HUGE eyes on the big head (6x6, move with head)
+    // === FACE (on head) ===
+
+    // HUGE eyes on the big head
     draw_eyes(img, hx, hy + 2, 6, 4, mood, p.eye);
     if *mood != MoodState::Sleeping {
         put(img, hx - 6, hy + 2, HIGHLIGHT);
@@ -93,15 +95,13 @@ pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb:
         put(img, hx + 3, hy + 2, HIGHLIGHT);
     }
 
-    // Big blush (on head, moves with head)
+    // Big blush
     fill_rect(img, hx - 12, hy + 6, 3, 2, BLUSH);
     fill_rect(img, hx + 10, hy + 6, 3, 2, BLUSH);
 
-    // Tiny nose (on head)
+    // Tiny nose
     put(img, hx, hy + 10, NOSE_COLOR);
     put(img, hx + 1, hy + 10, NOSE_COLOR);
-
-    // Tiny mouth (on head)
 }
 
 // ===================================================================
@@ -202,7 +202,7 @@ pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, s
     let (fr_x, fr_y) = sb.as_ref().map(|b| b.point("foot_r").px()).unwrap_or((cx + 8, 46));
     let (ear_x, ear_y) = sb.as_ref().map(|b| b.point("ear_anchor").px()).unwrap_or((cx, 6));
 
-    let body_r = 16;
+    let body_r = 13;
     let hr = 11;
 
     // === DRAW ORDER: body first (bottom), then neck, then head on top ===
@@ -232,12 +232,19 @@ pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, s
     fill_circle(img, ear_x + 10, ear_y, 4, EAR_INNER);
     put(img, ear_x - 12, ear_y - 5, EAR_GLOW);
     put(img, ear_x + 12, ear_y - 5, EAR_GLOW);
+    // Body fur dots — only those clearly OUTSIDE the head circle, so the head
+    // never gets accent-color pixels splashed on top of it.
     for &(dx, dy) in &[(-8,-6), (7,-4), (-5,3), (9,1), (-3,-10), (6,7), (-10,4), (4,-7), (-6,9)] {
-        put(img, bx + dx, by + dy, p.accent);
+        let px = bx + dx;
+        let py = by + dy;
+        let dist_sq = (px - hx).pow(2) + (py - hy).pow(2);
+        if dist_sq > hr * hr {
+            put(img, px, py, p.accent);
+        }
     }
 
     // Belly (oscillates with breathing via soft body)
-    fill_circle(img, belly_x, belly_y, 11, p.body_light);
+    fill_circle(img, belly_x, belly_y, 9, p.body_light);
     for &(dx, dy) in &[(-3, 2), (4, 3), (-1, 5), (2, 7)] {
         put(img, belly_x + dx, belly_y + dy, fade(p.body_light, 0.1));
     }

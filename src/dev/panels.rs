@@ -14,7 +14,7 @@ use crate::genome::Genome;
 use crate::mind::{Mind, MoodState};
 use crate::visuals::evolution::{GrowthState, GrowthStage};
 use crate::creature::anatomy::AnatomyState;
-use crate::creature::behavior::pose::PoseState;
+use crate::creature::behavior::idle::IdleTimer;
 use crate::creature::behavior::reactions::ExpressionOverride;
 use crate::mind::hygiene::HygieneState;
 use crate::world::environment::EnvironmentState;
@@ -35,8 +35,8 @@ pub fn dev_panels_system(
     neural: Option<Res<NeuralMind>>,
     mut collection: Option<ResMut<CreatureCollection>>,
     mut growth: Option<ResMut<GrowthState>>,
-    pose: Option<Res<PoseState>>,
     expression: Option<Res<ExpressionOverride>>,
+    idle_timer: Option<Res<IdleTimer>>,
     mut reaction_events: EventWriter<crate::creature::behavior::reactions::CreatureReaction>,
     anatomy: Option<Res<AnatomyState>>,
     hygiene: Option<Res<HygieneState>>,
@@ -135,35 +135,24 @@ pub fn dev_panels_system(
                 });
                 ui.separator();
 
-                // Pose & Reaction state (always visible when dev mode active)
-                if let Some(ref pose) = pose {
-                    ui.collapsing("Pose & Reactions", |ui| {
-                        for (name, angle) in &pose.angles {
-                            if angle.abs() > 0.1 {
-                                ui.horizontal(|ui| {
-                                    ui.label(format!("{name}:"));
-                                    ui.colored_label(
-                                        egui::Color32::from_rgb(240, 200, 60),
-                                        format!("{angle:.1}°"),
-                                    );
-                                });
-                            }
+                // Facial expression + idle behavior state
+                ui.collapsing("Behavior", |ui| {
+                    if let Some(ref expr) = expression {
+                        if expr.is_active() {
+                            ui.label(format!(
+                                "Expression: eyes={} mouth={} blush={:.1} ({}t)",
+                                expr.eyes, expr.mouth, expr.blush, expr.ticks
+                            ));
+                        } else {
+                            ui.label("Expression: neutral");
                         }
-                        if pose.angles.values().all(|a| a.abs() < 0.1) {
-                            ui.label("All joints neutral");
-                        }
-                        if let Some(ref expr) = expression {
-                            if expr.is_active() {
-                                ui.separator();
-                                ui.label(format!(
-                                    "Expression: eyes={} mouth={} blush={:.1} ({}t)",
-                                    expr.eyes, expr.mouth, expr.blush, expr.ticks
-                                ));
-                            }
-                        }
-                    });
-                    ui.separator();
-                }
+                    }
+                    if let Some(ref it) = idle_timer {
+                        ui.label(format!("Last idle: {}", it.last_behavior));
+                        ui.label(format!("Next in: {}t", it.ticks_until_next));
+                    }
+                });
+                ui.separator();
 
                 // Reaction test buttons
                 if dev_state.show_cheats {

@@ -24,13 +24,13 @@ use creature::{
     interaction::physics::PhysicsPlugin,
     interaction::soft_body::SoftBodyPlugin,
     interaction::touch::TouchPlugin,
+    interaction::wobble::WobblePlugin,
 };
 use game::state::{AppState, GameStatePlugin};
 use web::WebPlugin;
 use creature::abilities::AbilityPlugin;
 use creature::behavior::idle::IdleBehaviorPlugin;
 use creature::behavior::involuntary::InvoluntaryPlugin;
-use creature::behavior::pose::PosePlugin;
 use creature::behavior::reactions::ReactionPlugin;
 use mind::autonomic::AutonomicPlugin;
 use mind::disease::DiseasePlugin;
@@ -103,9 +103,9 @@ fn main() {
         // UI plugins (gameplay)
         .add_plugins((StatsPlugin, ActionsPlugin, VitalsPlugin, SideMenuPlugin))
         // Creature lifecycle — collection management + egg incubation + anatomy
-        .add_plugins((MultiCreaturePlugin, EggPlugin, TouchPlugin, PreferencePlugin, SoundPlugin, LifecyclePlugin, AnatomyPlugin, AbilityPlugin, PosePlugin, ReactionPlugin, IdleBehaviorPlugin, InvoluntaryPlugin))
+        .add_plugins((MultiCreaturePlugin, EggPlugin, TouchPlugin, PreferencePlugin, SoundPlugin, LifecyclePlugin, AnatomyPlugin, AbilityPlugin, ReactionPlugin, IdleBehaviorPlugin, InvoluntaryPlugin))
         // Physics — gravity, collision, buoyancy
-        .add_plugins((PhysicsPlugin, SoftBodyPlugin, ImpulsePlugin))
+        .add_plugins((PhysicsPlugin, SoftBodyPlugin, ImpulsePlugin, WobblePlugin))
         // Visual plugins — effects, animation, evolution, accessories, organic behavior
         .add_plugins((EffectsPlugin, AnimationPlugin, EvolutionPlugin, AccessoriesPlugin, BackgroundPlugin))
         .add_plugins((BreathingPlugin, SpeciesBehaviorPlugin, ResonanceGlowPlugin, SkinPlugin))

@@ -96,65 +96,76 @@ pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _sb
 // Getting heavier. Can't climb trees anymore. First scale plates on back.
 // Small horn nubs. Tail thickening. Posture tilting toward horizontal.
 
-pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _sb: &Option<Res<SoftBody>>) {
-    let hy = 16;
+pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+    // Soft body positions
+    let (hx, hy) = sb.as_ref().map(|b| b.point("head").px()).unwrap_or((cx, 16));
+    let (bx, body_y) = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 30));
+    let (hl_x, hl_y) = sb.as_ref().map(|b| b.point("horn_l").px()).unwrap_or((cx - 5, 8));
+    let (hr_x, hr_y) = sb.as_ref().map(|b| b.point("horn_r").px()).unwrap_or((cx + 5, 8));
+    let (ll_x, ll_y) = sb.as_ref().map(|b| b.point("leg_l").px()).unwrap_or((cx - 12, 38));
+    let (lr_x, lr_y) = sb.as_ref().map(|b| b.point("leg_r").px()).unwrap_or((cx + 12, 38));
+    let (fl_x, fl_y) = sb.as_ref().map(|b| b.point("foot_l").px()).unwrap_or((cx - 6, 45));
+    let (fr_x, fr_y) = sb.as_ref().map(|b| b.point("foot_r").px()).unwrap_or((cx + 6, 45));
+    let (t1_x, t1_y) = sb.as_ref().map(|b| b.point("tail_1").px()).unwrap_or((cx, 40));
+    let (t2_x, t2_y) = sb.as_ref().map(|b| b.point("tail_2").px()).unwrap_or((cx, 47));
+    let (_t3_x, t3_y) = sb.as_ref().map(|b| b.point("tail_3").px()).unwrap_or((cx, 52));
     let hr = 11;
-    let body_y = 30;
-    let body_r = 12; // rounder now (putting on mass)
+    let body_r = 12;
 
-    // Horn nubs (just appearing!)
-    fill_rect(img, cx - 7, hy - hr + 1, 3, 3, HORN);
-    put(img, cx - 6, hy - hr - 1, HORN);
-    fill_rect(img, cx + 5, hy - hr + 1, 3, 3, HORN);
-    put(img, cx + 6, hy - hr - 1, HORN);
+    // Horn nubs (move with horn points)
+    fill_rect(img, hl_x - 1, hl_y, 3, 3, HORN);
+    put(img, hl_x, hl_y - 2, HORN);
+    fill_rect(img, hr_x - 1, hr_y, 3, 3, HORN);
+    put(img, hr_x, hr_y - 2, HORN);
 
-    // Growing tail (thicker, with first spine)
-    fill_rect(img, cx - 2, body_y + body_r - 2, 5, 4, p.accent);
-    fill_rect(img, cx - 1, body_y + body_r + 2, 3, 4, p.accent);
-    fill_rect(img, cx, body_y + body_r + 6, 2, 3, p.accent);
-    put(img, cx, body_y + body_r + 1, HORN); // first tail spine
+    // Tail chain (segmented)
+    fill_rect(img, t1_x - 2, t1_y, 5, (t2_y - t1_y).max(2), p.accent);
+    fill_rect(img, t2_x - 1, t2_y, 3, (t3_y - t2_y).max(2), p.accent);
+    put(img, t1_x, t1_y + 1, HORN); // first tail spine
 
-    // Thicker legs
-    fill_rect(img, cx - body_r + 1, body_y + 2, 4, 8, p.body);
-    fill_rect(img, cx + body_r - 4, body_y + 2, 4, 8, p.body);
-    // Feet with claws
-    fill_rect(img, cx - body_r + 1, body_y + body_r - 2, 5, 5, p.body);
-    fill_rect(img, cx + body_r - 5, body_y + body_r - 2, 5, 5, p.body);
+    // Legs
+    fill_rect(img, ll_x - 1, body_y + 2, 4, (ll_y - body_y - 2).max(2), p.body);
+    fill_rect(img, lr_x - 2, body_y + 2, 4, (lr_y - body_y - 2).max(2), p.body);
+    // Feet
+    fill_rect(img, fl_x - 2, fl_y, 5, 5, p.body);
+    fill_rect(img, fr_x - 2, fr_y, 5, 5, p.body);
     for dx in [-1, 1, 3] {
-        put(img, cx - body_r + 1 + dx, body_y + body_r + 3, CLAW);
-        put(img, cx + body_r - 5 + dx, body_y + body_r + 3, CLAW);
+        put(img, fl_x - 2 + dx, fl_y + 5, CLAW);
+        put(img, fr_x - 2 + dx, fr_y + 5, CLAW);
     }
 
-    // Body (rounder, getting heavy)
-    fill_circle(img, cx, body_y, body_r, p.body);
-    fill_circle(img, cx, body_y + 3, 8, p.body_light);
+    // Body
+    fill_circle(img, bx, body_y, body_r, p.body);
+    fill_circle(img, bx, body_y + 3, 8, p.body_light);
 
-    // First scale plates on back! (3 patches of armor)
-    put(img, cx - 3, body_y - 6, SCALE_LIGHT);
-    put(img, cx, body_y - 7, SCALE_LIGHT);
-    put(img, cx + 3, body_y - 6, SCALE_LIGHT);
-    put(img, cx - 1, body_y - 8, HORN); // dorsal bump starting
+    // First scale plates on back
+    put(img, bx - 3, body_y - 6, SCALE_LIGHT);
+    put(img, bx, body_y - 7, SCALE_LIGHT);
+    put(img, bx + 3, body_y - 6, SCALE_LIGHT);
+    put(img, bx - 1, body_y - 8, HORN);
 
     // Neck
-    fill_rect(img, cx - 4, hy + hr - 1, 9, 5, p.body);
+    let neck_top = hy.min(body_y);
+    let neck_h = (body_y - hy).max(1);
+    fill_rect(img, hx - 4, neck_top, 9, neck_h, p.body);
 
     // Head
-    fill_circle(img, cx, hy, hr, p.body);
+    fill_circle(img, hx, hy, hr, p.body);
 
     // Kokoro-sac
-    fill_circle(img, cx, body_y + 2, 4, RESONANCE);
+    fill_circle(img, bx, body_y + 2, 4, RESONANCE);
 
     // Eyes
-    draw_eyes(img, cx, hy + 1, 5, 4, mood, p.eye);
+    draw_eyes(img, hx, hy + 1, 5, 4, mood, p.eye);
     if *mood != MoodState::Sleeping {
-        put(img, cx - 5, hy + 2, PUPIL);
-        put(img, cx + 3, hy + 2, PUPIL);
+        put(img, hx - 5, hy + 2, PUPIL);
+        put(img, hx + 3, hy + 2, PUPIL);
     }
 
     // Wider snout
-    fill_rect(img, cx - 2, hy + 7, 5, 3, p.mouth);
-    put(img, cx - 1, hy + 7, fade(p.mouth, 0.3)); // nostril
-    put(img, cx + 2, hy + 7, fade(p.mouth, 0.3));
+    fill_rect(img, hx - 2, hy + 7, 5, 3, p.mouth);
+    put(img, hx - 1, hy + 7, fade(p.mouth, 0.3));
+    put(img, hx + 2, hy + 7, fade(p.mouth, 0.3));
 }
 
 // ===================================================================

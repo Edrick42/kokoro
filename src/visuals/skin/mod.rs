@@ -292,12 +292,13 @@ fn draw_creature(img: &mut RgbaImage, species: &Species, mood: &MoodState, stage
     }
 
     // Draw mouth AFTER species draw, with mouth_mood (not eye_mood).
+    // Mouth position comes directly from the "mouth" soft-body point —
+    // it follows the head, eyes, and chewing animation through the bounds+cluster.
     if *stage != GrowthStage::Egg {
         let mouth_color = palette(species).mouth;
-        let (head_x, head_y) = soft_body.as_ref()
-            .map(|b| b.point("head").px())
-            .unwrap_or((cx, 14));
-        let mouth_y = head_y + 13;
+        let (head_x, mouth_y) = soft_body.as_ref()
+            .map(|b| b.point("mouth").px())
+            .unwrap_or((cx, 21));
 
         // Priority order:
         // 1. Blinking = no mouth (very brief, eyes closed)
@@ -318,33 +319,71 @@ fn draw_creature(img: &mut RgbaImage, species: &Species, mood: &MoodState, stage
         }
     }
 
-    // === DEBUG OVERLAY: soft body points + springs ===
-    // Only visible in dev builds when F12 panel is active.
+    // === DEBUG OVERLAY: soft body points + springs + bounds + clusters ===
+    // Only visible in dev builds when F12 panel is active (Rig Overlay).
     if debug_overlay {
     if let Some(body) = soft_body.as_ref() {
-        let debug_color = Rgba([255, 0, 0, 255]); // bright red
-        let debug_spring = Rgba([255, 255, 0, 180]); // yellow for springs
+        let pt_color     = Rgba([255,  60,  60, 255]);  // red points
+        let spring_color = Rgba([255, 230,  60, 180]);  // yellow springs
+        let bound_color  = Rgba([ 60, 200, 255, 130]);  // cyan drift envelopes
+        let cluster_color = Rgba([255, 100, 240, 200]); // magenta cluster polygons
 
-        // Draw springs as yellow lines between connected points
+        // Springs — dashed yellow line (draw 5 points along the segment)
         for spring in &body.springs {
             let (ax, ay) = body.points[spring.a].px();
             let (bx, by) = body.points[spring.b].px();
-            // Simple line: just draw at midpoint and quarter points
-            let mx = (ax + bx) / 2;
-            let my = (ay + by) / 2;
-            put(img, mx, my, debug_spring);
-            put(img, (ax + mx) / 2, (ay + my) / 2, debug_spring);
-            put(img, (bx + mx) / 2, (by + my) / 2, debug_spring);
+            for k in 0..=4 {
+                let t = k as f32 / 4.0;
+                let x = (ax as f32 * (1.0 - t) + bx as f32 * t) as i32;
+                let y = (ay as f32 * (1.0 - t) + by as f32 * t) as i32;
+                put(img, x, y, spring_color);
+            }
         }
 
-        // Draw points as 3x3 red crosses
+        // Bounds — draw the drift circle (parent.position + rest_offset, radius = max_drift)
+        // as a sparse cyan ring. This is where the geometric envelope lives.
+        for bound in &body.bounds {
+            let parent = body.points[bound.parent].position;
+            let cx_b = (parent.x + bound.rest_offset.x) as i32;
+            let cy_b = (parent.y + bound.rest_offset.y) as i32;
+            let r = bound.max_drift.max(1.0) as i32;
+            // 12 points around the circle = sparse but readable ring
+            for k in 0..12 {
+                let theta = std::f32::consts::TAU * (k as f32) / 12.0;
+                let x = cx_b + (r as f32 * theta.cos()) as i32;
+                let y = cy_b + (r as f32 * theta.sin()) as i32;
+                put(img, x, y, bound_color);
+            }
+            // small dot at the ideal center
+            put(img, cx_b, cy_b, bound_color);
+        }
+
+        // Clusters — magenta polygon connecting cluster vertices in order.
+        // Shows the "rigid shape" being preserved (face triangle, etc).
+        for cluster in &body.clusters {
+            let n = cluster.indices.len();
+            for k in 0..n {
+                let i_a = cluster.indices[k];
+                let i_b = cluster.indices[(k + 1) % n];
+                let (ax, ay) = body.points[i_a].px();
+                let (bx, by) = body.points[i_b].px();
+                for s in 0..=4 {
+                    let t = s as f32 / 4.0;
+                    let x = (ax as f32 * (1.0 - t) + bx as f32 * t) as i32;
+                    let y = (ay as f32 * (1.0 - t) + by as f32 * t) as i32;
+                    put(img, x, y, cluster_color);
+                }
+            }
+        }
+
+        // Points — red 3x3 crosses, drawn LAST so they always sit on top
         for point in &body.points {
             let (px, py) = point.px();
-            put(img, px, py, debug_color);
-            put(img, px - 1, py, debug_color);
-            put(img, px + 1, py, debug_color);
-            put(img, px, py - 1, debug_color);
-            put(img, px, py + 1, debug_color);
+            put(img, px, py, pt_color);
+            put(img, px - 1, py, pt_color);
+            put(img, px + 1, py, pt_color);
+            put(img, px, py - 1, pt_color);
+            put(img, px, py + 1, pt_color);
         }
     }
     } // debug_overlay
@@ -525,11 +564,23 @@ pub fn draw_eyes(img: &mut RgbaImage, cx: i32, ey: i32, size: i32, gap: i32, moo
 /// This is the key missing piece — the mouth changes shape per mood.
 pub fn draw_mouth(img: &mut RgbaImage, cx: i32, my: i32, mood: &MoodState, color: Rgba<u8>) {
     match mood {
-        // === NEUTRAL STATES: no mouth drawn (like classic tamagotchi) ===
-        // A calm creature shows no mouth. Mouth only appears for expressive moods.
-        MoodState::Sleeping | MoodState::Happy | MoodState::Hungry | MoodState::Thirsty => {
-            // No mouth — peaceful/neutral face.
-            // Eating reaction uses draw_eating_mouth() separately.
+        // === SLEEPING: no mouth (peaceful face) ===
+        MoodState::Sleeping => {
+            // No mouth — peaceful sleeping face.
+        }
+        // === NEUTRAL POSITIVE: tiny content mouth (closed-line) ===
+        MoodState::Happy => {
+            // Small soft smile
+            put(img, cx - 1, my, color);
+            put(img, cx,     my, color);
+            put(img, cx + 1, my, color);
+        }
+        // === HUNGRY/THIRSTY: small open dot (anticipation) ===
+        MoodState::Hungry | MoodState::Thirsty => {
+            // Tiny closed mouth — visible but neutral
+            put(img, cx - 1, my, color);
+            put(img, cx,     my, color);
+            put(img, cx + 1, my, color);
         }
 
         // === EXPRESSIVE STATES: mouth only when creature is emoting ===

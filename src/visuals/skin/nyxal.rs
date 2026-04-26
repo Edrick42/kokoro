@@ -39,33 +39,42 @@ pub fn draw_egg(img: &mut RgbaImage, p: &Palette, cx: i32) {
 // Planktonic larva: huge mantle dome with tiny tentacle nubs underneath.
 // Nearly transparent. Almost no glow. Alien blob.
 
-pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _sb: &Option<Res<SoftBody>>) {
-    // HUGE mantle dome (this IS the creature)
-    let my = 18;   // mantle center
-    let mr = 16;   // mantle radius — dominates everything
+pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+    // Soft body positions
+    let (mx, my) = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 16));
+    let (mtx, mty) = sb.as_ref().map(|b| b.point("mantle_top").px()).unwrap_or((cx, 4));
+    let (fl_x, fl_y) = sb.as_ref().map(|b| b.point("tent_fl").px()).unwrap_or((cx - 3, 27));
+    let (fr_x, fr_y) = sb.as_ref().map(|b| b.point("tent_fr").px()).unwrap_or((cx + 3, 27));
+    let (bl_x, bl_y) = sb.as_ref().map(|b| b.point("tent_bl").px()).unwrap_or((cx - 7, 26));
+    let (br_x, br_y) = sb.as_ref().map(|b| b.point("tent_br").px()).unwrap_or((cx + 7, 26));
+    let (ex_l, ey_l) = sb.as_ref().map(|b| b.point("eye_l").px()).unwrap_or((cx - 5, 17));
+    let mr = 16;
 
-    // Tiny tentacle stubs underneath (barely there)
-    let tent_y = my + mr - 2;
-    fill_rect(img, cx - 10, tent_y, 3, 6, p.accent);
-    fill_rect(img, cx - 4,  tent_y, 3, 8, p.accent);
-    fill_rect(img, cx + 2,  tent_y, 3, 8, p.accent);
-    fill_rect(img, cx + 8,  tent_y, 3, 6, p.accent);
+    // Tiny tentacle stubs (move with soft body)
+    fill_rect(img, bl_x - 1, bl_y, 3, 6, p.accent);
+    fill_rect(img, fl_x - 1, fl_y, 3, 8, p.accent);
+    fill_rect(img, fr_x - 1, fr_y, 3, 8, p.accent);
+    fill_rect(img, br_x - 1, br_y, 3, 6, p.accent);
 
-    // Big dome
-    fill_circle(img, cx, my, mr, p.body);
+    // Big dome (mantle is "body" anchor — moves with breathing pulse)
+    fill_circle(img, mx, my, mr, p.body);
+    // Mantle cap on top (moves with mantle_top)
+    fill_circle(img, mtx, mty + 4, 8, p.accent);
 
     // Inner lighter area (translucent — can see through)
-    fill_circle(img, cx, my + 2, 10, p.body_light);
+    fill_circle(img, mx, my + 2, 10, p.body_light);
 
-    // Body spots (sparse — barely visible at this age)
-    put(img, cx - 4, my - 3, SPOT);
-    put(img, cx + 3, my - 1, SPOT);
+    // Body spots
+    put(img, mx - 4, my - 3, SPOT);
+    put(img, mx + 3, my - 1, SPOT);
 
     // Faint kokoro-sac glow
-    fill_circle(img, cx, my + 1, 3, GLOW_FAINT);
+    fill_circle(img, mx, my + 1, 3, GLOW_FAINT);
 
-    // Big cyan eyes
-    draw_eyes(img, cx, my + 2, 6, 4, mood, p.eye);
+    // Eyes follow soft body
+    let eye_cy = ey_l;
+    let eye_cx = (ex_l + (mx + (mx - ex_l).abs())) / 2; // approximate center
+    draw_eyes(img, eye_cx, eye_cy, 6, 4, mood, p.eye);
 }
 
 // ===================================================================
@@ -74,45 +83,55 @@ pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _sb
 // Allometric growth: tentacles grow MUCH faster than the dome.
 // The creature is transitioning from blob to cephalopod.
 
-pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _sb: &Option<Res<SoftBody>>) {
-    let my = 16;    // mantle center (smaller)
-    let mr = 12;    // mantle radius (shrank!)
+pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+    // Soft body positions
+    let (mx, my) = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 16));
+    let (mtx, mty) = sb.as_ref().map(|b| b.point("mantle_top").px()).unwrap_or((cx, 4));
+    let (fl_x, fl_y) = sb.as_ref().map(|b| b.point("tent_fl").px()).unwrap_or((cx - 4, 22));
+    let (fr_x, fr_y) = sb.as_ref().map(|b| b.point("tent_fr").px()).unwrap_or((cx + 4, 22));
+    let (bl_x, bl_y) = sb.as_ref().map(|b| b.point("tent_bl").px()).unwrap_or((cx - 11, 22));
+    let (br_x, br_y) = sb.as_ref().map(|b| b.point("tent_br").px()).unwrap_or((cx + 11, 22));
+    let (tfl_x, tfl_y) = sb.as_ref().map(|b| b.point("tip_fl").px()).unwrap_or((cx - 4, 42));
+    let (tfr_x, tfr_y) = sb.as_ref().map(|b| b.point("tip_fr").px()).unwrap_or((cx + 4, 42));
+    let (tbl_x, tbl_y) = sb.as_ref().map(|b| b.point("tip_bl").px()).unwrap_or((cx - 11, 39));
+    let (tbr_x, tbr_y) = sb.as_ref().map(|b| b.point("tip_br").px()).unwrap_or((cx + 11, 39));
+    let (ex_l, ey_l) = sb.as_ref().map(|b| b.point("eye_l").px()).unwrap_or((cx - 4, 16));
+    let mr = 12;
 
-    // Growing mantle cap
-    fill_circle(img, cx, my - 3, 8, p.accent);
-    // Glow rim on mantle
+    // Mantle cap (on top, moves with mantle_top)
+    fill_circle(img, mtx, mty + 4, 8, p.accent);
     for dx in -5..=5 {
-        put(img, cx + dx, my - 10, GLOW_FAINT);
+        put(img, mtx + dx, mty - 6, GLOW_FAINT);
     }
 
-    // LONG tentacles (the big change!)
-    let tent_y = my + mr - 3;
-    let tent_len = 22;  // much longer than cub's 6-8
-    fill_rect(img, cx - 12, tent_y, 3, tent_len - 4, p.accent);
-    fill_rect(img, cx - 5,  tent_y, 3, tent_len, p.accent);
-    fill_rect(img, cx + 3,  tent_y, 3, tent_len, p.accent);
-    fill_rect(img, cx + 10, tent_y, 3, tent_len - 4, p.accent);
-    // Glow tips appearing!
-    fill_rect(img, cx - 12, tent_y + tent_len - 5, 3, 2, GLOW_DIM);
-    fill_rect(img, cx - 5,  tent_y + tent_len - 2, 3, 2, GLOW_DIM);
-    fill_rect(img, cx + 3,  tent_y + tent_len - 2, 3, 2, GLOW_DIM);
-    fill_rect(img, cx + 10, tent_y + tent_len - 5, 3, 2, GLOW_DIM);
+    // Tentacles — root → tip rectangles
+    fill_rect(img, bl_x - 1, bl_y, 3, (tbl_y - bl_y).max(2), p.accent);
+    fill_rect(img, fl_x - 1, fl_y, 3, (tfl_y - fl_y).max(2), p.accent);
+    fill_rect(img, fr_x - 1, fr_y, 3, (tfr_y - fr_y).max(2), p.accent);
+    fill_rect(img, br_x - 1, br_y, 3, (tbr_y - br_y).max(2), p.accent);
+    // Glow tips
+    fill_rect(img, tbl_x - 1, tbl_y - 2, 3, 2, GLOW_DIM);
+    fill_rect(img, tfl_x - 1, tfl_y - 2, 3, 2, GLOW_DIM);
+    fill_rect(img, tfr_x - 1, tfr_y - 2, 3, 2, GLOW_DIM);
+    fill_rect(img, tbr_x - 1, tbr_y - 2, 3, 2, GLOW_DIM);
 
-    // Body (dome)
-    fill_circle(img, cx, my, mr, p.body);
+    // Body dome
+    fill_circle(img, mx, my, mr, p.body);
     for &(dx, dy) in &[(-4,-3), (3,-1), (-1,2), (5,0)] {
-        put(img, cx + dx, my + dy, SPOT);
+        put(img, mx + dx, my + dy, SPOT);
     }
-    fill_circle(img, cx, my + 3, 7, p.body_light);
+    fill_circle(img, mx, my + 3, 7, p.body_light);
 
     // Kokoro-sac (brighter)
-    fill_circle(img, cx, my + 2, 4, GLOW_DIM);
+    fill_circle(img, mx, my + 2, 4, GLOW_DIM);
 
-    // Eyes
-    draw_eyes(img, cx, my + 1, 5, 4, mood, p.eye);
+    // Eyes follow soft body
+    let eye_cy = ey_l;
+    let eye_cx = (ex_l + (mx * 2 - ex_l)) / 2;
+    draw_eyes(img, eye_cx, eye_cy, 5, 4, mood, p.eye);
     if *mood != MoodState::Sleeping {
-        put(img, cx - 8, my + 3, GLOW_FAINT);
-        put(img, cx + 7, my + 3, GLOW_FAINT);
+        put(img, eye_cx - 8, eye_cy + 2, GLOW_FAINT);
+        put(img, eye_cx + 7, eye_cy + 2, GLOW_FAINT);
     }
 }
 

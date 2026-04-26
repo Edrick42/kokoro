@@ -110,7 +110,9 @@ fn load_neural_weights(
                         info!("Neural weights loaded from database");
                         NeuralMind::from_mlp(mlp)
                     } else {
-                        info!("Failed to deserialize neural weights — starting fresh");
+                        // Stale weights (dimension mismatch from schema change). Drop them.
+                        info!("Stored neural weights incompatible with current model — starting fresh");
+                        let _ = conn.execute("DELETE FROM neural_weights WHERE id = 1", []);
                         NeuralMind::new()
                     }
                 }

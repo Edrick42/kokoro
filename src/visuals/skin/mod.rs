@@ -14,6 +14,7 @@ use bevy::prelude::*;
 use bevy::image::ImageSampler;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use image::{RgbaImage, Rgba};
+use kokoro_art_palette::Palette;
 
 type BevyImage = Image;
 
@@ -172,14 +173,16 @@ pub const CREAM_PX: Rgba<u8> = Rgba([217, 199, 174, 255]);
 
 pub fn species_skin(species: &Species) -> SpeciesSkin {
     match species {
+        // Moluun mapping per docs/aesthetic-targets.md §4.1 (forest, gold ramp).
+        // Belly fills the body_light slot; cream patches mark the egg_spot.
         Species::Moluun => SpeciesSkin {
-            body:       Rgba([140, 180, 200, 255]),
-            body_light: Rgba([210, 200, 185, 255]),
-            eye:        NEAR_BLACK_PX,
-            mouth:      Rgba([60, 45, 40, 255]),
-            accent:     Rgba([120, 155, 175, 255]),
-            egg:        Rgba([220, 200, 180, 255]),
-            egg_spot:   Rgba([160, 190, 205, 255]),
+            body:       Palette::Gold.into(),
+            body_light: Palette::Cream.into(),
+            eye:        Palette::NearBlack.into(),
+            mouth:      Palette::DeepBrown.into(),
+            accent:     Palette::Tan.into(),
+            egg:        Palette::Gold.into(),
+            egg_spot:   Palette::Cream.into(),
         },
         Species::Pylum => SpeciesSkin {
             body:       Rgba([235, 190, 80, 255]),

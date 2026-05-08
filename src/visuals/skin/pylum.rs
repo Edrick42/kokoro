@@ -117,8 +117,14 @@ pub fn draw_young(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
     fill_rect(img, wl_x, wl_y, 4, 7, p.accent);
     fill_rect(img, wr_x - 3, wr_y, 4, 7, p.accent);
 
-    // Body
-    fill_circle(img, bx, by, br, p.body);
+    // Body — BumpyDome continues the kawaii_factor curve. Slightly less
+    // bumpy than the cub down-ball (0.28 vs 0.35) as plumage tightens up
+    // around the gangly young silhouette.
+    BumpyDome::new(bx, by, br as u32, Palette::Orange)
+        .with_bumpiness(0.28)
+        .with_bumps(9)
+        .with_seed(29)
+        .paint_with(img, p.body, None);
     for &(dx, dy) in &[(-4,-3), (3,-2), (-2,3), (5,1)] {
         put(img, bx + dx, by + dy, p.body_light);
     }

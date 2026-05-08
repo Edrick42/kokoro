@@ -154,6 +154,90 @@ impl Brush for BumpyDome {
     }
 }
 
+// =====================================================================
+// TaperedTail — second primitive: a band that starts thick and narrows to a point
+// =====================================================================
+
+/// A line-shape that starts at `base` with `base_width` half-thickness and
+/// tapers linearly to a single pixel at `tip`. Use for tails, beaks, claws,
+/// horns, tentacles, leaf veins — anything that reads as "this end is heavy,
+/// the other end is fine."
+///
+/// The tip is always a point; if you want a blunt-ended band, use a chain of
+/// short TaperedTails or compose with BumpyDome.
+#[derive(Debug, Copy, Clone)]
+pub struct TaperedTail {
+    pub base: (i32, i32),
+    pub tip: (i32, i32),
+    /// Half-thickness at the base, in pixels. The full base width is
+    /// `2 * base_width + 1`. Tip is always 1px wide.
+    pub base_width: u32,
+    pub color: Palette,
+    pub shadow: Option<Palette>,
+}
+
+impl TaperedTail {
+    pub const fn new(base: (i32, i32), tip: (i32, i32), base_width: u32, color: Palette) -> Self {
+        Self { base, tip, base_width, color, shadow: None }
+    }
+
+    pub const fn with_shadow(mut self, s: Palette) -> Self {
+        self.shadow = Some(s);
+        self
+    }
+
+    /// Same escape-hatch pattern as BumpyDome: pre-resolved Rgba bypassing the
+    /// Palette type. Use when a runtime tint has already been applied.
+    pub fn paint_with(&self, img: &mut RgbaImage, body: Rgba<u8>, shadow_pixel: Option<Rgba<u8>>) {
+        let (sx, sy) = self.base;
+        let (ex, ey) = self.tip;
+        let dx = (ex - sx) as f32;
+        let dy = (ey - sy) as f32;
+        let length = (dx * dx + dy * dy).sqrt().max(1.0);
+
+        // Walk along the spine at sub-pixel steps so we never leave gaps even
+        // when the tail is steep. 2 samples per pixel of length is plenty for
+        // pixel art and keeps the cost trivial.
+        let steps = (length * 2.0) as i32 + 1;
+        let perp_x = -dy / length;
+        let perp_y = dx / length;
+        let w_img = img.width() as i32;
+        let h_img = img.height() as i32;
+
+        for i in 0..=steps {
+            let t = i as f32 / steps as f32;
+            let half_w = (self.base_width as f32 * (1.0 - t)).round() as i32;
+            let cx = sx as f32 + dx * t;
+            let cy = sy as f32 + dy * t;
+
+            // Body band: −half_w..=half_w along the perpendicular.
+            for off in -half_w..=half_w {
+                let px = (cx + perp_x * off as f32).round() as i32;
+                let py = (cy + perp_y * off as f32).round() as i32;
+                if px >= 0 && py >= 0 && px < w_img && py < h_img {
+                    img.put_pixel(px as u32, py as u32, body);
+                }
+            }
+
+            // Shadow rim: one pixel beyond the band on the lower side.
+            if let Some(s_px) = shadow_pixel {
+                let off = half_w + 1;
+                let px = (cx + perp_x * off as f32).round() as i32;
+                let py = (cy + perp_y * off as f32).round() as i32;
+                if px >= 0 && py >= 0 && px < w_img && py < h_img {
+                    img.put_pixel(px as u32, py as u32, s_px);
+                }
+            }
+        }
+    }
+}
+
+impl Brush for TaperedTail {
+    fn paint(&self, img: &mut RgbaImage) {
+        self.paint_with(img, self.color.into(), self.shadow.map(Into::into));
+    }
+}
+
 /// Tiny deterministic hash. Splitmix-style folded to u32. Enough entropy for
 /// per-sector perturbation; not cryptographic.
 const fn hash2(a: u32, b: u32) -> u32 {
@@ -267,5 +351,54 @@ mod tests {
         assert!(saw_shadow, "expected at least one GoldDark rim pixel");
 
         save_swatch(&img, "bumpy_dome_shadowed.png");
+    }
+
+    #[test]
+    fn tapered_tail_base_thicker_than_tip() {
+        let mut img = RgbaImage::new(64, 64);
+        TaperedTail::new((10, 32), (54, 32), 5, Palette::Teal).paint(&mut img);
+
+        // Count painted pixels in a 3px-wide column near the base vs near the tip.
+        let teal: Rgba<u8> = Palette::Teal.into();
+        let count_in_col = |x: u32| -> u32 {
+            (0..64).filter(|&y| img.get_pixel(x, y) == &teal).count() as u32
+        };
+        let near_base = count_in_col(12);
+        let near_tip = count_in_col(52);
+        assert!(
+            near_base > near_tip,
+            "base column ({near_base}) should have more painted pixels than tip column ({near_tip})"
+        );
+
+        save_swatch(&img, "tapered_tail_horizontal.png");
+    }
+
+    #[test]
+    fn tapered_tail_tip_is_painted() {
+        let mut img = RgbaImage::new(64, 64);
+        TaperedTail::new((10, 10), (50, 50), 4, Palette::Red).paint(&mut img);
+        let red: Rgba<u8> = Palette::Red.into();
+
+        // Either the tip pixel itself or one of its 8 neighbours should carry red.
+        let has_red_near_tip = (49..=51)
+            .flat_map(|x| (49..=51).map(move |y| (x, y)))
+            .any(|(x, y)| img.get_pixel(x, y) == &red);
+        assert!(has_red_near_tip, "tip neighbourhood should contain red pixels");
+
+        save_swatch(&img, "tapered_tail_diagonal.png");
+    }
+
+    #[test]
+    fn tapered_tail_with_shadow_emits_shadow_pixels() {
+        let mut img = RgbaImage::new(64, 64);
+        TaperedTail::new((8, 32), (56, 38), 4, Palette::Red)
+            .with_shadow(Palette::RedDark)
+            .paint(&mut img);
+
+        let shadow_px: Rgba<u8> = Palette::RedDark.into();
+        let saw_shadow = img.pixels().any(|p| p == &shadow_px);
+        assert!(saw_shadow, "expected at least one RedDark rim pixel");
+
+        save_swatch(&img, "tapered_tail_shadowed.png");
     }
 }

@@ -9,6 +9,7 @@
 use bevy::prelude::Res;
 use image::{RgbaImage, Rgba};
 use kokoro_art_palette::Palette;
+use kokoro_art_palette::dsl::BumpyDome;
 use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
 use super::{SpeciesSkin, fill_circle, fill_rect, fill_ellipse, put, draw_eyes, fade};
@@ -80,8 +81,14 @@ pub fn draw_cub(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodState,
     fill_circle(img, hx - 10, hy - 12, 2, EAR_INNER);
     fill_circle(img, hx + 10, hy - 12, 2, EAR_INNER);
 
-    // BIG round head ON TOP of everything else — head IS the creature for cub
-    fill_circle(img, hx, hy, hr, p.body);
+    // BIG round head ON TOP of everything else — head IS the creature for cub.
+    // Uses BumpyDome (DSL) for an organic fluffy silhouette instead of a
+    // perfect circle. Subtle bumpiness (0.25) so the round read still wins.
+    BumpyDome::new(hx, hy, hr as u32, Palette::Gold)
+        .with_bumpiness(0.25)
+        .with_bumps(10)
+        .with_seed(3)
+        .paint_with(img, p.body, None);
 
     // Soft fur on head (drawn AFTER head so dots show on the head)
     for &(dx, dy) in &[(-7,-5), (7,-4), (-3,-10), (6,7)] {

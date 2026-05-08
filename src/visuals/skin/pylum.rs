@@ -9,6 +9,7 @@
 use image::{RgbaImage, Rgba};
 use bevy::prelude::Res;
 use kokoro_art_palette::Palette;
+use kokoro_art_palette::dsl::BumpyDome;
 use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
 use super::{SpeciesSkin, fill_circle, fill_rect, fill_ellipse, put, draw_eyes, fade, NEAR_BLACK_PX};
@@ -44,7 +45,14 @@ pub fn draw_cub(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodState,
     let (_, by) = sb.as_ref().map(|b| b.point("head").px()).unwrap_or((cx, 22));
     let br = 17;
 
-    fill_circle(img, cx, by, br, p.body);
+    // "Fluffy down ball" silhouette via BumpyDome — moderate bumpiness reads
+    // as down-feathers rather than a smooth orb. Speckle highlights stay as
+    // a separate pass on top.
+    BumpyDome::new(cx, by, br as u32, Palette::Orange)
+        .with_bumpiness(0.35)
+        .with_bumps(9)
+        .with_seed(13)
+        .paint_with(img, p.body, None);
     for &(dx, dy) in &[(-7,-6), (6,-4), (-4,4), (8,2), (-2,-10), (5,7), (-9,1), (3,-8)] {
         put(img, cx + dx, by + dy, p.body_light);
     }

@@ -1,0 +1,14 @@
+[package]
+name = "kokoro-art-palette"
+version = "0.1.0"
+edition = "2024"
+description = "26-color curated retro palette for the Kokoro pixel art DSL. Source of truth: docs/aesthetic-targets.md."
+
+[features]
+default = ["bevy", "image"]
+bevy  = ["dep:bevy_color"]
+image = ["dep:image"]
+
+[dependencies]
+bevy_color = { version = "0.16", optional = true }
+image      = { version = "0.25", default-features = false, optional = true }

@@ -18,6 +18,9 @@ const HIGHLIGHT:        Rgba<u8> = Rgba(Palette::OffWhite.rgba(180));
 const CLAW:             Rgba<u8> = Rgba(Palette::DeepBrown.rgba(255));
 const RESONANCE:        Rgba<u8> = Rgba(Palette::Gold.rgba(70));
 const RESONANCE_BRIGHT: Rgba<u8> = Rgba(Palette::OrangeBright.rgba(110));
+// Blush ramps with kawaii_factor (§4b/§4c): full Cub, subtle Young, absent past.
+const BLUSH:            Rgba<u8> = Rgba(Palette::CoralPink.rgba(255));
+const BLUSH_SUBTLE:     Rgba<u8> = Rgba(Palette::CoralPink.rgba(128));
 
 // ===================================================================
 // EGG
@@ -61,6 +64,10 @@ pub fn draw_cub(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodState,
         put(img, cx - 6, by + 1, HIGHLIGHT);
         put(img, cx + 2, by + 1, HIGHLIGHT);
     }
+
+    // Cub blush
+    fill_rect(img, cx - 8, by + 4, 2, 2, BLUSH);
+    fill_rect(img, cx + 6, by + 4, 2, 2, BLUSH);
 
     fill_rect(img, cx - 1, by + 9, 3, 2, NEAR_BLACK_PX);
     put(img, cx, by + 11, NEAR_BLACK_PX);
@@ -130,6 +137,10 @@ pub fn draw_young(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
         put(img, hx - 5, hy + 1, HIGHLIGHT);
         put(img, hx + 2, hy + 1, HIGHLIGHT);
     }
+
+    // Young blush — sutil
+    fill_rect(img, hx - 6, hy + 3, 2, 2, BLUSH_SUBTLE);
+    fill_rect(img, hx + 4, hy + 3, 2, 2, BLUSH_SUBTLE);
 
     // Beak
     fill_rect(img, hx - 2, hy + 5, 5, 3, NEAR_BLACK_PX);

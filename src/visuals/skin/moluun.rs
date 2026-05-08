@@ -31,7 +31,15 @@ const EAR_GLOW:         Rgba<u8> = Rgba(Palette::CyanBright.rgba(100));
 
 pub fn draw_egg(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32) {
     let cy = 30;
-    fill_ellipse(img, cx, cy, 13, 17, p.egg);
+    // Egg silhouette via elliptical BumpyDome — very low bumpiness so the
+    // shell still reads as smooth, but the silhouette no longer feels like
+    // a perfect mathematical ellipse.
+    BumpyDome::new(cx, cy, 13, Palette::Gold)
+        .with_height(17)
+        .with_bumpiness(0.08)
+        .with_bumps(8)
+        .with_seed(101)
+        .paint_with(img, p.egg, None);
     fill_ellipse(img, cx, cy + 8, 10, 5, fade(p.egg, 0.15));
     fill_circle(img, cx - 5, cy - 6, 3, p.egg_spot);
     fill_circle(img, cx + 6, cy - 2, 3, p.egg_spot);

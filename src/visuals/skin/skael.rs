@@ -33,7 +33,12 @@ const BLUSH_SUBTLE:     Rgba<u8> = Rgba(Palette::CoralPink.rgba(128));
 
 pub fn draw_egg(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32) {
     let cy = 30;
-    fill_ellipse(img, cx, cy, 12, 16, p.egg);
+    BumpyDome::new(cx, cy, 12, Palette::Teal)
+        .with_height(16)
+        .with_bumpiness(0.08)
+        .with_bumps(8)
+        .with_seed(107)
+        .paint_with(img, p.egg, None);
     for i in 0..6 {
         let y = cy - 10 + i * 4;
         put(img, cx - 4 + i, y, p.egg_spot);

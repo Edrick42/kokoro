@@ -9,6 +9,7 @@
 use image::{RgbaImage, Rgba};
 use bevy::prelude::Res;
 use kokoro_art_palette::Palette;
+use kokoro_art_palette::dsl::TaperedTail;
 use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
 use super::{SpeciesSkin, fill_circle, fill_rect, fill_ellipse, put, draw_eyes, fade};
@@ -57,9 +58,13 @@ pub fn draw_cub(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodState,
     let body_rx = 8; // narrow body (vertical/upright)
     let body_ry = 10;
 
-    // Thin tail (whip-like, not muscular)
-    fill_rect(img, cx - 1, body_y + body_ry, 3, 8, p.body);
-    fill_rect(img, cx, body_y + body_ry + 7, 2, 4, p.body);
+    // Thin tail (whip-like, not muscular) — DSL TaperedTail gives a clean
+    // taper from base to a single-pixel tip with the species accent.
+    let tail_base = (cx, body_y + body_ry);
+    let tail_tip = (cx, body_y + body_ry + 11);
+    TaperedTail::new(tail_base, tail_tip, 1, Palette::Teal)
+        .paint_with(img, p.body, None);
+    // Whip end accent (single-pixel tip in scale-light tone)
     put(img, cx, body_y + body_ry + 11, p.accent);
 
     // Smooth body (NO scales — skin is soft at this age)

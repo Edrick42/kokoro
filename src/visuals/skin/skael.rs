@@ -222,11 +222,16 @@ pub fn draw_adult(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
     fill_rect(img, cx + 6, hy - hr - 4, 2, 3, HORN);
     put(img, cx + 6, hy - hr - 6, fade(HORN, 0.3));
 
-    // Massive tail with spines — 3 segments from soft body
-    fill_rect(img, t1_x - 3, t1_y - 2, 7, 5, p.accent);
-    fill_rect(img, t2_x - 2, t2_y - 1, 5, 4, p.accent);
-    fill_rect(img, t3_x - 1, t3_y - 1, 3, 3, p.accent);
-    put(img, t3_x, t3_y + 2, p.accent);
+    // Massive tail with spines — three TaperedTails segmented through the
+    // soft-body anchor points so a swaying tail arcs through them. Base
+    // half-widths step down (3 → 2 → 1) giving the doc's "muscular near
+    // body, fine at tip" silhouette.
+    TaperedTail::new((t1_x, t1_y), (t2_x, t2_y), 3, Palette::Teal)
+        .paint_with(img, p.accent, None);
+    TaperedTail::new((t2_x, t2_y), (t3_x, t3_y), 2, Palette::Teal)
+        .paint_with(img, p.accent, None);
+    TaperedTail::new((t3_x, t3_y), (t3_x, t3_y + 2), 1, Palette::Teal)
+        .paint_with(img, p.accent, None);
     // Tail spines (on each segment)
     put(img, t1_x, t1_y - 3, HORN);
     put(img, t2_x, t2_y - 2, HORN);
@@ -250,10 +255,17 @@ pub fn draw_adult(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
     // WIDE body (the tank)
     fill_ellipse(img, cx, body_y, body_rx, body_ry, p.body);
 
-    // Armor plates (osteoderm pattern covering the back)
-    for &(dx, dy) in &[(-8,-5), (-4,-7), (0,-8), (4,-7), (8,-5), (-6,-3), (6,-3),
+    // Armor plates (osteoderm pattern covering the back) — bioluminescent
+    // specks now that the doc (§4.3) calls these out as full-bright crests
+    // at adult stage. Pinpoint Cyan core + faded TealDark halo so each
+    // plate reads as a small light source on the armor.
+    let plate_halo = Rgba(Palette::TealDark.rgba(110));
+    for &(dx, dy) in &[(-8_i32, -5_i32), (-4,-7), (0,-8), (4,-7), (8,-5), (-6,-3), (6,-3),
                         (-10,-1), (10,-1), (-4,2), (4,2)] {
-        put(img, cx + dx, body_y + dy, SCALE_LIGHT);
+        BioluminescentSpeck::new(cx + dx, body_y + dy, Palette::CyanBright)
+            .with_core_radius(0)
+            .with_halo(Palette::TealDark)
+            .paint_with(img, SCALE_LIGHT, Some(plate_halo));
     }
 
     // Belly (lighter underbelly with scale rows)

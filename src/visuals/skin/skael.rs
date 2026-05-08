@@ -126,15 +126,19 @@ pub fn draw_young(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
     let hr = 11;
     let body_r = 12;
 
-    // Horn nubs (move with horn points)
-    fill_rect(img, hl_x - 1, hl_y, 3, 3, HORN);
-    put(img, hl_x, hl_y - 2, HORN);
-    fill_rect(img, hr_x - 1, hr_y, 3, 3, HORN);
-    put(img, hr_x, hr_y - 2, HORN);
+    // Horn nubs (move with horn points) — short TaperedTails pointing up.
+    // Base 1 (3px wide) at the head plate, tip 1px ~5px above.
+    TaperedTail::new((hl_x, hl_y + 2), (hl_x, hl_y - 3), 1, Palette::Brown)
+        .paint_with(img, HORN, None);
+    TaperedTail::new((hr_x, hr_y + 2), (hr_x, hr_y - 3), 1, Palette::Brown)
+        .paint_with(img, HORN, None);
 
-    // Tail chain (segmented)
-    fill_rect(img, t1_x - 2, t1_y, 5, (t2_y - t1_y).max(2), p.accent);
-    fill_rect(img, t2_x - 1, t2_y, 3, (t3_y - t2_y).max(2), p.accent);
+    // Tail chain (segmented) — two TaperedTails in succession so the chain
+    // tapers from a 5px base at the body down through a single-pixel tip.
+    TaperedTail::new((t1_x, t1_y), (t2_x, t2_y), 2, Palette::Teal)
+        .paint_with(img, p.accent, None);
+    TaperedTail::new((t2_x, t2_y), (t2_x, t3_y), 1, Palette::Teal)
+        .paint_with(img, p.accent, None);
     put(img, t1_x, t1_y + 1, HORN); // first tail spine
 
     // Legs

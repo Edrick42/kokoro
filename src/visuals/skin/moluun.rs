@@ -141,8 +141,14 @@ pub fn draw_young(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
     put(img, hx - 12, hy - 13, EAR_GLOW);
     put(img, hx + 12, hy - 13, EAR_GLOW);
 
-    // Head (soft body position)
-    fill_circle(img, hx, hy, hr, p.body);
+    // Head (soft body position) — BumpyDome with low bumpiness; head still
+    // dominates but no longer reads as a perfect circle. Different seed than
+    // the cub head so the silhouette evolves visibly across stages.
+    BumpyDome::new(hx, hy, hr as u32, Palette::Gold)
+        .with_bumpiness(0.22)
+        .with_bumps(9)
+        .with_seed(11)
+        .paint_with(img, p.body, None);
     for &(dx, dy) in &[(-6,-4), (5,-3), (-3,-8)] {
         put(img, hx + dx, hy + dy, p.accent);
     }
@@ -154,8 +160,13 @@ pub fn draw_young(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
     let neck_height = (neck_bottom - neck_top).max(1);
     fill_rect(img, neck_cx - 5, neck_top, 11, neck_height, p.body);
 
-    // Body (soft body position)
-    fill_circle(img, bx, by, body_r, p.body);
+    // Body (soft body position) — BumpyDome too, slightly more bumpy than
+    // the head so the silhouette suggests fluffier torso fur.
+    BumpyDome::new(bx, by, body_r as u32, Palette::Gold)
+        .with_bumpiness(0.30)
+        .with_bumps(10)
+        .with_seed(19)
+        .paint_with(img, p.body, None);
     for &(dx, dy) in &[(-5,-3), (4,2), (-3,5), (6,-1), (-7,1)] {
         put(img, bx + dx, by + dy, p.accent);
     }

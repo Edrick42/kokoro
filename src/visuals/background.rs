@@ -315,10 +315,33 @@ fn draw_highlands(img: &mut RgbaImage, time: &TimeOfDay) {
         }
     }
 
-    // Clouds
-    for &(x, y, w) in &[(5, 10, 14), (30, 6, 18), (50, 12, 10)] {
-        fill_rect(img, x, y, w, 3, cloud);
-        fill_rect(img, x + 2, y - 1, w - 4, 1, cloud);
+    // Clouds — three puffs per cloud (left/center/right) using BumpyDome with
+    // very low bumpiness so each puff reads as round-soft, not chunky. Center
+    // puff is largest and slightly higher, giving each cloud a pillowed top.
+    let clouds = [
+        (5_i32,  10_i32, 14_u32, 17_u32),
+        (30,      6,    18,    44),
+        (50,     12,    10,    81),
+    ];
+    for &(x, y, w, seed) in &clouds {
+        let r_side   = (w / 4).max(2);
+        let r_center = (w / 3).max(3);
+        let cy_side  = y + 1;
+        let cy_top   = y;
+        let cx_left  = x + (w as i32) / 4;
+        let cx_mid   = x + (w as i32) / 2;
+        let cx_right = x + (w as i32) * 3 / 4;
+        for (cx_p, r, seed_off, cy) in [
+            (cx_left,  r_side,   0, cy_side),
+            (cx_mid,   r_center, 1, cy_top),
+            (cx_right, r_side,   2, cy_side),
+        ] {
+            BumpyDome::new(cx_p, cy, r, Palette::CreamLight)
+                .with_bumpiness(0.15)
+                .with_bumps(8)
+                .with_seed(seed.wrapping_add(seed_off))
+                .paint_with(img, cloud, None);
+        }
     }
 
     // Rocky cliff platform

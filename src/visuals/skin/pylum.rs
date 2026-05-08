@@ -201,20 +201,23 @@ pub fn draw_adult(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
         put(img, fr_x - 3 + dx, fr_y + 3, CLAW);
     }
 
-    // Wings — from soft body wing positions to wingtip positions
-    let wing_h = ((wtl_y - wl_y).abs().max(2)) as i32;
-    fill_rect(img, wl_x, wl_y, (cx - wl_x).max(1), wing_h.min(16), p.accent);
-    fill_rect(img, cx, wr_y, (wr_x - cx).max(1), wing_h.min(16), p.accent);
-    // Wing tips (feathered edges)
-    fill_rect(img, wtl_x, wtl_y, (wl_x - wtl_x).max(1), (wing_h / 2).max(3), p.accent);
-    fill_rect(img, wr_x, wtr_y, (wtr_x - wr_x).max(1), (wing_h / 2).max(3), p.accent);
+    // Wings — full adult feathers expressed as TaperedTails radiating from
+    // the body to the wingtip soft-body anchors. Inner span (body→wing root)
+    // is the heavy proximal feather mass (base 4); outer span (wing root→
+    // wingtip) is the long finer flight feather (base 3, longer reach).
+    TaperedTail::new((cx, wl_y), (wl_x, wl_y), 4, Palette::Orange)
+        .paint_with(img, p.accent, None);
+    TaperedTail::new((cx, wr_y), (wr_x, wr_y), 4, Palette::Orange)
+        .paint_with(img, p.accent, None);
+    TaperedTail::new((wl_x, wl_y), (wtl_x, wtl_y), 3, Palette::Orange)
+        .paint_with(img, p.accent, None);
+    TaperedTail::new((wr_x, wr_y), (wtr_x, wtr_y), 3, Palette::Orange)
+        .paint_with(img, p.accent, None);
+    // Wingtip feather streaks — fading splays at the very end of each wing.
     for i in 0..4 {
         put(img, wtl_x, wtl_y + i * 2, fade(p.accent, 0.3));
         put(img, wtr_x, wtr_y + i * 2, fade(p.accent, 0.3));
     }
-    // Wing inner edge highlights
-    fill_rect(img, wl_x + 1, wl_y, 1, wing_h.min(10), p.body_light);
-    fill_rect(img, wr_x - 1, wr_y, 1, wing_h.min(10), p.body_light);
 
     // Body — BumpyDome closes Pylum's lifecycle. Lowest bumpiness in the
     // curve (0.20) so the adult silhouette is solid and imposing.

@@ -48,8 +48,14 @@ pub trait Brush {
 pub struct BumpyDome {
     pub cx: i32,
     pub cy: i32,
+    /// Horizontal radius. With `ry == None` this also acts as the vertical
+    /// radius (perfect circle).
     pub radius: u32,
-    /// 0.0 = perfect circle, 1.0 = strong bumps. Clamped at paint time.
+    /// Optional independent vertical radius. `None` = circle (== radius).
+    /// `Some(r)` makes the dome an ellipse, useful for eggs, oval bodies,
+    /// elongated mantles.
+    pub ry: Option<u32>,
+    /// 0.0 = perfect circle/ellipse, 1.0 = strong bumps. Clamped at paint time.
     pub bumpiness: f32,
     /// How many bumps run around the silhouette. 6–10 reads as organic.
     pub bumps: u32,
@@ -67,6 +73,7 @@ impl BumpyDome {
             cx,
             cy,
             radius,
+            ry: None,
             bumpiness: 0.4,
             bumps: 8,
             seed: 0,
@@ -94,6 +101,13 @@ impl BumpyDome {
         self.shadow = Some(s);
         self
     }
+
+    /// Make the dome elliptical with an independent vertical radius. Useful
+    /// for eggs (oval), wide bodies, elongated mantles.
+    pub const fn with_height(mut self, ry: u32) -> Self {
+        self.ry = Some(ry);
+        self
+    }
 }
 
 impl BumpyDome {
@@ -104,42 +118,58 @@ impl BumpyDome {
     pub fn paint_with(&self, img: &mut RgbaImage, body: Rgba<u8>, shadow_pixel: Option<Rgba<u8>>) {
         let bumpiness = self.bumpiness.clamp(0.0, 1.0);
         let bumps = self.bumps.max(1);
-        let r = self.radius as f32;
-        let max_perturb = r * 0.25 * bumpiness;
+        let rx = self.radius.max(1) as f32;
+        let ry = self.ry.unwrap_or(self.radius).max(1) as f32;
+        // Bumps perturb the unit-circle distance; scale it by the smaller
+        // axis so an ellipse doesn't get exaggerated bumps along the wider
+        // direction.
+        let max_perturb = rx.min(ry) * 0.25 * bumpiness;
 
-        // Pre-compute per-sector radii so we don't recalc inside the pixel loop.
-        let mut sector_radii = [0.0_f32; 32];
+        // Pre-compute per-sector perturbation factors. Stored as a
+        // multiplier on the unit-distance threshold: sector_r[s] in
+        // (1 - k .. 1 + k) range where k = max_perturb / min_axis.
+        let mut sector_factor = [1.0_f32; 32];
         let n = bumps.min(32) as usize;
+        let perturb_scale = max_perturb / rx.min(ry);
         for s in 0..n {
             let h = hash2(s as u32, self.seed);
-            let perturb = ((h % 1000) as f32 / 1000.0 - 0.5) * 2.0 * max_perturb;
-            sector_radii[s] = r + perturb;
+            let perturb = ((h % 1000) as f32 / 1000.0 - 0.5) * 2.0 * perturb_scale;
+            sector_factor[s] = 1.0 + perturb;
         }
 
-        let bound = (self.radius as i32) + (max_perturb as i32) + 2;
+        let bound_x = (self.radius as i32) + (max_perturb as i32) + 2;
+        let bound_y = (self.ry.unwrap_or(self.radius) as i32) + (max_perturb as i32) + 2;
         let w = img.width() as i32;
         let h = img.height() as i32;
         let two_pi = std::f32::consts::TAU;
 
-        for dy in -bound..=bound {
-            for dx in -bound..=bound {
+        for dy in -bound_y..=bound_y {
+            for dx in -bound_x..=bound_x {
                 let px = self.cx + dx;
                 let py = self.cy + dy;
                 if px < 0 || py < 0 || px >= w || py >= h {
                     continue;
                 }
 
-                let dist_sq = (dx * dx + dy * dy) as f32;
+                // Normalised ellipse distance — squared, so 1.0 is the unit
+                // boundary. Bumps move that boundary in/out per sector.
+                let nx = dx as f32 / rx;
+                let ny = dy as f32 / ry;
+                let dist_sq = nx * nx + ny * ny;
+
                 let angle = (dy as f32).atan2(dx as f32);
                 let normalized = (angle + two_pi) % two_pi;
                 let sector = ((normalized / two_pi) * bumps as f32) as usize % n;
-                let eff_r = sector_radii[sector];
+                let factor = sector_factor[sector];
+                let threshold = factor * factor; // compare on squared
 
-                if dist_sq <= eff_r * eff_r {
+                if dist_sq <= threshold {
                     img.put_pixel(px as u32, py as u32, body);
                 } else if let Some(s_px) = shadow_pixel {
-                    let rim_outer = eff_r + 1.0;
-                    if dist_sq <= rim_outer * rim_outer && dx + dy > 0 {
+                    // 1px outward rim — bump factor + a small constant in
+                    // normalized space.
+                    let rim_threshold = (factor + 1.0 / rx.min(ry)).powi(2);
+                    if dist_sq <= rim_threshold && dx + dy > 0 {
                         img.put_pixel(px as u32, py as u32, s_px);
                     }
                 }
@@ -405,6 +435,27 @@ mod tests {
         }
 
         save_swatch(&img, "bumpy_dome_circle.png");
+    }
+
+    #[test]
+    fn bumpy_dome_elliptical_paints_within_aspect() {
+        // ry > rx => taller-than-wide ellipse (egg-like).
+        let mut img = RgbaImage::new(64, 64);
+        BumpyDome::new(32, 32, 10, Palette::Cream)
+            .with_height(16)
+            .with_bumpiness(0.0)
+            .paint(&mut img);
+
+        let cream: Rgba<u8> = Palette::Cream.into();
+
+        // A point inside the y-axis but beyond the x radius should NOT be
+        // painted: at (32, 32 + 14) the normalized dist = (0)² + (14/16)² ≈ 0.77 < 1, painted.
+        // At (32 + 12, 32) the normalized dist = (12/10)² ≈ 1.44 > 1, should be background.
+        assert_eq!(img.get_pixel(32, 32 + 14), &cream, "tall axis should reach +14");
+        let outside_wide = img.get_pixel((32 + 12) as u32, 32);
+        assert_ne!(outside_wide, &cream, "wide axis should not reach +12 (rx=10)");
+
+        save_swatch(&img, "bumpy_dome_egg.png");
     }
 
     #[test]

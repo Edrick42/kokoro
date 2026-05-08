@@ -9,7 +9,7 @@
 use image::{RgbaImage, Rgba};
 use bevy::prelude::Res;
 use kokoro_art_palette::Palette;
-use kokoro_art_palette::dsl::{BumpyDome, BioluminescentSpeck};
+use kokoro_art_palette::dsl::{BumpyDome, BioluminescentSpeck, TaperedTail};
 use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
 use super::{SpeciesSkin, fill_circle, fill_rect, put, draw_eyes, fade};
@@ -116,16 +116,25 @@ pub fn draw_young(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
         put(img, mtx + dx, mty - 6, GLOW_FAINT);
     }
 
-    // Tentacles — root → tip rectangles
-    fill_rect(img, bl_x - 1, bl_y, 3, (tbl_y - bl_y).max(2), p.accent);
-    fill_rect(img, fl_x - 1, fl_y, 3, (tfl_y - fl_y).max(2), p.accent);
-    fill_rect(img, fr_x - 1, fr_y, 3, (tfr_y - fr_y).max(2), p.accent);
-    fill_rect(img, br_x - 1, br_y, 3, (tbr_y - br_y).max(2), p.accent);
-    // Glow tips
-    fill_rect(img, tbl_x - 1, tbl_y - 2, 3, 2, GLOW_DIM);
-    fill_rect(img, tfl_x - 1, tfl_y - 2, 3, 2, GLOW_DIM);
-    fill_rect(img, tfr_x - 1, tfr_y - 2, 3, 2, GLOW_DIM);
-    fill_rect(img, tbr_x - 1, tbr_y - 2, 3, 2, GLOW_DIM);
+    // Tentacles — DSL TaperedTail from root to tip. Unlike the previous
+    // fill_rect approach, this respects horizontal soft-body drift between
+    // root and tip, so a swaying tentacle actually arcs instead of staying
+    // perfectly vertical. Base half-width 1 (3px wide), tip 1px.
+    for (root, tip) in [
+        ((bl_x, bl_y), (tbl_x, tbl_y)),
+        ((fl_x, fl_y), (tfl_x, tfl_y)),
+        ((fr_x, fr_y), (tfr_x, tfr_y)),
+        ((br_x, br_y), (tbr_x, tbr_y)),
+    ] {
+        TaperedTail::new(root, tip, 1, Palette::Red).paint_with(img, p.accent, None);
+    }
+    // Glow tips — bioluminescent specks with halo, replacing the 3x2 rect.
+    for &(tx, ty) in &[(tbl_x, tbl_y), (tfl_x, tfl_y), (tfr_x, tfr_y), (tbr_x, tbr_y)] {
+        BioluminescentSpeck::new(tx, ty - 1, Palette::CyanBright)
+            .with_core_radius(0)
+            .with_halo(Palette::Teal)
+            .paint_with(img, GLOW_DIM, Some(GLOW_FAINT));
+    }
 
     // Body dome
     fill_circle(img, mx, my, mr, p.body);

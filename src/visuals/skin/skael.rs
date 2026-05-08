@@ -9,7 +9,7 @@
 use image::{RgbaImage, Rgba};
 use bevy::prelude::Res;
 use kokoro_art_palette::Palette;
-use kokoro_art_palette::dsl::TaperedTail;
+use kokoro_art_palette::dsl::{TaperedTail, BioluminescentSpeck};
 use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
 use super::{SpeciesSkin, fill_circle, fill_rect, fill_ellipse, put, draw_eyes, fade};
@@ -152,10 +152,17 @@ pub fn draw_young(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
     fill_circle(img, bx, body_y, body_r, p.body);
     fill_circle(img, bx, body_y + 3, 8, p.body_light);
 
-    // First scale plates on back
-    put(img, bx - 3, body_y - 6, SCALE_LIGHT);
-    put(img, bx, body_y - 7, SCALE_LIGHT);
-    put(img, bx + 3, body_y - 6, SCALE_LIGHT);
+    // First scale plates on back — proto-bioluminescent crests. Each plate
+    // is a pinpoint Cyan core with a faded TealDark halo so they read as
+    // emerging light points, not flat marks. Adult version (§4.3) makes the
+    // crests fully bright; here they're early hints.
+    let crest_halo = Rgba(Palette::TealDark.rgba(120));
+    for &(ox, oy) in &[(-3_i32, -6_i32), (0, -7), (3, -6)] {
+        BioluminescentSpeck::new(bx + ox, body_y + oy, Palette::CyanBright)
+            .with_core_radius(0)
+            .with_halo(Palette::TealDark)
+            .paint_with(img, SCALE_LIGHT, Some(crest_halo));
+    }
     put(img, bx - 1, body_y - 8, HORN);
 
     // Neck

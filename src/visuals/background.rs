@@ -12,6 +12,7 @@ use bevy::prelude::*;
 use bevy::image::ImageSampler;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use image::{RgbaImage, Rgba};
+use kokoro_art_palette::Palette;
 
 use crate::game::state::{AppState, GameplayEntity};
 use crate::config::ui::palette;
@@ -185,11 +186,10 @@ fn draw_biome(img: &mut RgbaImage, species: &Species, time: &TimeOfDay) {
 
 /// Night darkening factor for pixel colors.
 fn night_tint(color: Rgba<u8>, time: &TimeOfDay) -> Rgba<u8> {
-    let dark = Rgba([15, 12, 20, 255]);
     match time {
-        TimeOfDay::Night   => px_blend(color, dark, 0.55),
-        TimeOfDay::Sunset  => px_blend(color, Rgba([60, 40, 30, 255]), 0.20),
-        TimeOfDay::Morning => px_blend(color, Rgba([240, 230, 215, 255]), 0.10),
+        TimeOfDay::Night   => px_blend(color, Palette::Charcoal.into(),  0.55),
+        TimeOfDay::Sunset  => px_blend(color, Palette::DeepBrown.into(), 0.20),
+        TimeOfDay::Morning => px_blend(color, Palette::OffWhite.into(),  0.10),
         TimeOfDay::Afternoon => color,
     }
 }
@@ -199,16 +199,17 @@ fn night_tint(color: Rgba<u8>, time: &TimeOfDay) -> Rgba<u8> {
 // -------------------------------------------------------------------
 
 fn draw_verdance(img: &mut RgbaImage, time: &TimeOfDay) {
-    let sky       = night_tint(Rgba([170, 200, 160, 255]), time);
-    let sky_light = night_tint(Rgba([195, 215, 180, 255]), time);
-    let trunk     = night_tint(Rgba([80, 60, 45, 255]), time);
-    let trunk_dk  = night_tint(Rgba([55, 40, 30, 255]), time);
-    let leaf      = night_tint(Rgba([65, 130, 70, 255]), time);
-    let leaf_lt   = night_tint(Rgba([90, 160, 95, 255]), time);
-    let moss      = night_tint(Rgba([50, 100, 55, 255]), time);
-    let ground    = night_tint(Rgba([75, 65, 50, 255]), time);
-    let ground_lt = night_tint(Rgba([95, 80, 60, 255]), time);
-    let firefly   = Rgba([200, 220, 120, 180]); // glows regardless of time
+    // Verdance per docs/aesthetic-targets.md §5b.4 (forest, Forest+Brown ramps).
+    let sky       = night_tint(Palette::Sage.into(),       time);
+    let sky_light = night_tint(Palette::CreamLight.into(), time);
+    let trunk     = night_tint(Palette::Brown.into(),      time);
+    let trunk_dk  = night_tint(Palette::BrownDark.into(),  time);
+    let leaf      = night_tint(Palette::Forest.into(),     time);
+    let leaf_lt   = night_tint(Palette::Sage.into(),       time);
+    let moss      = night_tint(Palette::ForestDark.into(), time);
+    let ground    = night_tint(Palette::Brown.into(),      time);
+    let ground_lt = night_tint(Palette::Tan.into(),        time);
+    let firefly   = Rgba(Palette::CreamLight.rgba(180));   // glows regardless of time
 
     // Sky gradient
     for y in 0..30 {
@@ -260,17 +261,18 @@ fn draw_verdance(img: &mut RgbaImage, time: &TimeOfDay) {
 // -------------------------------------------------------------------
 
 fn draw_highlands(img: &mut RgbaImage, time: &TimeOfDay) {
-    let sky       = night_tint(Rgba([160, 185, 210, 255]), time);
-    let sky_light = night_tint(Rgba([200, 215, 235, 255]), time);
-    let cloud     = night_tint(Rgba([230, 225, 220, 200]), time);
-    let rock      = night_tint(Rgba([120, 105, 90, 255]), time);
-    let rock_lt   = night_tint(Rgba([150, 135, 115, 255]), time);
-    let rock_dk   = night_tint(Rgba([85, 75, 65, 255]), time);
-    let peak      = night_tint(Rgba([170, 160, 150, 255]), time);
-    let peak_snow = night_tint(Rgba([220, 215, 210, 255]), time);
-    let _ground    = night_tint(Rgba([130, 115, 85, 255]), time);
-    let grass     = night_tint(Rgba([110, 140, 80, 255]), time);
-    let wind      = Rgba([200, 210, 220, 100]);
+    // Highlands per docs/aesthetic-targets.md §5b.5 (sunset, Orange ramp + Charcoal/Teal silhouettes).
+    let sky       = night_tint(Palette::OrangeDark.into(),   time);
+    let sky_light = night_tint(Palette::OrangeBright.into(), time);
+    let cloud     = night_tint(Rgba(Palette::CreamLight.rgba(200)), time);
+    let rock      = night_tint(Palette::TealDark.into(),     time);
+    let rock_lt   = night_tint(Palette::DeepTeal.into(),     time);
+    let rock_dk   = night_tint(Palette::Charcoal.into(),     time);
+    let peak      = night_tint(Palette::DeepTeal.into(),     time);
+    let peak_snow = night_tint(Palette::CreamLight.into(),   time);
+    let _ground   = night_tint(Palette::Tan.into(),          time);
+    let grass     = night_tint(Palette::Sage.into(),         time);
+    let wind      = Rgba(Palette::CreamLight.rgba(100));
 
     // Sky gradient
     for y in 0..35 {
@@ -324,16 +326,17 @@ fn draw_highlands(img: &mut RgbaImage, time: &TimeOfDay) {
 // -------------------------------------------------------------------
 
 fn draw_shallows(img: &mut RgbaImage, time: &TimeOfDay) {
-    let cave_bg   = night_tint(Rgba([40, 50, 55, 255]), time);
-    let cave_lt   = night_tint(Rgba([55, 65, 70, 255]), time);
-    let ceiling   = night_tint(Rgba([30, 35, 40, 255]), time);
-    let crystal   = Rgba([80, 190, 160, 220]);       // teal glow
-    let crystal_b = Rgba([60, 160, 140, 180]);        // dimmer crystal
-    let water     = night_tint(Rgba([50, 90, 110, 255]), time);
-    let water_lt  = Rgba([70, 120, 140, 200]);         // shimmer
-    let mineral   = Rgba([130, 180, 100, 160]);        // glowing minerals
-    let stalac    = night_tint(Rgba([65, 55, 50, 255]), time);
-    let ground    = night_tint(Rgba([60, 55, 50, 255]), time);
+    // Shallows per docs/aesthetic-targets.md §5b.3 (crystal cave, Teal/Cyan ramp + DeepBrown floor).
+    let cave_bg   = night_tint(Palette::DeepTeal.into(), time);
+    let cave_lt   = night_tint(Palette::TealDark.into(), time);
+    let ceiling   = night_tint(Palette::Charcoal.into(), time);
+    let crystal   = Rgba(Palette::CyanBright.rgba(220));       // teal glow
+    let crystal_b = Rgba(Palette::Teal.rgba(180));             // dimmer crystal
+    let water     = night_tint(Palette::DeepTeal.into(), time);
+    let water_lt  = Rgba(Palette::CyanBright.rgba(200));       // shimmer
+    let mineral   = Rgba(Palette::CoralPink.rgba(160));        // pink crystal accent
+    let stalac    = night_tint(Palette::DeepBrown.into(), time);
+    let ground    = night_tint(Palette::DeepBrown.into(), time);
 
     // Cave background (dark)
     fill_rect(img, 0, 0, 64, 64, cave_bg);
@@ -387,15 +390,16 @@ fn draw_shallows(img: &mut RgbaImage, time: &TimeOfDay) {
 // -------------------------------------------------------------------
 
 fn draw_depths(img: &mut RgbaImage, _time: &TimeOfDay) {
-    // The deep ocean looks the same day or night — eternal darkness
-    let deep_top  = Rgba([15, 20, 45, 255]);    // dark blue-purple
-    let deep_mid  = Rgba([10, 12, 30, 255]);     // darker
-    let deep_bot  = Rgba([5, 5, 15, 255]);       // near black
-    let particle  = Rgba([30, 50, 80, 150]);      // floating debris
-    let bio_dim   = Rgba([40, 120, 140, 120]);    // dim bioluminescence
-    let bio_bright = Rgba([60, 180, 200, 180]);   // bright bioluminescence
-    let orb       = Rgba([80, 200, 220, 200]);    // glowing orbs
-    let pressure  = Rgba([20, 25, 50, 100]);      // pressure distortion lines
+    // Depths per docs/aesthetic-targets.md §5b.2 (abyssal ocean, Teal/Charcoal + CyanBright biolume).
+    // Eternal darkness — no day/night tint applied.
+    let deep_top   = Palette::DeepTeal.into();
+    let deep_mid   = Palette::TealDark.into();
+    let deep_bot   = Palette::Charcoal.into();
+    let particle   = Rgba(Palette::CreamLight.rgba(150));   // marine snow
+    let bio_dim    = Rgba(Palette::Teal.rgba(120));         // dim bioluminescence
+    let bio_bright = Rgba(Palette::CyanBright.rgba(180));   // bright bioluminescence
+    let orb        = Rgba(Palette::CyanBright.rgba(200));   // glowing orbs
+    let pressure   = Rgba(Palette::DeepTeal.rgba(100));     // pressure distortion lines
 
     // Deep ocean gradient (always dark)
     for y in 0..64 {

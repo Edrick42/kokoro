@@ -1,30 +1,87 @@
 # Kokoro — Art Direction
 
-> Visual style: Retro pixel art with a strict 6-color palette. Game Boy aesthetic meets biological simulation.
+> Visual style: Retro pixel art with a curated 26-color palette organized in ramps. Game Boy heritage meets cozy ghibli aesthetic, kawaii in cubs maturing to characterful adults.
+>
+> **Métricas quantitativas** (proporções, ratios kindchenschema, mapeamento por espécie por estágio) vivem em `docs/aesthetic-targets.md`. Este doc cobre a direção/filosofia; o outro cobre os números.
 
 ## Style Reference
 
-Inspired by Game Boy-era pixel art and Noita-style runtime rendering. Everything computed in Rust — no pre-made sprites, no external art tools.
+Inspirado em pixel art Game Boy/SNES-era + simplificações Studio Ghibli + kawaii character design moderno (kindchenschema explícito em cubs). Tudo computado em Rust via DSL — no pre-made sprites, no external art tools, no AI generation in pipeline.
 
 Key characteristics:
-- **Pixel art**: 64×64 creature canvas, 16×16 effects, nearest-neighbor upscaling
-- **6-color palette**: Cream, Near Black, Red, Teal, Gold, Orange — all UI, creatures, and backgrounds use only these colors (with depth variations for lighter/darker shading)
-- **Flat rectangles**: no rounded corners, 2px borders, Game Boy button style
-- **Pixel font**: Press Start 2P for all text
-- **Strong silhouettes**: each species instantly recognizable by shape + color
-- **Runtime rendering**: every pixel computed from genome, species, mood, and growth stage
-- **Depth through value**: each species color has lighter (belly) and darker (accent) variants for visual volume
+- **Pixel art retrô**: nearest-neighbor, sem AA suave, pixel duro
+- **Paleta curada de 26 cores em ramps**: nenhuma cor gerada via HSL/genome direto. Genome escolhe **slot e ramp**, não RGB.
+- **Flat rectangles em UI**: no rounded corners, 2px borders, Game Boy button style
+- **Pixel font**: Press Start 2P
+- **Strong silhouettes**: cada espécie reconhecível pelo shape + ramp principal
+- **Runtime rendering via DSL**: cada pixel computado a partir de genome, species, mood, growth stage e `kawaii_factor` contínuo
+- **Lifecycle de estilo**: Cub kawaii máximo → Adult cozy ghibli → Elder dessaturado/wise. `kawaii_factor: 1.0 → 0.0 → 0.2` controla proporções, blush, detalhe interno e saturação.
 
-## The Palette
+## A Paleta Master (26 cores em 9 ramps)
 
-| Name | Hex | Creature | UI Role |
-|------|-----|----------|---------|
-| Cream | #D9C7AE | Belly highlights | Background, panels, button fills |
-| Near Black | #1B130D | All eyes, mouths | Text, borders, outlines |
-| Red | #D90D43 | Nyxal body | Danger, hunger stat |
-| Teal | #016970 | Skael body | Energy stat |
-| Gold | #D9A404 | Moluun body | Happiness stat |
-| Orange | #D96704 | Pylum body | Action accent |
+Mantém as 6 cores originais (Cream, Near Black, Red, Teal, Gold, Orange) como família central. Expande com ramps de shadow/highlight e bandas adicionais (earths, greens, biolume).
+
+### Darks / Outlines (4)
+| Name | Hex | Uso |
+|---|---|---|
+| NearBlack | `#1B130D` | outline padrão warm, eyes universal |
+| DeepBrown | `#3B2418` | outline pra criaturas warm (Moluun/Pylum/Nyxal) |
+| DeepTeal | `#0A2A2D` | outline pra criaturas cool (Skael) |
+| Charcoal | `#2A2520` | sombras profundas em background |
+
+### Cream / Highlights (3)
+| Name | Hex | Uso |
+|---|---|---|
+| Cream | `#D9C7AE` | belly, background neutro, glint pequeno |
+| CreamLight | `#F0E2C8` | glint forte, bioluminescência peak |
+| OffWhite | `#FBF4E2` | sparkle pontual, eye glint |
+
+### Warm earths (4)
+| Name | Hex | Uso |
+|---|---|---|
+| Tan | `#C49870` | skin secundário, ear inner |
+| Brown | `#8B5A3A` | fur shadow, soil |
+| BrownDark | `#5A3622` | fur deep shadow, bark |
+| Sand | `#E5C896` | background quente |
+
+### Gold ramp (3)
+| Name | Hex | Uso |
+|---|---|---|
+| GoldDark | `#A07803` | Moluun body shadow |
+| Gold | `#D9A404` | Moluun body, happiness stat UI |
+| OrangeBright | `#F08828` | accent (penas, escamas brilhantes), Moluun highlight |
+
+### Orange ramp (3)
+| Name | Hex | Uso |
+|---|---|---|
+| OrangeDark | `#A04C03` | Pylum body shadow |
+| Orange | `#D96704` | Pylum body, action accent UI |
+| OrangeLight | `#F0883D` | Pylum belly highlight |
+
+### Red ramp (3)
+| Name | Hex | Uso |
+|---|---|---|
+| RedDark | `#A00930` | Nyxal body shadow, Skael thermal pit, danger UI shadow |
+| Red | `#D90D43` | Nyxal body, danger/hunger stat UI |
+| CoralPink | `#F06B85` | cheek blush universal (Cubs/Young), Nyxal highlight |
+
+### Teal ramp (3)
+| Name | Hex | Uso |
+|---|---|---|
+| TealDark | `#014045` | Skael body shadow |
+| Teal | `#016970` | Skael body, energy stat UI |
+| CyanBright | `#4DC3CC` | bioluminescência fria (Nyxal/Skael), water highlight |
+
+### Forest greens (3)
+| Name | Hex | Uso |
+|---|---|---|
+| ForestDark | `#1F3A28` | Verdance bioma deep |
+| Forest | `#3D6E45` | Verdance bioma mid |
+| Sage | `#87A878` | Verdance highlight, fresh leaves |
+
+### Regra absoluta
+
+Nenhum brush ou primitiva pode invocar `Color::rgb(...)` com valor cru. Tudo passa pelo enum `Palette` (definido em `aesthetic-targets.md` §1). Compilador garante: zero cor fora dessa lista. Genome modula **qual ramp** uma criatura ocupa e **qual posição na ramp** — nunca cores cruas.
 
 ## Body Plans (Anatomy-Grounded Alien Biology)
 
@@ -88,84 +145,43 @@ Each "alien" feature has a real-world analog and evolutionary purpose:
 
 ## How to Achieve This Visual Style
 
-### Option A: Procedural Low-Poly (Code-Generated)
-Current approach evolved. Instead of pixel ellipses, generate **triangulated polygonal meshes**.
+**Decisão (2026-05-08):** caminho oficial é **DSL procedural em Rust** — uma biblioteca de primitivas, brushes e composições que produz pixel art a partir de RON declarativo + genome. Nada de Blender, nada de AI generation no pipeline, nada de sprite sheets pré-renderizados.
 
-Pros:
-- Infinite variation per individual (gene-driven vertex positions)
-- No external art tools needed
-- Fits the "learn Rust" philosophy
+Justificativa:
+- Cada criatura única no nível do pixel (genome → parâmetros → pixels)
+- Hot-reload via RON: editar visuais sem recompilar
+- Aligna 100% com a filosofia "tudo procedural" já estabelecida (zero `.ogg`, backgrounds em código)
+- Vira diferencial real e ensinável (Parte VIII do ebook)
 
-Cons:
-- Hard to get the "warmth" of hand-crafted art
-- Triangle subdivision algorithms are complex
-
-### Option B: Blender → Sprite Sheet (Recommended for quality)
-Model each species as a simple low-poly 3D model in Blender, render orthographic views as sprite sheets.
-
-Pros:
-- Best visual quality
-- Easy to create mood variants (change expression, pose)
-- Low-poly models are fast to make (50-200 triangles per creature)
-- Free tool (Blender is open source)
-
-Cons:
-- Requires learning Blender basics
-- Can't generate infinite variation (would need to render per-genome — possible but complex)
-
-### Option C: Hybrid (Best of Both)
-- **Base shapes**: Hand-drawn or Blender-rendered low-poly sprites for the "template"
-- **Variation**: Code applies genome-driven modifications (color tint, scale adjustments, part positioning via the rig system)
-- **Animation**: Code-driven (current system already handles this — breathing, species behaviors)
-
-This is the recommended approach. The rig system already supports per-genome variation. You'd just need better base art.
-
-### Option D: AI-Assisted Generation
-Use AI image generation to create the base sprites in the low-poly style, then clean up manually.
-
-Pros: Fast prototyping
-Cons: Inconsistent style, copyright concerns, hard to animate
+Plano completo: ver `aesthetic-targets.md` §3 (especificações por feature) + roadmap das 9 semanas (Fases 0-7.5).
 
 ## Color Palette Philosophy
 
-### Base Colors (per biome)
-- **Verdance (Moluun)**: warm creams, soft browns, forest greens
-- **Highlands (Pylum)**: golds, ambers, warm whites, sky blues
-- **Shallows (Skael)**: cool greens, jade, earthy browns
-- **Depths (Nyxal)**: deep purples, dark blues, bioluminescent cyan accents
+A paleta master de 26 cores acima é a única fonte de verdade. Por bioma, cada espécie ocupa uma **assinatura de paleta** (subset de 6-10 cores), definida em `aesthetic-targets.md` §4.
 
-### Alien Accents
-- Bioluminescent glow: cyan, magenta, soft green — always on specific organs/features
-- Eyes: all species share deep black eyes — a universal Kobara trait (etharin pigment adaptation). Dark bead-like eyes maximize contrast against any body color, enhancing expressiveness at pixel-art scale.
+**Eyes universais:** todas espécies usam `NearBlack` puro com glint `OffWhite`. Bead-like solid, sem pupila/íris. Maximiza contraste em qualquer body color, mantém expressividade no pixel.
 
-### Facet Shading Rules
-- Top facets: brightest (light from above)
-- Side facets: medium tone
-- Bottom facets: darkest (shadow)
-- Accent facets: glow color on specific parts (eyes, kokoro-sac area, tentacle tips)
+**Bioluminescência:** `CyanBright` como base + `CreamLight` como peak. Pixels sólidos cintilando com timing — nunca halo/glow contínuo.
+
+**Cheek blush (kawaii signature):** `CoralPink`, presente em Cubs/Young, ausente em Adult/Elder (matura via `kawaii_factor`).
+
+**Shading:** sem facet shading 3D-style. Pixel art retrô usa **flat color + 1 tom shadow + 1 tom highlight** por região, transição dura. Nada de gradient ramp interno.
 
 ## Integration with Existing Systems
 
-The current rig system already supports everything needed:
-- **Anchor points**: vertex positions for each body part (already normalized [-1,1])
-- **Gene offsets**: each individual has slightly different proportions
-- **Species templates**: define which parts exist and their visual properties
-- **Mood-reactive parts**: eyes/mouth change with mood
+O rig system existente já suporta tudo que a DSL precisa:
+- **Anchor points**: posições normalizadas [-1,1] por body part
+- **Gene offsets**: variação individual em proporções
+- **Species templates**: definem quais partes existem e propriedades visuais
+- **Mood-reactive parts**: eyes/mouth mudam com FSM
 
-What needs to change:
-1. **Sprite assets**: replace current pixel art with low-poly style sprites
-2. **More anchor points**: current rigs have 6-8 parts. Alien bodies need 12-16 (extra eyes, wings, limbs)
-3. **New body plan rigs**: quadruped, serpentine, insectoid rigs in addition to bipedal/avian/cephalopod
-4. **Animation**: more complex part movement (4 wings need phase-offset flutter, 6 tentacles need wave patterns — we already have this pattern for Nyxal)
+O que muda com a DSL:
+1. **Drawing functions**: `draw_circle`/`draw_ellipse` saem. Entram primitivas com intenção (`bumpy_dome`, `tapered_tail`, `feathered_wing`) e brushes (`eye_with_glint`, `fur_edge`, `bioluminescent_speck`).
+2. **RON-driven config**: parâmetros visuais por espécie em `assets/species/X.ron`, hot-reloadable
+3. **`kawaii_factor` lifecycle**: parâmetro contínuo modula proporções e detalhe entre stages
+4. **Editor in-game**: F12 panel expandido com sliders/dropdowns pra cada parâmetro, "Save preset" escreve de volta no RON
 
-## Art Pipeline (Step by Step)
-
-1. **Sketch** silhouettes for each species (pen and paper or digital)
-2. **Choose method**: Blender low-poly or enhanced procedural generation
-3. **Create one species** in the new style as proof of concept (start with Moluun — simplest shape)
-4. **Validate** it works with the rig system (does the rig still resolve correctly?)
-5. **Iterate** — apply to remaining species, then design new ones
-6. **Animate** — verify breathing, species behaviors, and mood effects still look good
+Roadmap detalhado: ver fases 0-7.5 em `aesthetic-targets.md` (9 semanas focadas).
 
 ## Priority for New Species Design
 

@@ -10,7 +10,7 @@ use image::{RgbaImage, Rgba};
 use bevy::prelude::Res;
 use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
-use super::{Palette, fill_circle, fill_rect, put, draw_eyes, fade};
+use super::{SpeciesSkin, fill_circle, fill_rect, put, draw_eyes, fade};
 
 const GLOW_BRIGHT: Rgba<u8> = Rgba([80, 220, 240, 200]);
 const GLOW_DIM: Rgba<u8> = Rgba([50, 140, 160, 150]);
@@ -21,7 +21,7 @@ const SPOT: Rgba<u8> = Rgba([100, 60, 140, 255]);
 // EGG
 // ===================================================================
 
-pub fn draw_egg(img: &mut RgbaImage, p: &Palette, cx: i32) {
+pub fn draw_egg(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32) {
     let cy = 30;
     fill_circle(img, cx, cy, 14, p.egg);
     fill_circle(img, cx, cy, 10, fade(p.egg, 0.15));
@@ -39,7 +39,7 @@ pub fn draw_egg(img: &mut RgbaImage, p: &Palette, cx: i32) {
 // Planktonic larva: huge mantle dome with tiny tentacle nubs underneath.
 // Nearly transparent. Almost no glow. Alien blob.
 
-pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+pub fn draw_cub(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
     // Soft body positions
     let (mx, my) = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 16));
     let (mtx, mty) = sb.as_ref().map(|b| b.point("mantle_top").px()).unwrap_or((cx, 4));
@@ -83,7 +83,7 @@ pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb:
 // Allometric growth: tentacles grow MUCH faster than the dome.
 // The creature is transitioning from blob to cephalopod.
 
-pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+pub fn draw_young(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
     // Soft body positions
     let (mx, my) = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 16));
     let (mtx, mty) = sb.as_ref().map(|b| b.point("mantle_top").px()).unwrap_or((cx, 4));
@@ -141,7 +141,7 @@ pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, s
 // Complete transformation: tentacles are now the defining feature.
 // Dome is proportionally small. Rich chromatophore patterns. Side fins.
 
-pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+pub fn draw_adult(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
     let (_, my) = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 14));
     let mr = 11;
     let (mt_x, mt_y) = sb.as_ref().map(|b| b.point("mantle_top").px()).unwrap_or((cx, 4));

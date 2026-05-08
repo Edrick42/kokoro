@@ -10,7 +10,7 @@ use image::{RgbaImage, Rgba};
 use bevy::prelude::Res;
 use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
-use super::{Palette, fill_circle, fill_rect, fill_ellipse, put, draw_eyes, fade};
+use super::{SpeciesSkin, fill_circle, fill_rect, fill_ellipse, put, draw_eyes, fade};
 
 #[allow(dead_code)]
 const HIGHLIGHT: Rgba<u8> = Rgba([190, 170, 60, 200]); // golden eye shine
@@ -25,7 +25,7 @@ const RESONANCE_BRIGHT: Rgba<u8> = Rgba([90, 200, 145, 110]);
 // EGG
 // ===================================================================
 
-pub fn draw_egg(img: &mut RgbaImage, p: &Palette, cx: i32) {
+pub fn draw_egg(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32) {
     let cy = 30;
     fill_ellipse(img, cx, cy, 12, 16, p.egg);
     for i in 0..6 {
@@ -44,7 +44,7 @@ pub fn draw_egg(img: &mut RgbaImage, p: &Palette, cx: i32) {
 // Based on juvenile Komodo dragons that live in trees to avoid adults.
 // Upright posture, smooth skin (no armor), thin limbs, big head, long thin tail.
 
-pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _sb: &Option<Res<SoftBody>>) {
+pub fn draw_cub(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodState, _sb: &Option<Res<SoftBody>>) {
     // VERTICAL posture — tall, thin (opposite of adult's horizontal bulk)
     let hy = 16;    // head center
     let hr = 12;    // head (big for cub)
@@ -96,7 +96,7 @@ pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, _sb
 // Getting heavier. Can't climb trees anymore. First scale plates on back.
 // Small horn nubs. Tail thickening. Posture tilting toward horizontal.
 
-pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+pub fn draw_young(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
     // Soft body positions
     let (hx, hy) = sb.as_ref().map(|b| b.point("head").px()).unwrap_or((cx, 16));
     let (bx, body_y) = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 30));
@@ -174,7 +174,7 @@ pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, s
 // Body is now HORIZONTAL (wider than tall). Full armor plates. Tall horns.
 // Massive muscular tail with spines. Dorsal ridge. Thick powerful legs.
 
-pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+pub fn draw_adult(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
     // HORIZONTAL body plan — wide, low, heavy
     let (hx, hy) = sb.as_ref().map(|b| b.point("head").px()).unwrap_or((cx, 14));
     let hr = 10;
@@ -280,7 +280,7 @@ pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, s
 // ELDER overlay
 // ===================================================================
 
-pub fn draw_elder_details(img: &mut RgbaImage, _p: &Palette, cx: i32) {
+pub fn draw_elder_details(img: &mut RgbaImage, _p: &SpeciesSkin, cx: i32) {
     let hy = 14;
     let body_y = 28;
     let white = Rgba([200, 195, 180, 255]);

@@ -10,7 +10,7 @@ use image::{RgbaImage, Rgba};
 use bevy::prelude::Res;
 use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
-use super::{Palette, fill_circle, fill_rect, fill_ellipse, put, draw_eyes, fade, NEAR_BLACK_PX};
+use super::{SpeciesSkin, fill_circle, fill_rect, fill_ellipse, put, draw_eyes, fade, NEAR_BLACK_PX};
 
 const HIGHLIGHT: Rgba<u8> = Rgba([255, 255, 255, 180]);
 const CLAW: Rgba<u8> = Rgba([40, 30, 20, 255]);
@@ -21,7 +21,7 @@ const RESONANCE_BRIGHT: Rgba<u8> = Rgba([240, 210, 130, 110]);
 // EGG
 // ===================================================================
 
-pub fn draw_egg(img: &mut RgbaImage, p: &Palette, cx: i32) {
+pub fn draw_egg(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32) {
     let cy = 30;
     fill_ellipse(img, cx, cy, 11, 15, p.egg);
     fill_ellipse(img, cx, cy - 3, 9, 10, fade(p.egg, 0.05));
@@ -35,7 +35,7 @@ pub fn draw_egg(img: &mut RgbaImage, p: &Palette, cx: i32) {
 // CUB — fluffy down ball
 // ===================================================================
 
-pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+pub fn draw_cub(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
     let (_, by) = sb.as_ref().map(|b| b.point("head").px()).unwrap_or((cx, 22));
     let br = 17;
 
@@ -68,7 +68,7 @@ pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb:
 // YOUNG — gangly: LEGS explode, body small on top
 // ===================================================================
 
-pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+pub fn draw_young(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
     // Soft body positions
     let (hx, hy) = sb.as_ref().map(|b| b.point("head").px()).unwrap_or((cx, 12));
     let (bx, by) = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 26));
@@ -138,7 +138,7 @@ pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, s
 // ADULT — tall imposing: casque, wings, talons
 // ===================================================================
 
-pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+pub fn draw_adult(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
     let (hx, hy) = sb.as_ref().map(|b| b.point("head").px()).unwrap_or((cx, 10));
     let hr = 9;
     let (_, body_y) = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 24));
@@ -237,7 +237,7 @@ pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, s
 // ELDER overlay
 // ===================================================================
 
-pub fn draw_elder_details(img: &mut RgbaImage, _p: &Palette, cx: i32) {
+pub fn draw_elder_details(img: &mut RgbaImage, _p: &SpeciesSkin, cx: i32) {
     let hy = 10;
     let body_y = 24;
     let white = Rgba([230, 225, 210, 255]);

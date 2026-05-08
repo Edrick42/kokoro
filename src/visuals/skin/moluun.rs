@@ -10,7 +10,7 @@ use bevy::prelude::Res;
 use image::{RgbaImage, Rgba};
 use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
-use super::{Palette, fill_circle, fill_rect, fill_ellipse, put, draw_eyes, fade};
+use super::{SpeciesSkin, fill_circle, fill_rect, fill_ellipse, put, draw_eyes, fade};
 
 const HIGHLIGHT: Rgba<u8> = Rgba([255, 255, 255, 200]);
 const NOSE_COLOR: Rgba<u8> = Rgba([50, 35, 30, 255]);
@@ -24,7 +24,7 @@ const EAR_GLOW: Rgba<u8> = Rgba([140, 200, 220, 100]);
 // EGG
 // ===================================================================
 
-pub fn draw_egg(img: &mut RgbaImage, p: &Palette, cx: i32) {
+pub fn draw_egg(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32) {
     let cy = 30;
     fill_ellipse(img, cx, cy, 13, 17, p.egg);
     fill_ellipse(img, cx, cy + 8, 10, 5, fade(p.egg, 0.15));
@@ -43,7 +43,7 @@ pub fn draw_egg(img: &mut RgbaImage, p: &Palette, cx: i32) {
 // Head radius ~16px, body just a small bump underneath (~8px).
 // Ears tiny. Feet are round stubs. No arms at all.
 
-pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+pub fn draw_cub(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
     // Soft body positions (cub uses head and feet)
     let (hx, hy) = sb.as_ref().map(|b| b.point("head").px()).unwrap_or((cx, 22));
     let (bx, body_y) = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 42));
@@ -111,7 +111,7 @@ pub fn draw_cub(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb:
 // Short arms sprout. Ears grow noticeably. Feet get bigger.
 // Think Charmeleon — awkward middle stage, clearly transitioning.
 
-pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+pub fn draw_young(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
     // Soft body positions
     let (hx, hy) = sb.as_ref().map(|b| b.point("head").px()).unwrap_or((cx, 18));
     let (bx, by) = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 32));
@@ -188,7 +188,7 @@ pub fn draw_young(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, s
 // Full arms with paws. Thick legs with toe pads. Dense fur everywhere.
 // Think Charizard-level transformation — powerful, mature, complete.
 
-pub fn draw_adult(img: &mut RgbaImage, p: &Palette, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+pub fn draw_adult(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
     // === SOFT BODY POSITIONS ===
     // All positions come from physics simulation. Fallback to defaults if no soft body.
     let (hx, hy) = sb.as_ref().map(|b| b.point("head").px()).unwrap_or((cx, 14));

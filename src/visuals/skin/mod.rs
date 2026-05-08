@@ -156,7 +156,7 @@ fn update_skin(
 // COLOR PALETTES
 // ===================================================================
 
-pub struct Palette {
+pub struct SpeciesSkin {
     pub body: Rgba<u8>,
     pub body_light: Rgba<u8>,
     pub eye: Rgba<u8>,
@@ -170,9 +170,9 @@ pub const NEAR_BLACK_PX: Rgba<u8> = Rgba([27, 19, 13, 255]);
 #[allow(dead_code)]
 pub const CREAM_PX: Rgba<u8> = Rgba([217, 199, 174, 255]);
 
-pub fn palette(species: &Species) -> Palette {
+pub fn species_skin(species: &Species) -> SpeciesSkin {
     match species {
-        Species::Moluun => Palette {
+        Species::Moluun => SpeciesSkin {
             body:       Rgba([140, 180, 200, 255]),
             body_light: Rgba([210, 200, 185, 255]),
             eye:        NEAR_BLACK_PX,
@@ -181,7 +181,7 @@ pub fn palette(species: &Species) -> Palette {
             egg:        Rgba([220, 200, 180, 255]),
             egg_spot:   Rgba([160, 190, 205, 255]),
         },
-        Species::Pylum => Palette {
+        Species::Pylum => SpeciesSkin {
             body:       Rgba([235, 190, 80, 255]),
             body_light: Rgba([245, 220, 150, 255]),
             eye:        Rgba([30, 25, 20, 255]),
@@ -190,7 +190,7 @@ pub fn palette(species: &Species) -> Palette {
             egg:        Rgba([235, 225, 200, 255]),
             egg_spot:   Rgba([180, 140, 80, 255]),
         },
-        Species::Skael => Palette {
+        Species::Skael => SpeciesSkin {
             body:       Rgba([45, 120, 85, 255]),
             body_light: Rgba([90, 160, 120, 255]),
             eye:        Rgba([190, 155, 40, 255]),
@@ -199,7 +199,7 @@ pub fn palette(species: &Species) -> Palette {
             egg:        Rgba([70, 130, 95, 255]),
             egg_spot:   Rgba([40, 80, 60, 255]),
         },
-        Species::Nyxal => Palette {
+        Species::Nyxal => SpeciesSkin {
             body:       Rgba([80, 45, 110, 255]),
             body_light: Rgba([60, 35, 80, 255]),
             eye:        Rgba([40, 180, 200, 255]),
@@ -211,9 +211,9 @@ pub fn palette(species: &Species) -> Palette {
     }
 }
 
-fn elder_palette(species: &Species) -> Palette {
-    let base = palette(species);
-    Palette {
+fn elder_species_skin(species: &Species) -> SpeciesSkin {
+    let base = species_skin(species);
+    SpeciesSkin {
         body:       fade(base.body, 0.3),
         body_light: fade(base.body_light, 0.3),
         eye:        base.eye,
@@ -295,7 +295,7 @@ fn draw_creature(img: &mut RgbaImage, species: &Species, mood: &MoodState, stage
     // Mouth position comes directly from the "mouth" soft-body point —
     // it follows the head, eyes, and chewing animation through the bounds+cluster.
     if *stage != GrowthStage::Egg {
-        let mouth_color = palette(species).mouth;
+        let mouth_color = species_skin(species).mouth;
         let (head_x, mouth_y) = soft_body.as_ref()
             .map(|b| b.point("mouth").px())
             .unwrap_or((cx, 21));
@@ -390,7 +390,7 @@ fn draw_creature(img: &mut RgbaImage, species: &Species, mood: &MoodState, stage
 }
 
 fn draw_cub(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32, sp: &SkinParams, sb: &Option<Res<SoftBody>>) {
-    let p = palette(species);
+    let p = species_skin(species);
     let belly_mod = 0.8 + sp.belly * 0.4;
     match species {
         Species::Moluun => moluun::draw_cub(img, &p, cx, mood, sb),
@@ -409,7 +409,7 @@ fn draw_cub(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32, s
 }
 
 fn draw_young(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32, sp: &SkinParams, sb: &Option<Res<SoftBody>>) {
-    let p = palette(species);
+    let p = species_skin(species);
     match species {
         Species::Moluun => moluun::draw_young(img, &p, cx, mood, sb),
         Species::Pylum  => pylum::draw_young(img, &p, cx, mood, sb),
@@ -428,7 +428,7 @@ fn draw_young(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32,
 }
 
 fn draw_adult(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32, sp: &SkinParams, sb: &Option<Res<SoftBody>>) {
-    let p = palette(species);
+    let p = species_skin(species);
     match species {
         Species::Moluun => moluun::draw_adult(img, &p, cx, mood, sb),
         Species::Pylum  => pylum::draw_adult(img, &p, cx, mood, sb),
@@ -463,8 +463,8 @@ fn draw_adult(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32,
 }
 
 fn draw_elder(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32, _sp: &SkinParams, sb: &Option<Res<SoftBody>>) {
-    let p = elder_palette(species);
-    let base_p = palette(species);
+    let p = elder_species_skin(species);
+    let base_p = species_skin(species);
 
     match species {
         Species::Moluun => {
@@ -488,7 +488,7 @@ fn draw_elder(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32,
 
 /// Draws an egg (called from outside the normal creature dispatch).
 pub fn draw_egg(img: &mut RgbaImage, species: &Species) {
-    let p = palette(species);
+    let p = species_skin(species);
     let cx = img.width() as i32 / 2;
 
     for pixel in img.pixels_mut() {

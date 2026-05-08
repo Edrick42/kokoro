@@ -9,7 +9,7 @@
 use image::{RgbaImage, Rgba};
 use bevy::prelude::Res;
 use kokoro_art_palette::Palette;
-use kokoro_art_palette::dsl::BumpyDome;
+use kokoro_art_palette::dsl::{BumpyDome, TaperedTail};
 use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
 use super::{SpeciesSkin, fill_circle, fill_rect, fill_ellipse, put, draw_eyes, fade, NEAR_BLACK_PX};
@@ -113,9 +113,14 @@ pub fn draw_young(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
         put(img, fr_x - 2 + dx, fr_y + 2, CLAW);
     }
 
-    // Sprouting wings
-    fill_rect(img, wl_x, wl_y, 4, 7, p.accent);
-    fill_rect(img, wr_x - 3, wr_y, 4, 7, p.accent);
+    // Sprouting wings — TaperedTail angled outward + downward so they read
+    // as actual wing nubs branching off the body, not boxy panels glued to
+    // the side. Base 2 (5px wide) at the shoulder, taper to a point ~7px
+    // diagonally outward.
+    TaperedTail::new((wl_x + 2, wl_y), (wl_x - 3, wl_y + 7), 2, Palette::Orange)
+        .paint_with(img, p.accent, None);
+    TaperedTail::new((wr_x - 1, wr_y), (wr_x + 4, wr_y + 7), 2, Palette::Orange)
+        .paint_with(img, p.accent, None);
 
     // Body — BumpyDome continues the kawaii_factor curve. Slightly less
     // bumpy than the cub down-ball (0.28 vs 0.35) as plumage tightens up

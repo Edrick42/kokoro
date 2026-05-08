@@ -10,6 +10,9 @@
 
 pub mod ramp;
 
+#[cfg(feature = "image")]
+pub mod dsl;
+
 /// All 26 colors of the Kokoro master palette.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Palette {

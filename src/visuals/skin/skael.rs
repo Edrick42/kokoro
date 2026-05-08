@@ -9,7 +9,7 @@
 use image::{RgbaImage, Rgba};
 use bevy::prelude::Res;
 use kokoro_art_palette::Palette;
-use kokoro_art_palette::dsl::{TaperedTail, BioluminescentSpeck};
+use kokoro_art_palette::dsl::{TaperedTail, BioluminescentSpeck, BumpyDome};
 use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
 use super::{SpeciesSkin, fill_circle, fill_rect, fill_ellipse, put, draw_eyes, fade};
@@ -67,8 +67,16 @@ pub fn draw_cub(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodState,
     // Whip end accent (single-pixel tip in scale-light tone)
     put(img, cx, body_y + body_ry + 11, p.accent);
 
-    // Smooth body (NO scales — skin is soft at this age)
-    fill_ellipse(img, cx, body_y, body_rx, body_ry, p.body);
+    // Smooth body (NO scales — skin is soft at this age) — BumpyDome with
+    // independent height now that the DSL supports ellipses. Vertical/upright
+    // posture per the species notes; very low bumpiness so the skin still
+    // reads as smooth juvenile, just slightly organic.
+    BumpyDome::new(cx, body_y, body_rx as u32, Palette::Teal)
+        .with_height(body_ry as u32)
+        .with_bumpiness(0.12)
+        .with_bumps(8)
+        .with_seed(23)
+        .paint_with(img, p.body, None);
     fill_ellipse(img, cx, body_y + 2, 5, 6, p.body_light);
 
     // Thin limbs (tree-climbing limbs — long, light)

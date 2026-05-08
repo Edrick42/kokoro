@@ -184,32 +184,39 @@ pub fn species_skin(species: &Species) -> SpeciesSkin {
             egg:        Palette::Gold.into(),
             egg_spot:   Palette::Cream.into(),
         },
+        // Pylum mapping per docs/aesthetic-targets.md §4.2 (highlands, orange ramp).
+        // Mouth slot carries the beak — GoldDark so it reads against Orange body.
         Species::Pylum => SpeciesSkin {
-            body:       Rgba([235, 190, 80, 255]),
-            body_light: Rgba([245, 220, 150, 255]),
-            eye:        Rgba([30, 25, 20, 255]),
-            mouth:      Rgba([230, 120, 30, 255]),
-            accent:     Rgba([200, 155, 55, 255]),
-            egg:        Rgba([235, 225, 200, 255]),
-            egg_spot:   Rgba([180, 140, 80, 255]),
+            body:       Palette::Orange.into(),
+            body_light: Palette::Cream.into(),
+            eye:        Palette::NearBlack.into(),
+            mouth:      Palette::GoldDark.into(),
+            accent:     Palette::Gold.into(),
+            egg:        Palette::Orange.into(),
+            egg_spot:   Palette::Cream.into(),
         },
+        // Skael mapping per docs/aesthetic-targets.md §4.3 (caverns, teal ramp).
+        // Eye is now NearBlack (universal Kobara trait); CyanBright lives on the scale crests.
         Species::Skael => SpeciesSkin {
-            body:       Rgba([45, 120, 85, 255]),
-            body_light: Rgba([90, 160, 120, 255]),
-            eye:        Rgba([190, 155, 40, 255]),
-            mouth:      Rgba([35, 65, 50, 255]),
-            accent:     Rgba([100, 75, 55, 255]),
-            egg:        Rgba([70, 130, 95, 255]),
-            egg_spot:   Rgba([40, 80, 60, 255]),
+            body:       Palette::Teal.into(),
+            body_light: Palette::Cream.into(),
+            eye:        Palette::NearBlack.into(),
+            mouth:      Palette::DeepTeal.into(),
+            accent:     Palette::CyanBright.into(),
+            egg:        Palette::Teal.into(),
+            egg_spot:   Palette::Cream.into(),
         },
+        // Nyxal mapping per docs/aesthetic-targets.md §4.4 (deep ocean, red ramp).
+        // Bioluminescence shifts from the eye (now NearBlack like every species) to
+        // accent + egg_spot (CyanBright + CreamLight peaks).
         Species::Nyxal => SpeciesSkin {
-            body:       Rgba([80, 45, 110, 255]),
-            body_light: Rgba([60, 35, 80, 255]),
-            eye:        Rgba([40, 180, 200, 255]),
-            mouth:      NEAR_BLACK_PX,
-            accent:     Rgba([65, 40, 95, 255]),
-            egg:        Rgba([70, 45, 100, 180]),
-            egg_spot:   Rgba([50, 180, 200, 200]),
+            body:       Palette::Red.into(),
+            body_light: Palette::Cream.into(),
+            eye:        Palette::NearBlack.into(),
+            mouth:      Palette::DeepBrown.into(),
+            accent:     Palette::CyanBright.into(),
+            egg:        Palette::Red.into(),
+            egg_spot:   Palette::CreamLight.into(),
         },
     }
 }

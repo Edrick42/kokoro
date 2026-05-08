@@ -26,7 +26,15 @@ const SPOT:        Rgba<u8> = Rgba(Palette::CoralPink.rgba(255));      // chroma
 
 pub fn draw_egg(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32) {
     let cy = 30;
-    fill_circle(img, cx, cy, 14, p.egg);
+    // Outer shell — BumpyDome (circular, no with_height) at very low
+    // bumpiness so the egg stays clearly an "egg" but the silhouette no
+    // longer reads as a perfect mathematical circle. Inner translucent
+    // layers stay as concentric fill_circles since they're decoration.
+    BumpyDome::new(cx, cy, 14, Palette::Red)
+        .with_bumpiness(0.08)
+        .with_bumps(8)
+        .with_seed(109)
+        .paint_with(img, p.egg, None);
     fill_circle(img, cx, cy, 10, fade(p.egg, 0.15));
     fill_circle(img, cx, cy, 6, p.body_light);
     fill_circle(img, cx - 4, cy - 4, 2, p.egg_spot);

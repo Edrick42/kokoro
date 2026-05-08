@@ -13,7 +13,7 @@ use bevy::image::ImageSampler;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use image::{RgbaImage, Rgba};
 use kokoro_art_palette::Palette;
-use kokoro_art_palette::dsl::BumpyDome;
+use kokoro_art_palette::dsl::{BumpyDome, BioluminescentSpeck};
 
 use crate::game::state::{AppState, GameplayEntity};
 use crate::config::ui::palette;
@@ -470,20 +470,17 @@ fn draw_depths(img: &mut RgbaImage, _time: &TimeOfDay) {
         put(img, x, y, particle);
     }
 
-    // Bioluminescent orbs (the defining feature)
+    // Bioluminescent orbs (the defining feature) — DSL specks. The bright
+    // variant uses orb core + bio_bright halo; the dim variant collapses to
+    // bio_dim for both (a softer, less defined glow). Same final intent as
+    // the manual put-cluster, expressed in one call per orb.
     for &(x, y, bright) in &[(10,15,false), (35,8,true), (55,25,false),
                               (20,40,true), (45,50,false), (8,55,true)] {
-        let color = if bright { orb } else { bio_dim };
-        put(img, x, y, color);
-        put(img, x + 1, y, color);
-        put(img, x, y + 1, color);
-        put(img, x + 1, y + 1, color);
-        // Glow halo
-        let halo = if bright { bio_bright } else { bio_dim };
-        put(img, x - 1, y, halo);
-        put(img, x + 2, y, halo);
-        put(img, x, y - 1, halo);
-        put(img, x + 1, y + 2, halo);
+        let speck = BioluminescentSpeck::new(x, y, Palette::CyanBright)
+            .with_core_radius(1)
+            .with_halo(Palette::CyanBright);
+        let (core_px, halo_px) = if bright { (orb, bio_bright) } else { (bio_dim, bio_dim) };
+        speck.paint_with(img, core_px, Some(halo_px));
     }
 
     // Distant bioluminescent streaks (whale-like trails)

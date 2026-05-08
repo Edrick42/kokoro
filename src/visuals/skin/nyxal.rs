@@ -9,6 +9,7 @@
 use image::{RgbaImage, Rgba};
 use bevy::prelude::Res;
 use kokoro_art_palette::Palette;
+use kokoro_art_palette::dsl::{BumpyDome, BioluminescentSpeck};
 use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
 use super::{SpeciesSkin, fill_circle, fill_rect, put, draw_eyes, fade};
@@ -58,8 +59,13 @@ pub fn draw_cub(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodState,
     fill_rect(img, fr_x - 1, fr_y, 3, 8, p.accent);
     fill_rect(img, br_x - 1, br_y, 3, 6, p.accent);
 
-    // Big dome (mantle is "body" anchor — moves with breathing pulse)
-    fill_circle(img, mx, my, mr, p.body);
+    // Big mantle dome — low bumpiness so it still reads as smooth aquatic
+    // blob, just slightly organic (it's a planktonic larva, not a marble).
+    BumpyDome::new(mx, my, mr as u32, Palette::Red)
+        .with_bumpiness(0.18)
+        .with_bumps(8)
+        .with_seed(5)
+        .paint_with(img, p.body, None);
     // Mantle cap on top (moves with mantle_top)
     fill_circle(img, mtx, mty + 4, 8, p.accent);
 
@@ -70,8 +76,12 @@ pub fn draw_cub(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodState,
     put(img, mx - 4, my - 3, SPOT);
     put(img, mx + 3, my - 1, SPOT);
 
-    // Faint kokoro-sac glow
-    fill_circle(img, mx, my + 1, 3, GLOW_FAINT);
+    // Faint kokoro-sac glow — DSL speck with a CyanBright halo on a
+    // CreamLight core, the doc's bioluminescence anchor pair (§4.4).
+    BioluminescentSpeck::new(mx, my + 1, Palette::CreamLight)
+        .with_core_radius(1)
+        .with_halo(Palette::CyanBright)
+        .paint_with(img, GLOW_FAINT, Some(GLOW_FAINT));
 
     // Eyes follow soft body
     let eye_cy = ey_l;

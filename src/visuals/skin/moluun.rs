@@ -229,8 +229,14 @@ pub fn draw_adult(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
 
     // === DRAW ORDER: body first (bottom), then neck, then head on top ===
 
-    // Body FIRST (pinned anchor — always in position)
-    fill_circle(img, bx, by, body_r, p.body);
+    // Body FIRST (pinned anchor — always in position) — BumpyDome with the
+    // tightest bumpiness in the lifecycle (0.18) so the adult silhouette
+    // reads as solid, mature fur rather than fluffy down.
+    BumpyDome::new(bx, by, body_r as u32, Palette::Gold)
+        .with_bumpiness(0.18)
+        .with_bumps(11)
+        .with_seed(31)
+        .paint_with(img, p.body, None);
 
     // Neck — thick rectangle connecting body center to head center.
     // Drawn OVER body, UNDER head. ALWAYS visible, NEVER a gap.
@@ -241,8 +247,14 @@ pub fn draw_adult(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
     let neck_h = (neck_top - neck_bottom).unsigned_abs() as i32 + 1;
     fill_rect(img, neck_cx - 7, neck_y, 15, neck_h, p.body);
 
-    // Head ON TOP of neck (so it covers the joint)
-    fill_circle(img, hx, hy, hr, p.body);
+    // Head ON TOP of neck (so it covers the joint) — BumpyDome continuing
+    // the curve. Slightly more bumpy than body so head fur catches more
+    // light than torso fur.
+    BumpyDome::new(hx, hy, hr as u32, Palette::Gold)
+        .with_bumpiness(0.20)
+        .with_bumps(10)
+        .with_seed(43)
+        .paint_with(img, p.body, None);
     for &(dx, dy) in &[(-5,-4), (4,-3), (-2,-7), (3,5)] {
         put(img, hx + dx, hy + dy, p.accent);
     }

@@ -238,6 +238,75 @@ impl Brush for TaperedTail {
     }
 }
 
+// =====================================================================
+// BioluminescentSpeck — third primitive: a glowing pixel cluster
+// =====================================================================
+
+/// A small bright point with an optional haloed outer ring. Use for
+/// bioluminescent specks (Nyxal kokoro-sac, deep-water orbs), magic
+/// sparkles, fireflies, thermal-pit organs — anything that should read as
+/// "this is a light source on a dark background."
+///
+/// Stays under 5 pixels of total diameter on purpose: a "speck" shouldn't
+/// dominate a sprite; clusters of multiple specks do that job better.
+#[derive(Debug, Copy, Clone)]
+pub struct BioluminescentSpeck {
+    pub cx: i32,
+    pub cy: i32,
+    /// Bright core radius. 0 = single pixel; 1 = plus-shape; 2 = 5x5 disk.
+    pub core_radius: u32,
+    pub color: Palette,
+    /// Optional one-pixel halo painted on the ring just outside the core.
+    pub halo: Option<Palette>,
+}
+
+impl BioluminescentSpeck {
+    pub const fn new(cx: i32, cy: i32, color: Palette) -> Self {
+        Self { cx, cy, core_radius: 1, color, halo: None }
+    }
+
+    pub const fn with_core_radius(mut self, r: u32) -> Self {
+        self.core_radius = r;
+        self
+    }
+
+    pub const fn with_halo(mut self, h: Palette) -> Self {
+        self.halo = Some(h);
+        self
+    }
+
+    pub fn paint_with(&self, img: &mut RgbaImage, body: Rgba<u8>, halo_pixel: Option<Rgba<u8>>) {
+        let r = self.core_radius.min(3) as i32;
+        let w_img = img.width() as i32;
+        let h_img = img.height() as i32;
+        let halo_r = r + 1;
+
+        for dy in -halo_r..=halo_r {
+            for dx in -halo_r..=halo_r {
+                let px = self.cx + dx;
+                let py = self.cy + dy;
+                if px < 0 || py < 0 || px >= w_img || py >= h_img {
+                    continue;
+                }
+                let dist_sq = dx * dx + dy * dy;
+                if dist_sq <= r * r {
+                    img.put_pixel(px as u32, py as u32, body);
+                } else if dist_sq <= halo_r * halo_r {
+                    if let Some(h_px) = halo_pixel {
+                        img.put_pixel(px as u32, py as u32, h_px);
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl Brush for BioluminescentSpeck {
+    fn paint(&self, img: &mut RgbaImage) {
+        self.paint_with(img, self.color.into(), self.halo.map(Into::into));
+    }
+}
+
 /// Tiny deterministic hash. Splitmix-style folded to u32. Enough entropy for
 /// per-sector perturbation; not cryptographic.
 const fn hash2(a: u32, b: u32) -> u32 {
@@ -400,5 +469,41 @@ mod tests {
         assert!(saw_shadow, "expected at least one RedDark rim pixel");
 
         save_swatch(&img, "tapered_tail_shadowed.png");
+    }
+
+    #[test]
+    fn bioluminescent_speck_paints_core_and_halo() {
+        let mut img = RgbaImage::new(32, 32);
+        BioluminescentSpeck::new(16, 16, Palette::CreamLight)
+            .with_core_radius(2)
+            .with_halo(Palette::CyanBright)
+            .paint(&mut img);
+
+        let core: Rgba<u8> = Palette::CreamLight.into();
+        let halo: Rgba<u8> = Palette::CyanBright.into();
+
+        // Core at (cx, cy) must be the bright color.
+        assert_eq!(img.get_pixel(16, 16), &core);
+
+        // Halo ring must produce at least one halo-color pixel.
+        let saw_halo = img.pixels().any(|p| p == &halo);
+        assert!(saw_halo, "expected at least one halo pixel");
+
+        save_swatch(&img, "speck_with_halo.png");
+    }
+
+    #[test]
+    fn bioluminescent_speck_radius_zero_is_single_pixel() {
+        let mut img = RgbaImage::new(16, 16);
+        BioluminescentSpeck::new(8, 8, Palette::CyanBright)
+            .with_core_radius(0)
+            .paint(&mut img);
+
+        let cyan: Rgba<u8> = Palette::CyanBright.into();
+        let painted = img.pixels().filter(|p| **p == cyan).count();
+        // r=0, no halo: exactly one pixel painted.
+        assert_eq!(painted, 1);
+
+        save_swatch(&img, "speck_pinpoint.png");
     }
 }

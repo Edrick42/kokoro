@@ -13,6 +13,7 @@ use bevy::image::ImageSampler;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use image::{RgbaImage, Rgba};
 use kokoro_art_palette::Palette;
+use kokoro_art_palette::dsl::BumpyDome;
 
 use crate::game::state::{AppState, GameplayEntity};
 use crate::config::ui::palette;
@@ -218,13 +219,36 @@ fn draw_verdance(img: &mut RgbaImage, time: &TimeOfDay) {
         fill_rect(img, 0, y, 64, 1, color);
     }
 
-    // Canopy (leaf layer at top)
-    for &(x, y, r) in &[(10,8,8), (30,5,10), (50,9,7), (20,12,6), (42,7,9)] {
-        for dy in -(r as i32)..=(r as i32) {
-            for dx in -(r as i32)..=(r as i32) {
-                if dx*dx + dy*dy < r*r {
-                    let c = if (dx + dy) % 3 == 0 { leaf_lt } else { leaf };
-                    put(img, x + dx, y + dy, c);
+    // Canopy (leaf layer at top) — five domes, each with a different seed so
+    // the silhouettes don't repeat. Highlights painted as a second pass on the
+    // body pixels to keep the dithered "leaf_lt" speckle the player is used to.
+    let canopies = [
+        (10_i32,  8_i32,  8_u32, 11_u32),
+        (30,      5,     10,    23),
+        (50,      9,      7,     7),
+        (20,     12,      6,    37),
+        (42,      7,      9,    52),
+    ];
+    for &(x, y, r, seed) in &canopies {
+        BumpyDome::new(x, y, r, Palette::Forest)
+            .with_bumpiness(0.45)
+            .with_bumps(7)
+            .with_seed(seed)
+            .paint_with(img, leaf, None);
+
+        // Diagonal speckle highlight pass — same look as the previous loop,
+        // but only over pixels the dome actually painted.
+        let bound = (r as i32) + 4;
+        for dy in -bound..=bound {
+            for dx in -bound..=bound {
+                if (dx + dy) % 3 != 0 { continue; }
+                let px = x + dx;
+                let py = y + dy;
+                if px < 0 || py < 0 || px >= img.width() as i32 || py >= img.height() as i32 {
+                    continue;
+                }
+                if *img.get_pixel(px as u32, py as u32) == leaf {
+                    img.put_pixel(px as u32, py as u32, leaf_lt);
                 }
             }
         }

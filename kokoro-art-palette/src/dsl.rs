@@ -96,15 +96,16 @@ impl BumpyDome {
     }
 }
 
-impl Brush for BumpyDome {
-    fn paint(&self, img: &mut RgbaImage) {
+impl BumpyDome {
+    /// Escape hatch when the caller already has a fully resolved Rgba — for
+    /// instance when a runtime tint (day/night cycle) has been applied to the
+    /// palette color before drawing. Prefer the trait `paint` for new code so
+    /// the type system keeps enforcing the palette constraint.
+    pub fn paint_with(&self, img: &mut RgbaImage, body: Rgba<u8>, shadow_pixel: Option<Rgba<u8>>) {
         let bumpiness = self.bumpiness.clamp(0.0, 1.0);
         let bumps = self.bumps.max(1);
         let r = self.radius as f32;
         let max_perturb = r * 0.25 * bumpiness;
-
-        let body: Rgba<u8> = self.color.into();
-        let shadow_pixel: Option<Rgba<u8>> = self.shadow.map(Into::into);
 
         // Pre-compute per-sector radii so we don't recalc inside the pixel loop.
         let mut sector_radii = [0.0_f32; 32];
@@ -115,7 +116,6 @@ impl Brush for BumpyDome {
             sector_radii[s] = r + perturb;
         }
 
-        // Bounding box — slightly inflated so the bumpiest sector still fits.
         let bound = (self.radius as i32) + (max_perturb as i32) + 2;
         let w = img.width() as i32;
         let h = img.height() as i32;
@@ -138,8 +138,6 @@ impl Brush for BumpyDome {
                 if dist_sq <= eff_r * eff_r {
                     img.put_pixel(px as u32, py as u32, body);
                 } else if let Some(s_px) = shadow_pixel {
-                    // One-pixel rim: outside body, inside body+1, only on the
-                    // shadow side (bottom-right quadrant where dx+dy > 0).
                     let rim_outer = eff_r + 1.0;
                     if dist_sq <= rim_outer * rim_outer && dx + dy > 0 {
                         img.put_pixel(px as u32, py as u32, s_px);
@@ -147,6 +145,12 @@ impl Brush for BumpyDome {
                 }
             }
         }
+    }
+}
+
+impl Brush for BumpyDome {
+    fn paint(&self, img: &mut RgbaImage) {
+        self.paint_with(img, self.color.into(), self.shadow.map(Into::into));
     }
 }
 

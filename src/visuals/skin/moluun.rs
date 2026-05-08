@@ -16,7 +16,9 @@ use super::{SpeciesSkin, fill_circle, fill_rect, fill_ellipse, put, draw_eyes, f
 // Master palette anchors (docs/aesthetic-targets.md §3 + §4.1)
 const HIGHLIGHT:        Rgba<u8> = Rgba(Palette::OffWhite.rgba(200));
 const NOSE_COLOR:       Rgba<u8> = Rgba(Palette::DeepBrown.rgba(255));
+// Blush follows kawaii_factor (§4b): full at Cub, subtle at Young, absent past that.
 const BLUSH:            Rgba<u8> = Rgba(Palette::CoralPink.rgba(255));
+const BLUSH_SUBTLE:     Rgba<u8> = Rgba(Palette::CoralPink.rgba(128));
 const EAR_INNER:        Rgba<u8> = Rgba(Palette::Tan.rgba(255));
 const RESONANCE:        Rgba<u8> = Rgba(Palette::CyanBright.rgba(80));
 const RESONANCE_BRIGHT: Rgba<u8> = Rgba(Palette::CyanBright.rgba(120));
@@ -174,8 +176,8 @@ pub fn draw_young(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
         put(img, hx + 2, hy + 2, HIGHLIGHT);
     }
 
-    fill_rect(img, hx - 10, hy + 5, 2, 2, BLUSH);
-    fill_rect(img, hx + 9, hy + 5, 2, 2, BLUSH);
+    fill_rect(img, hx - 10, hy + 5, 2, 2, BLUSH_SUBTLE);
+    fill_rect(img, hx + 9, hy + 5, 2, 2, BLUSH_SUBTLE);
 
     fill_rect(img, hx - 1, hy + 8, 3, 2, NOSE_COLOR);
     put(img, hx, hy + 10, NOSE_COLOR);
@@ -288,9 +290,7 @@ pub fn draw_adult(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
         put(img, hx + 7, hy + 3, RESONANCE);
     }
 
-    // Blush (on head)
-    fill_rect(img, hx - 8, hy + 5, 2, 2, BLUSH);
-    fill_rect(img, hx + 7, hy + 5, 2, 2, BLUSH);
+    // No blush at adult stage — kawaii_factor reaches 0.0 (docs §4c).
 
     // Nose (on head)
     fill_rect(img, hx - 2, hy + 8, 5, 2, NOSE_COLOR);

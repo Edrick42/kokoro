@@ -216,7 +216,13 @@ pub fn draw_adult(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
     fill_rect(img, wl_x + 1, wl_y, 1, wing_h.min(10), p.body_light);
     fill_rect(img, wr_x - 1, wr_y, 1, wing_h.min(10), p.body_light);
 
-    fill_circle(img, cx, body_y, body_r, p.body);
+    // Body — BumpyDome closes Pylum's lifecycle. Lowest bumpiness in the
+    // curve (0.20) so the adult silhouette is solid and imposing.
+    BumpyDome::new(cx, body_y, body_r as u32, Palette::Orange)
+        .with_bumpiness(0.20)
+        .with_bumps(11)
+        .with_seed(53)
+        .paint_with(img, p.body, None);
     for &(dx, dy) in &[(-5,-4), (4,-2), (-2,3), (6,1), (-7,0), (3,-6)] {
         put(img, cx + dx, body_y + dy, p.body_light);
     }
@@ -229,8 +235,14 @@ pub fn draw_adult(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
     fill_rect(img, neck_cx - 4, neck_top, 9, neck_h, p.body);
     fill_rect(img, neck_cx - 3, neck_top + 1, 7, neck_h.max(1) - 1, p.accent);
 
-    // Head (on top of neck)
-    fill_circle(img, hx, hy, hr, p.body);
+    // Head (on top of neck) — BumpyDome with very low bumpiness; adult
+    // Pylum's head is sharp-featured (casque, sharp beak) so the silhouette
+    // stays tight.
+    BumpyDome::new(hx, hy, hr as u32, Palette::Orange)
+        .with_bumpiness(0.15)
+        .with_bumps(8)
+        .with_seed(67)
+        .paint_with(img, p.body, None);
 
     // Casque crown (moves with head)
     fill_rect(img, hx - 2, hy - hr - 4, 5, 7, p.body);

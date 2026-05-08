@@ -272,10 +272,15 @@ fn draw_verdance(img: &mut RgbaImage, time: &TimeOfDay) {
         fill_rect(img, x, y, w, 2, moss);
     }
 
-    // Fireflies (small glowing dots — visible even at night)
+    // Fireflies (small glowing dots — visible even at night) — DSL specks
+    // with a faint Sage halo so they read as biolume not just bright pixels.
     if matches!(time, TimeOfDay::Sunset | TimeOfDay::Night) {
+        let firefly_halo = Rgba(Palette::Sage.rgba(120));
         for &(x, y) in &[(14,22), (35,18), (52,25), (22,30), (45,35), (8,28), (58,20)] {
-            put(img, x, y, firefly);
+            BioluminescentSpeck::new(x, y, Palette::CreamLight)
+                .with_core_radius(0)
+                .with_halo(Palette::Sage)
+                .paint_with(img, firefly, Some(firefly_halo));
         }
     }
 }

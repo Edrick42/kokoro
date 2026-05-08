@@ -8,18 +8,20 @@
 
 use image::{RgbaImage, Rgba};
 use bevy::prelude::Res;
+use kokoro_art_palette::Palette;
 use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
 use super::{SpeciesSkin, fill_circle, fill_rect, fill_ellipse, put, draw_eyes, fade};
 
+// Master palette anchors (docs/aesthetic-targets.md §3 + §4.3)
 #[allow(dead_code)]
-const HIGHLIGHT: Rgba<u8> = Rgba([190, 170, 60, 200]); // golden eye shine
-const CLAW: Rgba<u8> = Rgba([60, 50, 40, 255]);
-const HORN: Rgba<u8> = Rgba([130, 100, 70, 255]);
-const SCALE_LIGHT: Rgba<u8> = Rgba([110, 175, 135, 255]);
-const PUPIL: Rgba<u8> = Rgba([30, 25, 10, 255]); // vertical slit
-const RESONANCE: Rgba<u8> = Rgba([80, 180, 130, 70]);
-const RESONANCE_BRIGHT: Rgba<u8> = Rgba([90, 200, 145, 110]);
+const HIGHLIGHT:        Rgba<u8> = Rgba(Palette::OffWhite.rgba(200));   // eye glint
+const CLAW:             Rgba<u8> = Rgba(Palette::DeepBrown.rgba(255));
+const HORN:             Rgba<u8> = Rgba(Palette::Brown.rgba(255));
+const SCALE_LIGHT:      Rgba<u8> = Rgba(Palette::CyanBright.rgba(255)); // scale crests
+const PUPIL:            Rgba<u8> = Rgba(Palette::NearBlack.rgba(255));
+const RESONANCE:        Rgba<u8> = Rgba(Palette::Teal.rgba(70));
+const RESONANCE_BRIGHT: Rgba<u8> = Rgba(Palette::CyanBright.rgba(110));
 
 // ===================================================================
 // EGG
@@ -283,8 +285,8 @@ pub fn draw_adult(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
 pub fn draw_elder_details(img: &mut RgbaImage, _p: &SpeciesSkin, cx: i32) {
     let hy = 14;
     let body_y = 28;
-    let white = Rgba([200, 195, 180, 255]);
-    let dim = Rgba([70, 150, 110, 50]);
+    let white = Rgba(Palette::Cream.rgba(255));
+    let dim = Rgba(Palette::Teal.rgba(50));
 
     // Chipped horn tips
     put(img, cx - 7, hy - 16, white);

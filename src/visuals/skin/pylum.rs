@@ -8,14 +8,16 @@
 
 use image::{RgbaImage, Rgba};
 use bevy::prelude::Res;
+use kokoro_art_palette::Palette;
 use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
 use super::{SpeciesSkin, fill_circle, fill_rect, fill_ellipse, put, draw_eyes, fade, NEAR_BLACK_PX};
 
-const HIGHLIGHT: Rgba<u8> = Rgba([255, 255, 255, 180]);
-const CLAW: Rgba<u8> = Rgba([40, 30, 20, 255]);
-const RESONANCE: Rgba<u8> = Rgba([230, 200, 120, 70]);
-const RESONANCE_BRIGHT: Rgba<u8> = Rgba([240, 210, 130, 110]);
+// Master palette anchors (docs/aesthetic-targets.md §3 + §4.2)
+const HIGHLIGHT:        Rgba<u8> = Rgba(Palette::OffWhite.rgba(180));
+const CLAW:             Rgba<u8> = Rgba(Palette::DeepBrown.rgba(255));
+const RESONANCE:        Rgba<u8> = Rgba(Palette::Gold.rgba(70));
+const RESONANCE_BRIGHT: Rgba<u8> = Rgba(Palette::OrangeBright.rgba(110));
 
 // ===================================================================
 // EGG
@@ -240,8 +242,8 @@ pub fn draw_adult(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
 pub fn draw_elder_details(img: &mut RgbaImage, _p: &SpeciesSkin, cx: i32) {
     let hy = 10;
     let body_y = 24;
-    let white = Rgba([230, 225, 210, 255]);
-    let dim = Rgba([200, 180, 120, 50]);
+    let white = Rgba(Palette::CreamLight.rgba(255));
+    let dim = Rgba(Palette::Gold.rgba(50));
 
     put(img, cx, hy - 16, white);
     put(img, cx, hy - 15, white);

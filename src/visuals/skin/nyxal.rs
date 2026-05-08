@@ -8,14 +8,16 @@
 
 use image::{RgbaImage, Rgba};
 use bevy::prelude::Res;
+use kokoro_art_palette::Palette;
 use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
 use super::{SpeciesSkin, fill_circle, fill_rect, put, draw_eyes, fade};
 
-const GLOW_BRIGHT: Rgba<u8> = Rgba([80, 220, 240, 200]);
-const GLOW_DIM: Rgba<u8> = Rgba([50, 140, 160, 150]);
-const GLOW_FAINT: Rgba<u8> = Rgba([40, 100, 120, 80]);
-const SPOT: Rgba<u8> = Rgba([100, 60, 140, 255]);
+// Master palette anchors (docs/aesthetic-targets.md §3 + §4.4)
+const GLOW_BRIGHT: Rgba<u8> = Rgba(Palette::CyanBright.rgba(200));
+const GLOW_DIM:    Rgba<u8> = Rgba(Palette::Teal.rgba(150));
+const GLOW_FAINT:  Rgba<u8> = Rgba(Palette::Teal.rgba(80));
+const SPOT:        Rgba<u8> = Rgba(Palette::CoralPink.rgba(255));      // chromatophore patches
 
 // ===================================================================
 // EGG
@@ -237,8 +239,8 @@ fn draw_tentacle(img: &mut RgbaImage, rx: i32, ry: i32, tx: i32, ty: i32, w: i32
 
 pub fn draw_elder_details(img: &mut RgbaImage, cx: i32) {
     let my = 14;
-    let dim = Rgba([140, 130, 115, 200]);
-    let ring = Rgba([120, 100, 150, 255]);
+    let dim = Rgba(Palette::Cream.rgba(200));
+    let ring = Rgba(Palette::CoralPink.rgba(255));
 
     // Dimmer glow tips (overwrite bright with faded)
     let tent_y = my + 8;

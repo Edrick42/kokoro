@@ -167,9 +167,9 @@ pub struct SpeciesSkin {
     pub egg_spot: Rgba<u8>,
 }
 
-pub const NEAR_BLACK_PX: Rgba<u8> = Rgba([27, 19, 13, 255]);
+pub const NEAR_BLACK_PX: Rgba<u8> = Rgba(Palette::NearBlack.rgba(255));
 #[allow(dead_code)]
-pub const CREAM_PX: Rgba<u8> = Rgba([217, 199, 174, 255]);
+pub const CREAM_PX: Rgba<u8> = Rgba(Palette::Cream.rgba(255));
 
 pub fn species_skin(species: &Species) -> SpeciesSkin {
     match species {
@@ -631,11 +631,11 @@ pub fn draw_mouth(img: &mut RgbaImage, cx: i32, my: i32, mood: &MoodState, color
 pub fn draw_eating_mouth(img: &mut RgbaImage, cx: i32, my: i32, color: Rgba<u8>) {
     // Wide open mouth with tongue
     fill_rect(img, cx - 3, my, 7, 4, color);
-    // Tongue (pink/red)
-    fill_rect(img, cx - 1, my + 2, 3, 1, Rgba([200, 110, 110, 255]));
-    // Teeth
-    put(img, cx - 2, my, Rgba([230, 220, 210, 255]));
-    put(img, cx + 2, my, Rgba([230, 220, 210, 255]));
+    // Tongue (CoralPink)
+    fill_rect(img, cx - 1, my + 2, 3, 1, Palette::CoralPink.into());
+    // Teeth (CreamLight)
+    put(img, cx - 2, my, Palette::CreamLight.into());
+    put(img, cx + 2, my, Palette::CreamLight.into());
 }
 
 /// Draws a CLOSED chewing mouth — lips pressed together, cheeks puffed.

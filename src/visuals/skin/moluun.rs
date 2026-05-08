@@ -8,17 +8,19 @@
 
 use bevy::prelude::Res;
 use image::{RgbaImage, Rgba};
+use kokoro_art_palette::Palette;
 use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
 use super::{SpeciesSkin, fill_circle, fill_rect, fill_ellipse, put, draw_eyes, fade};
 
-const HIGHLIGHT: Rgba<u8> = Rgba([255, 255, 255, 200]);
-const NOSE_COLOR: Rgba<u8> = Rgba([50, 35, 30, 255]);
-const BLUSH: Rgba<u8> = Rgba([220, 150, 140, 255]);
-const EAR_INNER: Rgba<u8> = Rgba([200, 160, 155, 255]);
-const RESONANCE: Rgba<u8> = Rgba([160, 210, 230, 80]);
-const RESONANCE_BRIGHT: Rgba<u8> = Rgba([170, 220, 240, 120]);
-const EAR_GLOW: Rgba<u8> = Rgba([140, 200, 220, 100]);
+// Master palette anchors (docs/aesthetic-targets.md §3 + §4.1)
+const HIGHLIGHT:        Rgba<u8> = Rgba(Palette::OffWhite.rgba(200));
+const NOSE_COLOR:       Rgba<u8> = Rgba(Palette::DeepBrown.rgba(255));
+const BLUSH:            Rgba<u8> = Rgba(Palette::CoralPink.rgba(255));
+const EAR_INNER:        Rgba<u8> = Rgba(Palette::Tan.rgba(255));
+const RESONANCE:        Rgba<u8> = Rgba(Palette::CyanBright.rgba(80));
+const RESONANCE_BRIGHT: Rgba<u8> = Rgba(Palette::CyanBright.rgba(120));
+const EAR_GLOW:         Rgba<u8> = Rgba(Palette::CyanBright.rgba(100));
 
 // ===================================================================
 // EGG
@@ -305,9 +307,9 @@ pub fn draw_adult(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
 pub fn draw_elder_details(img: &mut RgbaImage, cx: i32) {
     let hy = 14; // same as adult head
     let body_y = 30;
-    let white = Rgba([230, 225, 215, 255]);
-    let thin = Rgba([200, 170, 165, 150]);
-    let dim_res = Rgba([140, 180, 200, 50]);
+    let white = Rgba(Palette::CreamLight.rgba(255));
+    let thin = Rgba(Palette::CoralPink.rgba(150));
+    let dim_res = Rgba(Palette::CyanBright.rgba(50));
 
     // Gray ear tips
     fill_circle(img, cx - 12, hy - 13, 3, white);

@@ -13,7 +13,7 @@ use bevy::image::ImageSampler;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use image::{RgbaImage, Rgba};
 use kokoro_art_palette::Palette;
-use kokoro_art_palette::dsl::{BumpyDome, BioluminescentSpeck};
+use kokoro_art_palette::dsl::{BumpyDome, BioluminescentSpeck, TaperedTail};
 
 use crate::game::state::{AppState, GameplayEntity};
 use crate::config::ui::palette;
@@ -310,14 +310,18 @@ fn draw_highlands(img: &mut RgbaImage, time: &TimeOfDay) {
         fill_rect(img, 0, y, 64, 1, color);
     }
 
-    // Distant mountain peaks
+    // Distant mountain peaks — each peak is a TaperedTail (vertical spine,
+    // base at the foothills, tip at the apex) plus a smaller TaperedTail
+    // overlay near the apex for the snow cap. The result is identical
+    // triangular geometry to the previous loop, but expressed as DSL units.
     for &(cx, base_y, h) in &[(12, 20, 12), (35, 18, 16), (55, 22, 10)] {
-        for dy in 0..h {
-            let w = (h - dy) * 2;
-            let x = cx - w / 2;
-            let c = if dy < 3 { peak_snow } else { peak };
-            fill_rect(img, x, base_y + dy, w, 1, c);
-        }
+        // Body — base half-width = h gives a triangle whose base is 2h+1 wide.
+        TaperedTail::new((cx, base_y + h - 1), (cx, base_y), h as u32, Palette::TealDark)
+            .paint_with(img, peak, None);
+        // Snow cap — same spine but stops 3px below the apex; small base
+        // that tapers to the same tip pixel.
+        TaperedTail::new((cx, base_y + 2), (cx, base_y), 3, Palette::CreamLight)
+            .paint_with(img, peak_snow, None);
     }
 
     // Clouds — three puffs per cloud (left/center/right) using BumpyDome with

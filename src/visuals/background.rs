@@ -428,9 +428,14 @@ fn draw_shallows(img: &mut RgbaImage, time: &TimeOfDay) {
         fill_rect(img, x, y, 4, 1, water_lt);
     }
 
-    // Glowing minerals on walls
+    // Glowing minerals on walls — DSL specks with halos so each one reads
+    // as a small light source clinging to the rock instead of a flat dot.
+    let mineral_halo = Rgba(Palette::CoralPink.rgba(70));
     for &(x, y) in &[(3,20), (48,16), (25,24), (58,28), (15,35)] {
-        put(img, x, y, mineral);
+        BioluminescentSpeck::new(x, y, Palette::CoralPink)
+            .with_core_radius(0)
+            .with_halo(Palette::CoralPink)
+            .paint_with(img, mineral, Some(mineral_halo));
     }
 
     // Ground (cave floor above water)

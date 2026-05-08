@@ -14,19 +14,14 @@ use bevy::image::ImageSampler;
 
 use crate::game::state::AppState;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
-use image::{RgbaImage, Rgba};
+use image::RgbaImage;
+use kokoro_art_palette::Palette;
 
 use crate::mind::{Mind, MoodState};
 use crate::creature::identity::species::CreatureRoot;
 
 const EFFECT_SIZE: u32 = 16;
 const EFFECT_SCALE: f32 = 4.0;
-
-// Palette colors as pixel values
-const NEAR_BLACK_PX: Rgba<u8> = Rgba([27, 19, 13, 255]);
-const RED_PX: Rgba<u8> = Rgba([217, 13, 67, 255]);
-const TEAL_PX: Rgba<u8> = Rgba([1, 105, 112, 255]);
-const GOLD_PX: Rgba<u8> = Rgba([217, 164, 4, 255]);
 
 #[derive(Component)]
 pub struct MoodEffect;
@@ -133,13 +128,13 @@ fn animate_effects(
 // PIXEL ART EFFECT DRAWING — 16×16 buffers
 // ===================================================================
 
-fn put(img: &mut RgbaImage, x: i32, y: i32, color: Rgba<u8>) {
+fn put(img: &mut RgbaImage, x: i32, y: i32, color: Palette) {
     if x >= 0 && x < img.width() as i32 && y >= 0 && y < img.height() as i32 {
-        img.put_pixel(x as u32, y as u32, color);
+        img.put_pixel(x as u32, y as u32, color.into());
     }
 }
 
-fn fill_rect(img: &mut RgbaImage, x: i32, y: i32, w: i32, h: i32, color: Rgba<u8>) {
+fn fill_rect(img: &mut RgbaImage, x: i32, y: i32, w: i32, h: i32, color: Palette) {
     for dy in 0..h {
         for dx in 0..w {
             put(img, x + dx, y + dy, color);
@@ -149,7 +144,7 @@ fn fill_rect(img: &mut RgbaImage, x: i32, y: i32, w: i32, h: i32, color: Rgba<u8
 
 /// ZZZ — bold pixel "Z" letters, stacked and offset
 fn draw_zzz(img: &mut RgbaImage) {
-    let c = NEAR_BLACK_PX;
+    let c = Palette::NearBlack;
     // Big Z (bottom-left)
     fill_rect(img, 1, 9, 5, 1, c);   // top bar
     put(img, 4, 10, c);               // diagonal
@@ -169,9 +164,9 @@ fn draw_zzz(img: &mut RgbaImage) {
     fill_rect(img, 9, 4, 3, 1, c);
 }
 
-/// Heart — pixel art heart shape in RED
+/// Heart — pixel art heart in Red
 fn draw_heart(img: &mut RgbaImage) {
-    let c = RED_PX;
+    let c = Palette::Red;
     // Top bumps
     fill_rect(img, 3, 4, 3, 2, c);
     fill_rect(img, 8, 4, 3, 2, c);
@@ -182,12 +177,12 @@ fn draw_heart(img: &mut RgbaImage) {
     fill_rect(img, 4, 9, 6, 1, c);
     fill_rect(img, 5, 10, 4, 1, c);
     fill_rect(img, 6, 11, 2, 1, c);
-    put(img, 7, 12, c); // tip (the extra pixel for symmetry doesn't matter at this scale)
+    put(img, 7, 12, c);
 }
 
-/// Rain — pixel rain drops falling down in TEAL
+/// Rain — pixel rain drops falling down in Teal
 fn draw_rain(img: &mut RgbaImage) {
-    let c = TEAL_PX;
+    let c = Palette::Teal;
     // Drop 1 (left)
     fill_rect(img, 3, 3, 2, 4, c);
     put(img, 3, 7, c);
@@ -199,15 +194,15 @@ fn draw_rain(img: &mut RgbaImage) {
     put(img, 11, 5, c);
 }
 
-/// Star — dizzy star shape in GOLD
+/// Star — dizzy star shape in Gold
 fn draw_star(img: &mut RgbaImage) {
-    let c = GOLD_PX;
+    let c = Palette::Gold;
     // Center cross
     fill_rect(img, 6, 3, 2, 10, c);  // vertical bar
     fill_rect(img, 3, 6, 10, 2, c);  // horizontal bar
     // Diagonal points
     put(img, 4, 4, c); put(img, 5, 5, c);    // top-left
-    put(img, 9, 4, c); put(img, 8, 5, c);    // top-right (fixed: 8 not 10)
+    put(img, 9, 4, c); put(img, 8, 5, c);    // top-right
     put(img, 4, 9, c); put(img, 5, 8, c);    // bottom-left
-    put(img, 9, 9, c); put(img, 8, 8, c);    // bottom-right (fixed: 8 not 10)
+    put(img, 9, 9, c); put(img, 8, 8, c);    // bottom-right
 }

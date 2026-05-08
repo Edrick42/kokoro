@@ -9,6 +9,7 @@
 //! relative to the rig's anchor points.
 
 use bevy::prelude::*;
+use kokoro_art_palette::Palette;
 use crate::game::state::AppState;
 use crate::mind::Mind;
 use crate::creature::identity::species::CreatureRoot;
@@ -69,7 +70,7 @@ fn check_milestones(
             // Small pink bow
             parent.spawn((
                 Mesh2d(meshes.add(Circle::new(6.0))),
-                MeshMaterial2d(materials.add(Color::srgb(1.0, 0.5, 0.7))),
+                MeshMaterial2d(materials.add(Color::from(Palette::CoralPink))),
                 Transform::from_xyz(25.0, 55.0, 2.0),
                 Accessory { kind: AccessoryKind::Ribbon },
             ));
@@ -85,7 +86,7 @@ fn check_milestones(
             // Horizontal scarf under the face
             parent.spawn((
                 Mesh2d(meshes.add(Rectangle::new(50.0, 8.0))),
-                MeshMaterial2d(materials.add(Color::srgb(0.9, 0.3, 0.2))),
+                MeshMaterial2d(materials.add(Color::from(Palette::Red))),
                 Transform::from_xyz(0.0, -30.0, 2.0),
                 Accessory { kind: AccessoryKind::Scarf },
             ));
@@ -101,7 +102,7 @@ fn check_milestones(
             // Golden crown on top
             parent.spawn((
                 Mesh2d(meshes.add(Rectangle::new(35.0, 10.0))),
-                MeshMaterial2d(materials.add(Color::srgb(1.0, 0.85, 0.1))),
+                MeshMaterial2d(materials.add(Color::from(Palette::Gold))),
                 Transform::from_xyz(0.0, 75.0, 2.0),
                 Accessory { kind: AccessoryKind::Crown },
             ));
@@ -109,7 +110,7 @@ fn check_milestones(
             for x_off in [-10.0, 0.0, 10.0] {
                 parent.spawn((
                     Mesh2d(meshes.add(Circle::new(4.0))),
-                    MeshMaterial2d(materials.add(Color::srgb(1.0, 0.85, 0.1))),
+                    MeshMaterial2d(materials.add(Color::from(Palette::Gold))),
                     Transform::from_xyz(x_off, 83.0, 2.0),
                     Accessory { kind: AccessoryKind::Crown },
                 ));

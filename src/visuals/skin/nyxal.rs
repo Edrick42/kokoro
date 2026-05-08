@@ -227,29 +227,34 @@ pub fn draw_adult(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
     }
 }
 
-/// Draws a tentacle from root to tip using a simple line of rects.
+/// Draws a tentacle from root to tip — body via TaperedTail, glow tip via
+/// BioluminescentSpeck, suckers walked along the spine independently.
 fn draw_tentacle(img: &mut RgbaImage, rx: i32, ry: i32, tx: i32, ty: i32, w: i32, color: Rgba<u8>, glow: Rgba<u8>, has_suckers: bool) {
-    let dx = tx - rx;
-    let dy = ty - ry;
-    let len = ((dx * dx + dy * dy) as f32).sqrt().max(1.0);
-    let steps = (len / 3.0) as i32;
+    // Body — tapers from `w` half-thickness at root to 1px at tip.
+    let half_w = (w / 2).max(1) as u32;
+    TaperedTail::new((rx, ry), (tx, ty), half_w, Palette::Red).paint_with(img, color, None);
 
-    for i in 0..=steps {
-        let t = i as f32 / steps as f32;
-        let x = rx + (dx as f32 * t) as i32;
-        let y = ry + (dy as f32 * t) as i32;
-        // Tentacle gets thinner toward the tip
-        let seg_w = (w as f32 * (1.0 - t * 0.5)) as i32;
-        fill_rect(img, x - seg_w / 2, y, seg_w.max(1), 3, color);
-
-        // Sucker dots on inner tentacles
-        if has_suckers && i % 2 == 0 && i > 0 && i < steps {
+    // Suckers — walk the spine at every-other-third sample so the dots land
+    // along the centre of the tentacle, same cadence as the previous loop.
+    if has_suckers {
+        let dx = tx - rx;
+        let dy = ty - ry;
+        let len = ((dx * dx + dy * dy) as f32).sqrt().max(1.0);
+        let steps = (len / 3.0) as i32;
+        for i in 0..=steps {
+            if i == 0 || i == steps || i % 2 != 0 { continue; }
+            let t = i as f32 / steps as f32;
+            let x = rx + (dx as f32 * t) as i32;
+            let y = ry + (dy as f32 * t) as i32;
             put(img, x, y + 1, super::NEAR_BLACK_PX);
         }
     }
 
     // Glow tip
-    fill_rect(img, tx - 1, ty - 1, 3, 3, glow);
+    BioluminescentSpeck::new(tx, ty, Palette::CyanBright)
+        .with_core_radius(1)
+        .with_halo(Palette::Teal)
+        .paint_with(img, glow, Some(GLOW_DIM));
 }
 
 // ===================================================================

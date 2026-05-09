@@ -134,7 +134,6 @@ pub fn solve_two_bone(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::f32::consts::PI;
 
     fn approx(a: f32, b: f32, eps: f32) -> bool {
         (a - b).abs() < eps

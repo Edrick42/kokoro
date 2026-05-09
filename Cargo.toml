@@ -31,6 +31,9 @@ serde_json = "1.0"
 # Curated 26-color palette for the pixel art DSL (see docs/aesthetic-targets.md)
 kokoro-art-palette = { path = "kokoro-art-palette" }
 
+# Skeletal rig: bones, FK/IK, pose layers (no Bevy dep — usable headless).
+kokoro-rig = { path = "kokoro-rig" }
+
 # Small optimization in dev builds for your own code
 [profile.dev]
 opt-level = 1

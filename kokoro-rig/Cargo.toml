@@ -1,0 +1,14 @@
+[package]
+name = "kokoro-rig"
+version = "0.1.0"
+edition = "2024"
+description = "Skeletal rig for Kokoro creatures: bone hierarchy, forward + inverse kinematics, pose layers, z-order. No Bevy dep — usable from tests and headless tools."
+
+[features]
+default = []
+# Optional snapshot helpers that depend on the `image` crate. Off by default
+# so the rig stays compileable in environments without it.
+image = ["dep:image"]
+
+[dependencies]
+image = { version = "0.25", default-features = false, features = ["png"], optional = true }

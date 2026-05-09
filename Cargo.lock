@@ -3179,6 +3179,7 @@ dependencies = [
  "bincode",
  "image",
  "kokoro-art-palette",
+ "kokoro-rig",
  "libc",
  "rand 0.9.2",
  "reqwest",
@@ -3194,6 +3195,10 @@ dependencies = [
  "bevy_color",
  "image",
 ]
+
+[[package]]
+name = "kokoro-rig"
+version = "0.1.0"
 
 [[package]]
 name = "ktx2"

@@ -642,3 +642,127 @@ pub fn create_skin_texture(images: &mut Assets<BevyImage>) -> Handle<BevyImage> 
     image.sampler = ImageSampler::nearest();
     images.add(image)
 }
+
+// ===================================================================
+// SNAPSHOT TOOL — `cargo test snapshot_sprites -- --nocapture --ignored`
+// renders every species × stage to target/sprite-snapshots/ as PNGs so
+// the current draw output can be compared side-by-side with the
+// Pinterest references in docs/refs/pinterest/. Ignored by default so
+// the file isn't regenerated on every test run.
+// ===================================================================
+
+#[cfg(test)]
+mod snapshot {
+    use super::*;
+    use std::path::PathBuf;
+
+    fn out_dir() -> PathBuf {
+        let p = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join("sprite-snapshots");
+        let _ = std::fs::create_dir_all(&p);
+        p
+    }
+
+    fn species_name(s: &Species) -> &'static str {
+        match s {
+            Species::Moluun => "moluun",
+            Species::Pylum  => "pylum",
+            Species::Skael  => "skael",
+            Species::Nyxal  => "nyxal",
+        }
+    }
+
+    fn render_egg(species: &Species) -> RgbaImage {
+        let mut img = RgbaImage::new(64, 64);
+        for px in img.pixels_mut() { *px = Rgba([0, 0, 0, 0]); }
+        draw_egg(&mut img, species);
+        img
+    }
+
+    fn render_stage(species: &Species, stage: GrowthStage, mood: MoodState) -> RgbaImage {
+        let mut img = RgbaImage::new(64, 64);
+        for px in img.pixels_mut() { *px = Rgba([0, 0, 0, 0]); }
+        let cx = 32;
+        let p = species_skin(species);
+        let sb: Option<Res<SoftBody>> = None;
+        match stage {
+            GrowthStage::Egg => draw_egg(&mut img, species),
+            GrowthStage::Cub => match species {
+                Species::Moluun => moluun::draw_cub(&mut img, &p, cx, &mood, &sb),
+                Species::Pylum  => pylum::draw_cub(&mut img, &p, cx, &mood, &sb),
+                Species::Skael  => skael::draw_cub(&mut img, &p, cx, &mood, &sb),
+                Species::Nyxal  => nyxal::draw_cub(&mut img, &p, cx, &mood, &sb),
+            },
+            GrowthStage::Young => match species {
+                Species::Moluun => moluun::draw_young(&mut img, &p, cx, &mood, &sb),
+                Species::Pylum  => pylum::draw_young(&mut img, &p, cx, &mood, &sb),
+                Species::Skael  => skael::draw_young(&mut img, &p, cx, &mood, &sb),
+                Species::Nyxal  => nyxal::draw_young(&mut img, &p, cx, &mood, &sb),
+            },
+            GrowthStage::Adult => match species {
+                Species::Moluun => moluun::draw_adult(&mut img, &p, cx, &mood, &sb),
+                Species::Pylum  => pylum::draw_adult(&mut img, &p, cx, &mood, &sb),
+                Species::Skael  => skael::draw_adult(&mut img, &p, cx, &mood, &sb),
+                Species::Nyxal  => nyxal::draw_adult(&mut img, &p, cx, &mood, &sb),
+            },
+            GrowthStage::Elder => match species {
+                Species::Moluun => moluun::draw_elder(&mut img, cx, &mood, &sb),
+                Species::Pylum  => pylum::draw_elder(&mut img, cx, &mood, &sb),
+                Species::Skael  => skael::draw_elder(&mut img, cx, &mood, &sb),
+                Species::Nyxal  => nyxal::draw_elder(&mut img, cx, &mood, &sb),
+            },
+        }
+        img
+    }
+
+    /// Saves a 4× upscaled copy alongside the 64×64 original. Pinterest refs
+    /// are several hundred px tall; the upscale makes side-by-side comparison
+    /// in any image viewer feasible without zooming.
+    fn save_pair(img: &RgbaImage, name: &str) {
+        let dir = out_dir();
+        let _ = img.save(dir.join(format!("{name}.png")));
+        let (w, h) = (img.width(), img.height());
+        let mut up = RgbaImage::new(w * 4, h * 4);
+        for y in 0..h {
+            for x in 0..w {
+                let p = *img.get_pixel(x, y);
+                for dy in 0..4 {
+                    for dx in 0..4 {
+                        up.put_pixel(x * 4 + dx, y * 4 + dy, p);
+                    }
+                }
+            }
+        }
+        let _ = up.save(dir.join(format!("{name}@4x.png")));
+    }
+
+    #[test]
+    #[ignore]
+    fn snapshot_sprites() {
+        let species_all = [Species::Moluun, Species::Pylum, Species::Skael, Species::Nyxal];
+        let stages = [
+            (GrowthStage::Egg,   "egg"),
+            (GrowthStage::Cub,   "cub"),
+            (GrowthStage::Young, "young"),
+            (GrowthStage::Adult, "adult"),
+            (GrowthStage::Elder, "elder"),
+        ];
+        // MoodState::Happy is the canonical neutral-positive face used in the
+        // refs (cubs smiling, adults at rest). Other moods can be added later.
+        let mood = MoodState::Happy;
+
+        for s in &species_all {
+            for (stage, label) in &stages {
+                let img = if matches!(stage, GrowthStage::Egg) {
+                    render_egg(s)
+                } else {
+                    render_stage(s, stage.clone(), mood.clone())
+                };
+                let name = format!("{}_{}", species_name(s), label);
+                save_pair(&img, &name);
+            }
+        }
+        eprintln!("snapshot_sprites: wrote 40 PNGs (20 sprites × 2 sizes) to {:?}", out_dir());
+    }
+}

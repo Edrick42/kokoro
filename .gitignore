@@ -2,5 +2,8 @@
 **/target/
 .DS_Store
 
-# Reference images (visual research, not source)
+# Reference images (visual research, not source) — track only the
+# REFS.md indices so collaborators can re-download the same set; the
+# JPEG/PNG sources stay local to avoid bloating the repo.
 /docs/refs/
+!/docs/refs/**/REFS.md

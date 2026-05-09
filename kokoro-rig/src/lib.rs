@@ -29,7 +29,9 @@
 //! `kokoro-art-palette` and the species draw modules own the second.
 
 pub mod bone;
+pub mod ik;
 pub mod skeleton;
 
 pub use bone::{Bone, BoneId, Vec2};
+pub use ik::{solve_two_bone, BendDirection, TwoBoneResult};
 pub use skeleton::Skeleton;

@@ -59,6 +59,28 @@ impl Vec2 {
     pub fn add(self, rhs: Vec2) -> Self {
         Self { x: self.x + rhs.x, y: self.y + rhs.y }
     }
+
+    #[inline]
+    pub fn sub(self, rhs: Vec2) -> Self {
+        Self { x: self.x - rhs.x, y: self.y - rhs.y }
+    }
+
+    #[inline]
+    pub fn scale(self, s: f32) -> Self {
+        Self { x: self.x * s, y: self.y * s }
+    }
+
+    #[inline]
+    pub fn distance(self, rhs: Vec2) -> f32 {
+        self.sub(rhs).length()
+    }
+
+    /// `atan2(y, x)` of this vector — angle from the +x axis. Useful when
+    /// turning a "where is the target relative to me" delta into a rotation.
+    #[inline]
+    pub fn angle(self) -> f32 {
+        self.y.atan2(self.x)
+    }
 }
 
 /// A single bone in a skeleton.

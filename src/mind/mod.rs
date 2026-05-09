@@ -387,7 +387,7 @@ mod tests {
         let genome = Genome::random_for(Species::Moluun);
         let mind = Mind {
             mood: MoodState::Happy,
-            stats: VitalStats { hunger: 30.0, happiness: 70.0, energy: 5.0, health: 100.0 },
+            stats: VitalStats { hunger: 30.0, thirst: 30.0, happiness: 70.0, energy: 5.0, health: 100.0 },
             age_ticks: 0,
             pending_hunger: 0.0, pending_happiness: 0.0, pending_energy: 0.0,
             mood_cooldown: 0,
@@ -400,7 +400,7 @@ mod tests {
         let genome = Genome::random_for(Species::Moluun);
         let mind = Mind {
             mood: MoodState::Happy,
-            stats: VitalStats { hunger: 30.0, happiness: 70.0, energy: 80.0, health: 10.0 },
+            stats: VitalStats { hunger: 30.0, thirst: 30.0, happiness: 70.0, energy: 80.0, health: 10.0 },
             age_ticks: 0,
             pending_hunger: 0.0, pending_happiness: 0.0, pending_energy: 0.0,
             mood_cooldown: 0,
@@ -413,7 +413,7 @@ mod tests {
         let genome = Genome::random_for(Species::Moluun);
         let mind = Mind {
             mood: MoodState::Happy,
-            stats: VitalStats { hunger: 90.0, happiness: 70.0, energy: 80.0, health: 100.0 },
+            stats: VitalStats { hunger: 90.0, thirst: 30.0, happiness: 70.0, energy: 80.0, health: 100.0 },
             age_ticks: 0,
             pending_hunger: 0.0, pending_happiness: 0.0, pending_energy: 0.0,
             mood_cooldown: 0,

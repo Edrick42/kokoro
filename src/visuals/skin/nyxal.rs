@@ -266,28 +266,60 @@ fn draw_tentacle(img: &mut RgbaImage, rx: i32, ry: i32, tx: i32, ty: i32, w: i32
 }
 
 // ===================================================================
-// ELDER overlay
+// ELDER — own silhouette per docs/aesthetic-targets.md §4d
 // ===================================================================
+// Bioluminescence collapses to memory: 1-2 specks instead of a constellation.
+// Palette §4d.3, 6 colors: DeepBrown outline, RedDark body, Charcoal shadow,
+// Cream belly, CyanBright (rare specks), NearBlack slit eye. Tentacles tuck
+// short and inward; chromatophore patches (CoralPink) disappear.
 
-pub fn draw_elder_details(img: &mut RgbaImage, cx: i32) {
-    let my = 14;
-    let dim = Rgba(Palette::Cream.rgba(200));
-    let ring = Rgba(Palette::CoralPink.rgba(255));
+pub fn draw_elder(img: &mut RgbaImage, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+    let body: Rgba<u8>     = Palette::RedDark.into();
+    let body_shadow: Rgba<u8> = Palette::Charcoal.into();
+    let belly: Rgba<u8>    = Palette::Cream.into();
+    let eye: Rgba<u8>      = Palette::NearBlack.into();
 
-    // Dimmer glow tips (overwrite bright with faded)
-    let tent_y = my + 8;
-    fill_rect(img, cx - 14, tent_y + 16, 4, 3, dim);
-    fill_rect(img, cx - 5,  tent_y + 26, 4, 3, dim);
-    fill_rect(img, cx + 2,  tent_y + 26, 4, 3, dim);
-    fill_rect(img, cx + 11, tent_y + 16, 4, 3, dim);
-    // Faded mantle glow
-    for dx in -6..=6 {
-        put(img, cx + dx, my - 13, dim);
-    }
-    // Wisdom rings on mantle (concentric age marks)
-    put(img, cx - 2, my - 7, ring);
-    put(img, cx + 1, my - 5, ring);
-    put(img, cx, my - 9, ring);
-    put(img, cx - 3, my - 3, ring);
-    put(img, cx + 3, my - 4, ring);
+    // Mantle sits a hair lower than adult; tentacle reach contracts.
+    let (_, my)          = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 18));
+    let (mt_x, mt_y)     = sb.as_ref().map(|b| b.point("mantle_top").px()).unwrap_or((cx, 8));
+    let (fl_x, fl_y)     = sb.as_ref().map(|b| b.point("tent_fl").px()).unwrap_or((cx - 4, 24));
+    let (fr_x, fr_y)     = sb.as_ref().map(|b| b.point("tent_fr").px()).unwrap_or((cx + 4, 24));
+    let (bl_x, bl_y)     = sb.as_ref().map(|b| b.point("tent_bl").px()).unwrap_or((cx - 11, 24));
+    let (br_x, br_y)     = sb.as_ref().map(|b| b.point("tent_br").px()).unwrap_or((cx + 11, 24));
+    let mr = 10;
+
+    // Short tentacles — TaperedTail from root toward a tucked tip (only ~12px
+    // reach, vs ~26px adult). Half-width 2 → 1 keeps them slim.
+    let tent_drop = 12;
+    TaperedTail::new((bl_x, bl_y), (bl_x + 1, bl_y + tent_drop), 2, Palette::RedDark)
+        .paint_with(img, body, None);
+    TaperedTail::new((fl_x, fl_y), (fl_x, fl_y + tent_drop + 1), 2, Palette::RedDark)
+        .paint_with(img, body, None);
+    TaperedTail::new((fr_x, fr_y), (fr_x, fr_y + tent_drop + 1), 2, Palette::RedDark)
+        .paint_with(img, body, None);
+    TaperedTail::new((br_x, br_y), (br_x - 1, br_y + tent_drop), 2, Palette::RedDark)
+        .paint_with(img, body, None);
+
+    // Mantle cap — tighter than adult, body_shadow tone instead of bright accent.
+    fill_circle(img, mt_x, mt_y + 3, 7, body_shadow);
+
+    // Body dome.
+    fill_circle(img, cx, my, mr, body);
+
+    // Cream belly — quiet, no chromatophore spots.
+    fill_circle(img, cx, my + 3, 6, belly);
+
+    // Bioluminescence reduced to memory: just two specks on the mantle.
+    let glow: Rgba<u8> = Palette::CyanBright.into();
+    BioluminescentSpeck::new(cx - 3, my - 4, Palette::CyanBright)
+        .with_core_radius(0)
+        .paint_with(img, glow, None);
+    BioluminescentSpeck::new(cx + 3, my + 1, Palette::CyanBright)
+        .with_core_radius(0)
+        .paint_with(img, glow, None);
+
+    // Slit eyes — single horizontal line each.
+    let _ = mood;
+    fill_rect(img, cx - 5, my + 1, 4, 1, eye);
+    fill_rect(img, cx + 1, my + 1, 4, 1, eye);
 }

@@ -331,25 +331,70 @@ pub fn draw_adult(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
 }
 
 // ===================================================================
-// ELDER overlay
+// ELDER — own silhouette per docs/aesthetic-targets.md §4d
 // ===================================================================
+// Bioluminescent armor goes dark; only a faint Teal hint of the dorsal crest
+// remains. Palette §4d.3, 6 colors: DeepTeal outline, TealDark body,
+// Charcoal shadow, Cream belly, Teal crest hint, NearBlack slit eye.
+// Tail shortens, horns chip down to nubs, posture grounds further.
 
-pub fn draw_elder_details(img: &mut RgbaImage, _p: &SpeciesSkin, cx: i32) {
-    let hy = 14;
-    let body_y = 28;
-    let white = Rgba(Palette::Cream.rgba(255));
-    let dim = Rgba(Palette::Teal.rgba(50));
+pub fn draw_elder(img: &mut RgbaImage, cx: i32, _mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+    let body: Rgba<u8>     = Palette::TealDark.into();
+    let body_shadow: Rgba<u8> = Palette::Charcoal.into();
+    let belly: Rgba<u8>    = Palette::Cream.into();
+    let crest_hint: Rgba<u8> = Palette::Teal.into();
+    let eye: Rgba<u8>      = Palette::NearBlack.into();
 
-    // Chipped horn tips
-    put(img, cx - 7, hy - 16, white);
-    put(img, cx + 6, hy - 16, white);
-    // Battle scars (lighter patches on armor)
-    for &(dx, dy) in &[(-6,20), (5,22), (-4,28), (3,30), (-8,26), (7,24)] {
-        put(img, cx + dx, dy, white);
-    }
-    // Faded dorsal ridge
+    // Lower, wider posture than adult. Horizontal tank shape stays but the
+    // dome flattens into a settled mass.
+    let (hx, hy)         = sb.as_ref().map(|b| b.point("head").px()).unwrap_or((cx, 18));
+    let (_, body_y)      = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 32));
+    let (t1_x, t1_y)     = sb.as_ref().map(|b| b.point("tail_1").px()).unwrap_or((cx, 42));
+    let (t2_x, t2_y)     = sb.as_ref().map(|b| b.point("tail_2").px()).unwrap_or((cx, 47));
+    let body_rx = 15;
+    let body_ry = 11;
+    let hr = 9;
+
+    // Shorter tail — two segments instead of three, base width 2 → 1.
+    TaperedTail::new((t1_x, t1_y), (t2_x, t2_y), 2, Palette::TealDark)
+        .paint_with(img, body, None);
+    TaperedTail::new((t2_x, t2_y), (t2_x, t2_y + 3), 1, Palette::TealDark)
+        .paint_with(img, body, None);
+
+    // Stubby legs — no claws, no pronounced feet.
+    fill_rect(img, cx - body_rx + 2, body_y + 2, 4, 8, body_shadow);
+    fill_rect(img, cx + body_rx - 6, body_y + 2, 4, 8, body_shadow);
+    fill_rect(img, cx - body_rx + 1, body_y + body_ry - 1, 6, 4, body_shadow);
+    fill_rect(img, cx + body_rx - 7, body_y + body_ry - 1, 6, 4, body_shadow);
+
+    // Body — wide low ellipse, painted as Charcoal-tinted TealDark.
+    fill_ellipse(img, cx, body_y, body_rx, body_ry, body);
+
+    // Faint dorsal crest — single Teal pixel row down the spine. No CyanBright.
     for i in 0..5 {
-        put(img, cx - 6 + i * 3, body_y - 13, white);
+        put(img, cx - 6 + i * 3, body_y - body_ry, crest_hint);
     }
-    fill_circle(img, cx, body_y + 2, 4, dim);
+
+    // Cream belly underline.
+    fill_ellipse(img, cx, body_y + 3, 9, 5, belly);
+
+    // Short thick neck.
+    let neck_cx = (hx + cx) / 2;
+    let neck_top = hy.min(body_y);
+    let neck_h = (body_y - hy).max(1);
+    fill_rect(img, neck_cx - 5, neck_top, 11, neck_h, body);
+
+    // Head — smaller than adult, no armor plates lit up.
+    fill_circle(img, hx, hy, hr, body);
+
+    // Chipped horn nubs — short stubs, BrownDark shadow tone.
+    fill_rect(img, hx - 6, hy - hr, 3, 3, body_shadow);
+    fill_rect(img, hx + 3, hy - hr, 3, 3, body_shadow);
+
+    // Slit eyes.
+    fill_rect(img, hx - 5, hy + 1, 4, 1, eye);
+    fill_rect(img, hx + 1, hy + 1, 4, 1, eye);
+
+    // Quiet snout.
+    fill_rect(img, hx - 2, hy + 5, 5, 2, body_shadow);
 }

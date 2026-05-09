@@ -221,19 +221,6 @@ pub fn species_skin(species: &Species) -> SpeciesSkin {
     }
 }
 
-fn elder_species_skin(species: &Species) -> SpeciesSkin {
-    let base = species_skin(species);
-    SpeciesSkin {
-        body:       fade(base.body, 0.3),
-        body_light: fade(base.body_light, 0.3),
-        eye:        base.eye,
-        mouth:      fade(base.mouth, 0.2),
-        accent:     fade(base.accent, 0.3),
-        egg:        base.egg,
-        egg_spot:   base.egg_spot,
-    }
-}
-
 /// Fades a color toward gray by `amount` (0.0 = unchanged, 1.0 = full gray).
 pub fn fade(c: Rgba<u8>, amount: f32) -> Rgba<u8> {
     let gray = (c[0] as f32 * 0.3 + c[1] as f32 * 0.59 + c[2] as f32 * 0.11) as u8;
@@ -473,26 +460,13 @@ fn draw_adult(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32,
 }
 
 fn draw_elder(img: &mut RgbaImage, species: &Species, mood: &MoodState, cx: i32, _sp: &SkinParams, sb: &Option<Res<SoftBody>>) {
-    let p = elder_species_skin(species);
-    let base_p = species_skin(species);
-
+    // Each species has its own elder silhouette per docs §4d (own ramp, slit
+    // eyes, reduced palette, hunched/tucked posture).
     match species {
-        Species::Moluun => {
-            moluun::draw_adult(img, &p, cx, mood, sb);
-            moluun::draw_elder_details(img, cx);
-        }
-        Species::Pylum => {
-            pylum::draw_adult(img, &p, cx, mood, sb);
-            pylum::draw_elder_details(img, &base_p, cx);
-        }
-        Species::Skael => {
-            skael::draw_adult(img, &p, cx, mood, sb);
-            skael::draw_elder_details(img, &base_p, cx);
-        }
-        Species::Nyxal => {
-            nyxal::draw_adult(img, &p, cx, mood, sb);
-            nyxal::draw_elder_details(img, cx);
-        }
+        Species::Moluun => moluun::draw_elder(img, cx, mood, sb),
+        Species::Pylum  => pylum::draw_elder(img, cx, mood, sb),
+        Species::Skael  => skael::draw_elder(img, cx, mood, sb),
+        Species::Nyxal  => nyxal::draw_elder(img, cx, mood, sb),
     }
 }
 

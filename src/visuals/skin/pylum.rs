@@ -286,22 +286,83 @@ pub fn draw_adult(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
 }
 
 // ===================================================================
-// ELDER overlay
+// ELDER — own silhouette per docs/aesthetic-targets.md §4d
 // ===================================================================
+// kawaii_factor 0.2 (palette palette §4d.3, 6 colors): DeepBrown outline,
+// OrangeDark body, BrownDark shadow, GoldDark wing edge fading, Cream belly,
+// NearBlack slit eye. Casque collapses to a stub, wings fold close to body,
+// legs sit short and grounded.
 
-pub fn draw_elder_details(img: &mut RgbaImage, _p: &SpeciesSkin, cx: i32) {
-    let hy = 10;
-    let body_y = 24;
-    let white = Rgba(Palette::CreamLight.rgba(255));
-    let dim = Rgba(Palette::Gold.rgba(50));
+pub fn draw_elder(img: &mut RgbaImage, cx: i32, _mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+    let body: Rgba<u8>        = Palette::OrangeDark.into();
+    let body_shadow: Rgba<u8> = Palette::BrownDark.into();
+    let belly: Rgba<u8>       = Palette::Cream.into();
+    let wing_edge: Rgba<u8>   = Palette::GoldDark.into();
+    let eye: Rgba<u8>         = Palette::NearBlack.into();
 
-    put(img, cx, hy - 16, white);
-    put(img, cx, hy - 15, white);
-    for i in 0..3 {
-        put(img, cx - 15, body_y + 4 + i * 2, white);
-        put(img, cx + 15, body_y + 4 + i * 2, white);
-    }
-    put(img, cx - 5, hy - 3, white);
-    put(img, cx + 4, hy - 2, white);
-    fill_circle(img, cx, body_y + 2, 4, dim);
+    // Hunched anatomy — head sits lower (14 vs 10 adult), body slightly lower.
+    let (hx, hy)         = sb.as_ref().map(|b| b.point("head").px()).unwrap_or((cx, 14));
+    let (_, body_y)      = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 26));
+    let (wl_x, wl_y)     = sb.as_ref().map(|b| b.point("wing_l").px()).unwrap_or((cx - 12, 24));
+    let (wr_x, wr_y)     = sb.as_ref().map(|b| b.point("wing_r").px()).unwrap_or((cx + 12, 24));
+    let (fl_x, fl_y)     = sb.as_ref().map(|b| b.point("foot_l").px()).unwrap_or((cx - 4, 50));
+    let (fr_x, fr_y)     = sb.as_ref().map(|b| b.point("foot_r").px()).unwrap_or((cx + 4, 50));
+    let body_r = 12;
+    let hr = 8;
+
+    // Folded wings — stubs that hug the body. TaperedTail goes from the body
+    // edge outward to the soft-body wing root only (no wingtip extension).
+    // Painted in OrangeDark first, then a single GoldDark trim pixel on top
+    // captures the §4d.3 "wing edge fading" detail without adding a brush.
+    TaperedTail::new((cx - body_r / 2, body_y - 1), (wl_x, wl_y), 3, Palette::OrangeDark)
+        .paint_with(img, body, None);
+    TaperedTail::new((cx + body_r / 2, body_y - 1), (wr_x, wr_y), 3, Palette::OrangeDark)
+        .paint_with(img, body, None);
+    put(img, wl_x, wl_y, wing_edge);
+    put(img, wl_x - 1, wl_y + 1, wing_edge);
+    put(img, wr_x, wr_y, wing_edge);
+    put(img, wr_x + 1, wr_y + 1, wing_edge);
+
+    // Short grounded legs — straight from body to feet, no knee bulge.
+    let leg_top = body_y + body_r - 2;
+    let ll_h = (fl_y - leg_top).max(3);
+    let lr_h = (fr_y - leg_top).max(3);
+    fill_rect(img, fl_x - 1, leg_top, 3, ll_h, body_shadow);
+    fill_rect(img, fr_x - 1, leg_top, 3, lr_h, body_shadow);
+    fill_rect(img, fl_x - 2, fl_y, 5, 2, body_shadow);
+    fill_rect(img, fr_x - 2, fr_y, 5, 2, body_shadow);
+
+    // Body — plump, low bumpiness so the plumage reads as settled.
+    BumpyDome::new(cx, body_y, body_r as u32, Palette::OrangeDark)
+        .with_bumpiness(0.12)
+        .with_bumps(11)
+        .with_seed(79)
+        .paint_with(img, body, None);
+
+    // Quiet cream belly.
+    fill_circle(img, cx, body_y + 3, 6, belly);
+
+    // Short thick neck — head sits directly on body.
+    let neck_cx = (hx + cx) / 2;
+    let neck_top = hy.min(body_y);
+    let neck_h = (body_y - hy).max(1);
+    fill_rect(img, neck_cx - 4, neck_top, 9, neck_h, body);
+
+    // Small head — same OrangeDark mass.
+    BumpyDome::new(hx, hy, hr as u32, Palette::OrangeDark)
+        .with_bumpiness(0.13)
+        .with_bumps(8)
+        .with_seed(97)
+        .paint_with(img, body, None);
+
+    // Casque collapses to a tiny stub (no accent crown).
+    fill_rect(img, hx - 1, hy - hr - 2, 3, 3, body_shadow);
+
+    // Slit eyes — 1px tall lines, no glint.
+    fill_rect(img, hx - 5, hy + 1, 4, 1, eye);
+    fill_rect(img, hx + 1, hy + 1, 4, 1, eye);
+
+    // Short beak — DeepBrown leans into body shadow.
+    fill_rect(img, hx - 2, hy + 5, 5, 2, body_shadow);
+    put(img, hx, hy + 7, body_shadow);
 }

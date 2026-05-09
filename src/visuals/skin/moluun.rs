@@ -9,7 +9,7 @@
 use bevy::prelude::Res;
 use image::{RgbaImage, Rgba};
 use kokoro_art_palette::Palette;
-use kokoro_art_palette::dsl::BumpyDome;
+use kokoro_art_palette::dsl::{BumpyDome, TaperedTail};
 use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
 use super::{SpeciesSkin, fill_circle, fill_rect, fill_ellipse, put, draw_eyes, fade};
@@ -339,39 +339,80 @@ pub fn draw_adult(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32, mood: &MoodStat
 }
 
 // ===================================================================
-// ELDER overlay — fading, hunched, wise
+// ELDER — own silhouette per docs/aesthetic-targets.md §4d
 // ===================================================================
+// Reference 14 (urso marrom em pé): plump, grounded, slit eyes, neutral pose.
+// Elder is NOT "adult dessaturated". It has its own anatomy:
+//   - kawaii_factor 0.2 → roundness 0.55, head/body 0.35
+//   - hunched: head sits lower, neck shorter, limbs tucked close
+//   - palette reduced to 5 colors (Brown ramp + Cream + NearBlack)
+//   - slit eyes (1px tall), no glint, no blush, no accent cyan
+//   - reads as "ancião marrom" — Gold/accent fades into Brown for the silhouette
 
-pub fn draw_elder_details(img: &mut RgbaImage, cx: i32) {
-    let hy = 14; // same as adult head
-    let body_y = 30;
-    let white = Rgba(Palette::CreamLight.rgba(255));
-    let thin = Rgba(Palette::CoralPink.rgba(150));
-    let dim_res = Rgba(Palette::CyanBright.rgba(50));
+pub fn draw_elder(img: &mut RgbaImage, cx: i32, mood: &MoodState, sb: &Option<Res<SoftBody>>) {
+    // Elder palette per §4d.3 — Moluun's 5 colors only.
+    let body: Rgba<u8>        = Palette::Brown.into();
+    let body_shadow: Rgba<u8> = Palette::BrownDark.into();
+    let belly: Rgba<u8>       = Palette::Cream.into();
+    let eye: Rgba<u8>         = Palette::NearBlack.into();
 
-    // Gray ear tips
-    fill_circle(img, cx - 12, hy - 13, 3, white);
-    fill_circle(img, cx + 12, hy - 13, 3, white);
+    // Hunched anatomy — head sits lower (18 vs 14 adult), body sits lower
+    // and slightly larger (32 / r14 vs 30 / r13 adult). Limbs tuck inward.
+    let (hx, hy)         = sb.as_ref().map(|b| b.point("head").px()).unwrap_or((cx, 18));
+    let (bx, by)         = sb.as_ref().map(|b| b.point("body").px()).unwrap_or((cx, 32));
+    let (belly_x, belly_y) = sb.as_ref().map(|b| b.point("belly").px()).unwrap_or((cx, 35));
+    let (sl_x, sl_y)     = sb.as_ref().map(|b| b.point("shoulder_l").px()).unwrap_or((cx - 14, 30));
+    let (pl_x, pl_y)     = sb.as_ref().map(|b| b.point("paw_l").px()).unwrap_or((cx - 14, 36));
+    let (sr_x, sr_y)     = sb.as_ref().map(|b| b.point("shoulder_r").px()).unwrap_or((cx + 14, 30));
+    let (pr_x, pr_y)     = sb.as_ref().map(|b| b.point("paw_r").px()).unwrap_or((cx + 14, 36));
+    let (fl_x, fl_y)     = sb.as_ref().map(|b| b.point("foot_l").px()).unwrap_or((cx - 6, 46));
+    let (fr_x, fr_y)     = sb.as_ref().map(|b| b.point("foot_r").px()).unwrap_or((cx + 6, 46));
 
-    // Wisdom marks on forehead
-    put(img, cx - 2, hy - 5, white);
-    put(img, cx + 1, hy - 6, white);
-    put(img, cx + 3, hy - 4, white);
+    // Body — plump, low bumpiness so the fur reads as "settled" rather than
+    // fluffy. Brown ramp (not Gold) is the elder signature.
+    BumpyDome::new(bx, by, 14, Palette::Brown)
+        .with_bumpiness(0.12)
+        .with_bumps(11)
+        .with_seed(73)
+        .paint_with(img, body, None);
 
-    // White whisker dots
-    put(img, cx - 8, hy + 4, white);
-    put(img, cx - 9, hy + 6, white);
-    put(img, cx + 8, hy + 4, white);
-    put(img, cx + 9, hy + 6, white);
+    // Short, thick neck — drawn between head and body so it never gaps.
+    let neck_cx = (hx + bx) / 2;
+    let neck_top = hy.min(by);
+    let neck_h = (hy - by).unsigned_abs() as i32 + 1;
+    fill_rect(img, neck_cx - 6, neck_top, 13, neck_h, body);
 
-    // Thinning fur patches
-    put(img, cx - 7, body_y - 5, thin);
-    put(img, cx + 6, body_y - 3, thin);
-    put(img, cx - 10, body_y + 3, thin);
-    put(img, cx + 9, body_y + 5, thin);
+    // Head — slightly smaller than adult head (10 vs 11), same Brown so the
+    // creature reads as a single mass.
+    BumpyDome::new(hx, hy, 10, Palette::Brown)
+        .with_bumpiness(0.15)
+        .with_bumps(9)
+        .with_seed(89)
+        .paint_with(img, body, None);
 
-    // Fading kokoro-sac
-    fill_circle(img, cx, body_y + 2, 4, dim_res);
-    put(img, cx - 13, body_y, dim_res);
-    put(img, cx + 13, body_y, dim_res);
+    // Drooped ears — BrownDark, no inner cyan glow.
+    fill_circle(img, hx - 9, hy - 8, 4, body_shadow);
+    fill_circle(img, hx + 9, hy - 8, 4, body_shadow);
+
+    // Belly — quiet cream patch, smaller than adult.
+    fill_circle(img, belly_x, belly_y, 7, belly);
+
+    // Arms — tucked close (limb/body 0.30). TaperedTail follows the soft-body
+    // shoulder→paw vector so a hunched arm stays connected when the body
+    // shifts. base_width=2 keeps the arm thin (elder is not muscular).
+    TaperedTail::new((sl_x, sl_y), (pl_x, pl_y), 2, Palette::Brown)
+        .paint_with(img, body, None);
+    TaperedTail::new((sr_x, sr_y), (pr_x, pr_y), 2, Palette::Brown)
+        .paint_with(img, body, None);
+
+    // Feet — grounded, plump.
+    fill_circle(img, fl_x, fl_y, 5, body);
+    fill_circle(img, fr_x, fr_y, 5, body);
+
+    // Slit eyes — single 1px-tall horizontal line per eye, no glint. Sleeping
+    // mood already collapses to identical silhouette so we let it through.
+    let _ = mood;
+    fill_rect(img, hx - 6, hy + 2, 4, 1, eye);
+    fill_rect(img, hx + 2, hy + 2, 4, 1, eye);
 }
+

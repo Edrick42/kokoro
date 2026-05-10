@@ -111,7 +111,10 @@ pub fn cub_skeleton() -> Skeleton {
     // Shoulders are 0-length pivots offset from the spine. Spine's local
     // (-1, ±4) → world offset (∓4, +1) from spine tip (32, 26) ⇒ shoulders
     // at world (28, 27) and (36, 27).
-    bones.push(Bone::child("shoulder_l", spine, Vec2::new(-1.0, -4.0), 0.0, 0.0, 1.0).with_z(-1));
+    // Shoulders pushed an extra 2px outward (was -4, now -6 in y-local
+    // → 6px to the side in world) so arms project past the body silhouette
+    // instead of hiding inside it.
+    bones.push(Bone::child("shoulder_l", spine, Vec2::new(-1.0, -6.0), 0.0, 0.0, 1.0).with_z(-1));
     let shoulder_l = BoneId(9);
     // Left arm should sweep down-out to the LEFT in world. Spine's world
     // angle is -π/2, so local angle 7π/6 → world -π/2 + 7π/6 = 2π/3 ≈ 120°
@@ -129,7 +132,7 @@ pub fn cub_skeleton() -> Skeleton {
             .with_stiffness(Stiffness::Soft),
     );
 
-    bones.push(Bone::child("shoulder_r", spine, Vec2::new(-1.0, 4.0), 0.0, 0.0, 1.0).with_z(1));
+    bones.push(Bone::child("shoulder_r", spine, Vec2::new(-1.0, 6.0), 0.0, 0.0, 1.0).with_z(1));
     let shoulder_r = BoneId(12);
     bones.push(
         Bone::child("arm_r", shoulder_r, Vec2::ZERO, 5.0 * PI / 6.0, 5.0, 2.5)

@@ -92,41 +92,49 @@ pub fn draw_cub(img: &mut RgbaImage, _p: &SpeciesSkin, cx: i32, mood: &MoodState
     };
 
     // ---- BACK LIMBS (z=-1 — render before body so body covers attach) ----
+    // base_width 3 → 7px-wide chubby cub limbs (was 2 = 5px sticks).
     if let (Some(s), Some(p_)) = (world_base("shoulder_l"), world_tip("paw_l")) {
-        TaperedTail::new(s, p_, 2, Palette::Gold).paint(img);
+        TaperedTail::new(s, p_, 3, Palette::Gold).paint(img);
     }
     if let (Some(h), Some(f)) = (world_base("hip_l"), world_tip("foot_l")) {
-        TaperedTail::new(h, f, 2, Palette::BrownDark).paint(img);
+        TaperedTail::new(h, f, 3, Palette::BrownDark).paint(img);
     }
 
-    // ---- BODY MASS — combined spine + head as one fluffy gold blob ----
-    // The spine and head bones run from y=32→26 and y=23→10 respectively.
-    // Painting one BumpyDome around their combined midpoint (y≈21) at
-    // radius 11 covers torso + neck visually as a single warm mass; the
-    // head BumpyDome below sits on top to define the cranium.
-    if let (Some((sx, sy)), Some((hx, hy))) = (midpoint("spine"), midpoint("head")) {
-        BumpyDome::new(sx as i32, ((sy + 32.0) * 0.5) as i32, 9, Palette::Gold)
+    // ---- BODY MASS — separate from head, smaller for cub proportions ----
+    // Body sits at y=33 (lower torso), radius 7 — small enough that head
+    // (at y≈17, radius 11) clearly dominates per cub kindchenschema. Cap
+    // of head stays Gold (the red panda "cap"); a Cream face mask paints
+    // on top of head's lower face below for the bicolour signature.
+    if let (Some((sx, _sy)), Some((hx, hy))) = (midpoint("spine"), midpoint("head")) {
+        // Lower-torso body dome.
+        BumpyDome::new(sx as i32, 33, 7, Palette::Gold)
             .with_bumpiness(0.25)
             .with_bumps(10)
             .with_seed(11)
             .paint(img);
-        // Head dome on top.
+        // Head dome.
         BumpyDome::new(hx as i32, hy as i32, 11, Palette::Gold)
             .with_bumpiness(0.30)
             .with_bumps(10)
             .with_seed(3)
             .paint(img);
-        // Cream belly highlight on the lower torso so the front reads
-        // lighter than the back (red panda bicolour cue).
-        let _ = sy;
-        BumpyDome::new(sx as i32, 35, 5, Palette::Cream)
+        // RED PANDA FACE MASK — Cream patch covering lower 2/3 of head
+        // (the "muzzle + cheeks + brow" zone). Eyes/snout/blush paint on
+        // top of this so they pop. Slight downward y offset places the
+        // cream over the face, leaving the gold "cap" intact at the top.
+        BumpyDome::new(hx as i32, hy as i32 + 3, 7, Palette::Cream)
+            .with_bumpiness(0.15)
+            .with_bumps(8)
+            .with_seed(23)
+            .paint(img);
+        // Cream belly — front-of-torso lighter band (red panda bicolour).
+        BumpyDome::new(sx as i32, 36, 4, Palette::Cream)
             .with_bumpiness(0.20)
             .with_bumps(8)
             .with_seed(19)
             .paint(img);
-        // Soft fur halo around the head edge — dense pixel sprinkles in
-        // OrangeBright at the silhouette, sells the fluff.
-        FurFluff::new(hx as i32, hy as i32, 10, 12, Palette::OrangeBright)
+        // Fluff halo around the head silhouette in OrangeBright.
+        FurFluff::new(hx as i32, hy as i32, 11, 13, Palette::OrangeBright)
             .with_density(0.45)
             .with_seed(7)
             .paint(img);
@@ -183,12 +191,12 @@ pub fn draw_cub(img: &mut RgbaImage, _p: &SpeciesSkin, cx: i32, mood: &MoodState
         fill_rect(img, ex + 1, ey + 2, 2, 2, Rgba(Palette::CoralPink.rgba(255)));
     }
 
-    // ---- FRONT LIMBS (z=+1 — render after body) ----
+    // ---- FRONT LIMBS (z=+1 — render after body, chubby base_width 3) ----
     if let (Some(s), Some(p_)) = (world_base("shoulder_r"), world_tip("paw_r")) {
-        TaperedTail::new(s, p_, 2, Palette::Gold).paint(img);
+        TaperedTail::new(s, p_, 3, Palette::Gold).paint(img);
     }
     if let (Some(h), Some(f)) = (world_base("hip_r"), world_tip("foot_r")) {
-        TaperedTail::new(h, f, 2, Palette::BrownDark).paint(img);
+        TaperedTail::new(h, f, 3, Palette::BrownDark).paint(img);
     }
     // Foot/paw "pad" tips — small dark BumpyDome at each end so feet read
     // as terminating in something rather than fading out.
@@ -209,8 +217,11 @@ pub fn draw_cub(img: &mut RgbaImage, _p: &SpeciesSkin, cx: i32, mood: &MoodState
         tail_joints.push((tx, ty));
     }
     if tail_joints.len() >= 2 {
-        RingedTail::new(tail_joints, 3, Palette::Red, Palette::Cream)
-            .with_rings(4, 2)
+        // Bushier red panda tail: base_width 4 (was 3) → 9px wide at base.
+        // Tighter ring period (3, was 4) puts more rings along the path
+        // for the iconic banded look.
+        RingedTail::new(tail_joints, 4, Palette::Red, Palette::Cream)
+            .with_rings(3, 2)
             .paint(img);
     }
 

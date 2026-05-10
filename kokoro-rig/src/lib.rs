@@ -31,11 +31,13 @@
 pub mod bone;
 pub mod fabrik;
 pub mod ik;
+pub mod pose;
 pub mod skeleton;
 pub mod zorder;
 
 pub use bone::{Bone, BoneId, Vec2};
 pub use fabrik::FabrikChain;
 pub use ik::{solve_two_bone, BendDirection, TwoBoneResult};
+pub use pose::{BoneAngleOffsets, PoseAccumulator, PoseLayer, Tic, TicKind, TicLayer};
 pub use skeleton::Skeleton;
 pub use zorder::draw_order;

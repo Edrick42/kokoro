@@ -337,6 +337,139 @@ impl Brush for BioluminescentSpeck {
     }
 }
 
+// =====================================================================
+// KawaiiEye — fourth primitive: oval + glint, kawaii signature face piece
+// =====================================================================
+
+/// A pixel-art kawaii eye: filled oval with a single bright glint pixel in
+/// one corner. Replaces ad-hoc rectangle eyes everywhere a creature needs
+/// the cute-trigger Lorenz / Glocker face. Tiny on purpose — at 64×64
+/// canvas the whole eye fits inside ~5×6 pixels.
+///
+/// Shape choice: ellipse (not rectangle) because perfect-rectangle eyes
+/// read as "alien droid"; the ellipse softens the silhouette enough to
+/// trigger care response while staying readable in pixel art.
+///
+/// Glint is a SINGLE pixel in one of the four corners of the eye box.
+/// Multiple glints look wet, not kawaii. Both eyes on a creature must use
+/// the SAME glint corner so they read as a coherent face — the convention
+/// in this codebase is `Quadrant::TopRight`.
+#[derive(Debug, Copy, Clone)]
+pub struct KawaiiEye {
+    pub cx: i32,
+    pub cy: i32,
+    /// Horizontal radius of the eye oval. Total visual width = 2*rx + 1.
+    /// Typical cub eye: rx = 1 (3px wide).
+    pub rx: u32,
+    /// Vertical radius. Slightly larger than rx makes the eye taller than
+    /// wide → reads more "wide-eyed surprise" / kawaii. Typical cub: ry = 2.
+    pub ry: u32,
+    /// Body of the eye — almost always Palette::NearBlack so the iris reads
+    /// as solid no matter the species' palette.
+    pub color: Palette,
+    pub glint: Option<EyeGlint>,
+}
+
+/// Single-pixel highlight inside the eye, placed at one of the four corners.
+#[derive(Debug, Copy, Clone)]
+pub struct EyeGlint {
+    pub corner: GlintCorner,
+    pub color: Palette,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum GlintCorner {
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight,
+}
+
+impl GlintCorner {
+    /// (sign_x, sign_y): +1 = right/down, -1 = left/up. Multiplied by the
+    /// eye's radii to find the corner pixel inside the oval.
+    fn signs(self) -> (i32, i32) {
+        match self {
+            GlintCorner::TopLeft => (-1, -1),
+            GlintCorner::TopRight => (1, -1),
+            GlintCorner::BottomLeft => (-1, 1),
+            GlintCorner::BottomRight => (1, 1),
+        }
+    }
+}
+
+impl KawaiiEye {
+    pub const fn new(cx: i32, cy: i32, color: Palette) -> Self {
+        Self { cx, cy, rx: 1, ry: 2, color, glint: None }
+    }
+
+    pub const fn with_size(mut self, rx: u32, ry: u32) -> Self {
+        self.rx = rx;
+        self.ry = ry;
+        self
+    }
+
+    pub const fn with_glint(mut self, corner: GlintCorner, color: Palette) -> Self {
+        self.glint = Some(EyeGlint { corner, color });
+        self
+    }
+
+    /// Escape hatch matching the rest of the DSL: paint with a pre-resolved
+    /// Rgba (e.g., after a runtime tint pass) instead of going through the
+    /// Palette enum. New code should prefer the trait `paint`.
+    pub fn paint_with(
+        &self,
+        img: &mut RgbaImage,
+        body: Rgba<u8>,
+        glint_pixel: Option<Rgba<u8>>,
+    ) {
+        let rx = self.rx.max(1) as i32;
+        let ry = self.ry.max(1) as i32;
+        let w = img.width() as i32;
+        let h = img.height() as i32;
+
+        // Paint the oval body first.
+        for dy in -ry..=ry {
+            for dx in -rx..=rx {
+                let nx = dx as f32 / rx as f32;
+                let ny = dy as f32 / ry as f32;
+                if nx * nx + ny * ny <= 1.0 {
+                    let px = self.cx + dx;
+                    let py = self.cy + dy;
+                    if px >= 0 && py >= 0 && px < w && py < h {
+                        img.put_pixel(px as u32, py as u32, body);
+                    }
+                }
+            }
+        }
+
+        // Then paint the glint as a single pixel in the chosen corner. We
+        // walk inward by 1px from the corner so the glint sits ON the eye,
+        // not at its edge — corner pixels of the oval are usually unset.
+        if let (Some(g), Some(gpx)) = (self.glint, glint_pixel) {
+            let (sx, sy) = g.corner.signs();
+            // Inset by 1 from the radius so the glint lands inside the body.
+            let inset_x = (rx - 1).max(0);
+            let inset_y = (ry - 1).max(0);
+            let px = self.cx + sx * inset_x;
+            let py = self.cy + sy * inset_y;
+            if px >= 0 && py >= 0 && px < w && py < h {
+                img.put_pixel(px as u32, py as u32, gpx);
+            }
+        }
+    }
+}
+
+impl Brush for KawaiiEye {
+    fn paint(&self, img: &mut RgbaImage) {
+        self.paint_with(
+            img,
+            self.color.into(),
+            self.glint.map(|g| g.color.into()),
+        );
+    }
+}
+
 /// Tiny deterministic hash. Splitmix-style folded to u32. Enough entropy for
 /// per-sector perturbation; not cryptographic.
 const fn hash2(a: u32, b: u32) -> u32 {
@@ -556,5 +689,60 @@ mod tests {
         assert_eq!(painted, 1);
 
         save_swatch(&img, "speck_pinpoint.png");
+    }
+
+    #[test]
+    fn kawaii_eye_paints_oval_in_eye_color() {
+        let mut img = RgbaImage::new(16, 16);
+        KawaiiEye::new(8, 8, Palette::NearBlack)
+            .with_size(2, 3)
+            .paint(&mut img);
+        let dark: Rgba<u8> = Palette::NearBlack.into();
+        // Centre pixel must be painted.
+        assert_eq!(img.get_pixel(8, 8), &dark);
+        // Pixel along long axis (y) should be painted at full vertical reach.
+        assert_eq!(img.get_pixel(8, 11), &dark);
+        // Pixel beyond horizontal radius should NOT be painted.
+        let far_right = img.get_pixel(11, 8);
+        assert_ne!(far_right, &dark);
+        save_swatch(&img, "kawaii_eye_plain.png");
+    }
+
+    #[test]
+    fn kawaii_eye_glint_lands_in_chosen_corner() {
+        let mut img = RgbaImage::new(16, 16);
+        KawaiiEye::new(8, 8, Palette::NearBlack)
+            .with_size(2, 3)
+            .with_glint(GlintCorner::TopRight, Palette::CreamLight)
+            .paint(&mut img);
+
+        let glint: Rgba<u8> = Palette::CreamLight.into();
+        // Glint should be inside the upper-right quadrant. Inset (rx-1, ry-1)
+        // = (1, 2) → pixel at (cx+1, cy-2) = (9, 6).
+        assert_eq!(img.get_pixel(9, 6), &glint);
+        // Top-left should NOT have a glint pixel.
+        assert_ne!(img.get_pixel(7, 6), &glint);
+        save_swatch(&img, "kawaii_eye_glinted.png");
+    }
+
+    #[test]
+    fn kawaii_eye_min_size_does_not_crash() {
+        // rx=0, ry=0 → clamped to 1 minimum, single pixel painted.
+        let mut img = RgbaImage::new(8, 8);
+        KawaiiEye::new(4, 4, Palette::NearBlack)
+            .with_size(0, 0)
+            .paint(&mut img);
+        let dark: Rgba<u8> = Palette::NearBlack.into();
+        assert_eq!(img.get_pixel(4, 4), &dark);
+    }
+
+    #[test]
+    fn glint_corner_signs_match_compass_directions() {
+        // Sanity check on the corner → sign mapping. Easy to flip a sign
+        // and not notice without a test.
+        assert_eq!(GlintCorner::TopLeft.signs(), (-1, -1));
+        assert_eq!(GlintCorner::TopRight.signs(), (1, -1));
+        assert_eq!(GlintCorner::BottomLeft.signs(), (-1, 1));
+        assert_eq!(GlintCorner::BottomRight.signs(), (1, 1));
     }
 }

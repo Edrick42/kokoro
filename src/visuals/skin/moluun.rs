@@ -513,19 +513,23 @@ mod ref_transcribe {
             }
         }
 
-        // Iterative denoise: each pass drops opaque cells that have fewer
-        // than 2 same-coloured 8-neighbours. Two passes converge on a
-        // clean silhouette — first pass kills the obviously-isolated
-        // pixels, second cleans up the survivors that lost their only
-        // partner in pass one. Real pixel art always has each painted
-        // pixel sitting in a ≥3-pixel cluster; relying on 2+ neighbours
-        // is conservative and still drops the grid-line noise.
+        // Iterative denoise: drops opaque cells with fewer than 2
+        // same-coloured 8-neighbours. Two passes converge on a clean
+        // silhouette.
+        //
+        // EXCEPT: NearBlack pixels are spared. Eyes and noses in pixel
+        // art are typically 1-2 black pixels sitting alone inside a
+        // face mask of a different colour. Denoising them off the sprite
+        // strips the face of its key features. Other colours (orange,
+        // cream) always appear in larger clusters, so they obey the rule.
+        let near_black: [u8; 4] = Palette::NearBlack.rgba(255);
         for _pass in 0..2 {
             let snapshot = quantised.clone();
             for cy in 0..rows as usize {
                 for cx in 0..cols as usize {
                     let cur = snapshot[cy][cx];
-                    if cur.is_none() {
+                    let Some(c) = cur else { continue };
+                    if c.0 == near_black {
                         continue;
                     }
                     let mut same = 0u32;

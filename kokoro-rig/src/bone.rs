@@ -22,6 +22,22 @@ impl BoneId {
     }
 }
 
+/// Whether a bone is driven by the rig's pose system or by an external
+/// soft-body simulation. The `softbody::reconcile` pass uses this to decide
+/// the direction information flows on a frame-by-frame basis.
+///
+/// - `Rigid` (default): skeleton wins. After FK, the bone's tip is pushed
+///   into the soft-body point cloud (anchored points). Use for skull,
+///   torso, mantle — anything that should hold its shape.
+/// - `Soft`: soft body wins. The simulation moves a point freely; the
+///   bone reads the point and rotates to match. Use for tail tips,
+///   tentacles, ear tips — anything that should drift with physics.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Stiffness {
+    Rigid,
+    Soft,
+}
+
 /// Plain 2D point/vector in pixel space. Y grows downward to match the
 /// `image` crate's pixel convention used everywhere else in Kokoro.
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -126,6 +142,10 @@ pub struct Bone {
 
     /// Per-creature width multiplier. Same convention as above.
     pub genome_width_scale: f32,
+
+    /// How this bone interacts with an external soft-body simulation.
+    /// See `Stiffness` docs. Default is `Rigid`.
+    pub stiffness: Stiffness,
 }
 
 impl Bone {
@@ -143,6 +163,7 @@ impl Bone {
             z_layer: 0,
             genome_length_scale: 1.0,
             genome_width_scale: 1.0,
+            stiffness: Stiffness::Rigid,
         }
     }
 
@@ -167,6 +188,7 @@ impl Bone {
             z_layer: 0,
             genome_length_scale: 1.0,
             genome_width_scale: 1.0,
+            stiffness: Stiffness::Rigid,
         }
     }
 
@@ -178,6 +200,11 @@ impl Bone {
     pub const fn with_genome_scales(mut self, length_scale: f32, width_scale: f32) -> Self {
         self.genome_length_scale = length_scale;
         self.genome_width_scale = width_scale;
+        self
+    }
+
+    pub const fn with_stiffness(mut self, s: Stiffness) -> Self {
+        self.stiffness = s;
         self
     }
 

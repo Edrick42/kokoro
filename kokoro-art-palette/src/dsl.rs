@@ -827,10 +827,15 @@ impl Brush for FurFluff {
 // outline_silhouette — post-process: 1px dark border on every silhouette
 // =====================================================================
 
-/// Replace every opaque pixel that touches a transparent neighbour (or the
-/// image edge) with `color`. Net effect: a 1-pixel dark outline around
-/// each shape in the image, *inside* the existing silhouette — the sprite
-/// doesn't grow.
+/// Replace every opaque pixel that **belongs to a shape** and touches a
+/// transparent neighbour (or the image edge) with `color`. Net effect: a
+/// 1-pixel dark outline around each shape in the image, *inside* the
+/// existing silhouette — the sprite doesn't grow.
+///
+/// "Belongs to a shape" means the pixel must have **at least one opaque
+/// neighbour** in addition to having transparent ones. Isolated single
+/// pixels (sparkles, speckles, fluff dots) are skipped: outlining them
+/// would turn every loose pixel into a dark dot and read as noise.
 ///
 /// Two-pass implementation: first scan the image read-only and collect
 /// every pixel that needs to change, then paint them. A single-pass
@@ -846,28 +851,35 @@ pub fn outline_silhouette(img: &mut RgbaImage, color: Rgba<u8>) {
     let w = img.width() as i32;
     let h = img.height() as i32;
     let mut to_paint: Vec<(u32, u32)> = Vec::new();
+    let neighbours = [(-1, 0), (1, 0), (0, -1), (0, 1)];
 
     for y in 0..h {
         for x in 0..w {
             let p = img.get_pixel(x as u32, y as u32);
             if p.0[3] == 0 {
-                continue; // already transparent — skip
+                continue;
             }
-            // Out-of-bounds counts as transparent so sprite edges get
-            // outlined too (a body filling the canvas corner still gets a
-            // border on the outer edge).
-            let touches_void = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-                .iter()
-                .any(|(dx, dy)| {
-                    let nx = x + dx;
-                    let ny = y + dy;
-                    nx < 0
-                        || ny < 0
-                        || nx >= w
-                        || ny >= h
-                        || img.get_pixel(nx as u32, ny as u32).0[3] == 0
-                });
-            if touches_void {
+            // Need at least one transparent neighbour (or canvas edge) to
+            // qualify as "edge" — that's the existing rule.
+            let mut touches_void = false;
+            // AND at least one opaque neighbour to confirm we belong to a
+            // shape — without this, every isolated speckle becomes a dark
+            // dot.
+            let mut touches_body = false;
+            for (dx, dy) in neighbours {
+                let nx = x + dx;
+                let ny = y + dy;
+                if nx < 0 || ny < 0 || nx >= w || ny >= h {
+                    touches_void = true;
+                    continue;
+                }
+                if img.get_pixel(nx as u32, ny as u32).0[3] == 0 {
+                    touches_void = true;
+                } else {
+                    touches_body = true;
+                }
+            }
+            if touches_void && touches_body {
                 to_paint.push((x as u32, y as u32));
             }
         }
@@ -1365,14 +1377,30 @@ mod tests {
 
     #[test]
     fn outline_silhouette_treats_image_edge_as_transparent() {
-        // A pixel sitting on the canvas edge gets outlined even when its
-        // out-of-bounds neighbour isn't actually transparent.
+        // A pixel on the canvas edge gets outlined even when the
+        // out-of-bounds neighbour "isn't actually transparent". The pixel
+        // must still belong to a shape — pair it with an adjacent body
+        // pixel so it isn't isolated.
         let mut img = RgbaImage::new(8, 8);
         let body: Rgba<u8> = Palette::Gold.into();
-        img.put_pixel(0, 0, body); // top-left corner
+        img.put_pixel(0, 0, body);
+        img.put_pixel(1, 0, body); // adjacent → (0,0) belongs to a shape
         let outline: Rgba<u8> = Palette::DeepBrown.into();
         outline_silhouette(&mut img, outline);
         assert_eq!(img.get_pixel(0, 0), &outline);
+    }
+
+    #[test]
+    fn outline_silhouette_skips_isolated_specks() {
+        // Single pixel with all transparent neighbours: this is a fluff
+        // speck or sparkle, NOT an edge. Outlining it would turn loose
+        // FurFluff/glint pixels into dark noise dots.
+        let mut img = RgbaImage::new(16, 16);
+        let body: Rgba<u8> = Palette::OrangeBright.into();
+        img.put_pixel(8, 8, body);
+        outline_silhouette(&mut img, Palette::DeepBrown.into());
+        // Speck retains its original colour.
+        assert_eq!(img.get_pixel(8, 8), &body);
     }
 
     #[test]

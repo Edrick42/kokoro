@@ -113,17 +113,18 @@ pub fn cub_skeleton() -> Skeleton {
     // at world (28, 27) and (36, 27).
     bones.push(Bone::child("shoulder_l", spine, Vec2::new(-1.0, -4.0), 0.0, 0.0, 1.0).with_z(-1));
     let shoulder_l = BoneId(9);
-    // Arm rotates ~150° from the spine's "up" → points down-out. Local
-    // angle 5π/6 against spine (which is at world -π/2) → world angle
-    // -π/2 + 5π/6 = π/3 ≈ 60° (down + slightly right). Mirror for right.
+    // Left arm should sweep down-out to the LEFT in world. Spine's world
+    // angle is -π/2, so local angle 7π/6 → world -π/2 + 7π/6 = 2π/3 ≈ 120°
+    // (down + left). Right arm mirrors at local 5π/6 → world π/3 (down +
+    // right).
     bones.push(
-        Bone::child("arm_l", shoulder_l, Vec2::ZERO, 5.0 * PI / 6.0, 5.0, 2.5)
+        Bone::child("arm_l", shoulder_l, Vec2::ZERO, 7.0 * PI / 6.0, 5.0, 2.5)
             .with_z(-1)
             .with_stiffness(Stiffness::Soft),
     );
     let arm_l = BoneId(10);
     bones.push(
-        Bone::child("paw_l", arm_l, Vec2::ZERO, -PI / 6.0, 2.0, 2.0)
+        Bone::child("paw_l", arm_l, Vec2::ZERO, PI / 6.0, 2.0, 2.0)
             .with_z(-1)
             .with_stiffness(Stiffness::Soft),
     );
@@ -131,13 +132,13 @@ pub fn cub_skeleton() -> Skeleton {
     bones.push(Bone::child("shoulder_r", spine, Vec2::new(-1.0, 4.0), 0.0, 0.0, 1.0).with_z(1));
     let shoulder_r = BoneId(12);
     bones.push(
-        Bone::child("arm_r", shoulder_r, Vec2::ZERO, -5.0 * PI / 6.0, 5.0, 2.5)
+        Bone::child("arm_r", shoulder_r, Vec2::ZERO, 5.0 * PI / 6.0, 5.0, 2.5)
             .with_z(1)
             .with_stiffness(Stiffness::Soft),
     );
     let arm_r = BoneId(13);
     bones.push(
-        Bone::child("paw_r", arm_r, Vec2::ZERO, PI / 6.0, 2.0, 2.0)
+        Bone::child("paw_r", arm_r, Vec2::ZERO, -PI / 6.0, 2.0, 2.0)
             .with_z(1)
             .with_stiffness(Stiffness::Soft),
     );
@@ -305,6 +306,20 @@ mod tests {
     }
 
     #[test]
+    fn arms_sweep_outward_to_their_own_sides() {
+        // Regression guard for the local-angle inversion bug: left arm
+        // should reach into x < 32 (left of body), right arm into x > 32.
+        let mut sk = cub_skeleton();
+        sk.forward();
+        let paw_l = sk.world_tip(sk.id_of("paw_l").unwrap());
+        let paw_r = sk.world_tip(sk.id_of("paw_r").unwrap());
+        assert!(paw_l.x < 30.0, "left paw should be left of centre, got x={}", paw_l.x);
+        assert!(paw_r.x > 34.0, "right paw should be right of centre, got x={}", paw_r.x);
+        // And both should hang below the shoulders.
+        assert!(paw_l.y > 28.0 && paw_r.y > 28.0);
+    }
+
+    #[test]
     fn tail_extends_to_the_right_of_the_cub() {
         // Tail should peek out behind/right (red panda silhouette) — every
         // segment after tail_1 should be at x > 32 and y > 32.
@@ -363,5 +378,61 @@ mod tests {
 
         assert!(approx(head_b.x - head_a.x, 8.0, 1e-3));
         assert!(approx(head_b.y - head_a.y, 8.0, 1e-3));
+    }
+
+    /// Saves a PNG of the cub skeleton to target/sprite-snapshots/ for
+    /// visual review. Ignored by default — run with:
+    ///
+    /// ```bash
+    /// cargo test moluun_cub_skeleton -- --ignored --nocapture
+    /// ```
+    #[test]
+    #[ignore]
+    fn snapshot_moluun_cub_skeleton() {
+        use image::{Rgba, RgbaImage};
+        use std::path::PathBuf;
+
+        let mut sk = cub_skeleton();
+        sk.forward();
+
+        let mut img = RgbaImage::new(64, 64);
+        // Cream background — picks the master palette's neutral so the
+        // dark bone strokes pop.
+        for px in img.pixels_mut() {
+            *px = Rgba([217, 199, 174, 255]);
+        }
+
+        kokoro_rig::debug::render_skeleton_overlay(
+            &mut img,
+            &sk,
+            Rgba([59, 36, 24, 255]),    // DeepBrown line stroke
+            Rgba([217, 13, 67, 255]),   // Red joint dots (pop against cream)
+            true,                        // tint by z so layering reads at a glance
+        );
+
+        let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join("sprite-snapshots");
+        std::fs::create_dir_all(&dir).unwrap();
+        img.save(dir.join("moluun_cub_skeleton.png")).unwrap();
+
+        // 4× upscale alongside, same trick the snapshot_sprites test uses.
+        let mut up = RgbaImage::new(256, 256);
+        for y in 0..64u32 {
+            for x in 0..64u32 {
+                let p = *img.get_pixel(x, y);
+                for dy in 0..4u32 {
+                    for dx in 0..4u32 {
+                        up.put_pixel(x * 4 + dx, y * 4 + dy, p);
+                    }
+                }
+            }
+        }
+        up.save(dir.join("moluun_cub_skeleton@4x.png")).unwrap();
+
+        eprintln!(
+            "moluun_cub_skeleton: wrote PNGs to {:?}",
+            dir.canonicalize().unwrap_or(dir)
+        );
     }
 }

@@ -29,6 +29,8 @@
 //! `kokoro-art-palette` and the species draw modules own the second.
 
 pub mod bone;
+#[cfg(feature = "image")]
+pub mod debug;
 pub mod fabrik;
 pub mod ik;
 pub mod pose;

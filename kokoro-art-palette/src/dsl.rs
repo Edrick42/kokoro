@@ -470,6 +470,256 @@ impl Brush for KawaiiEye {
     }
 }
 
+// =====================================================================
+// EarTuft — fifth primitive: large rounded ear with perpendicular tuft
+// =====================================================================
+
+/// A koala-style ear: outer rounded shell + inner darker patch + a row of
+/// short perpendicular tuft strokes along the silhouette so the ear reads
+/// as fluffy fur rather than a cardboard cutout.
+///
+/// Authored along an axis (`base` → `tip`) so it can be plugged into a
+/// rig: pass the ear bone's `world_base` and `world_tip` and the brush
+/// orients itself along that direction. Width controls the lateral
+/// fluffiness independent of the bone's own length.
+#[derive(Debug, Copy, Clone)]
+pub struct EarTuft {
+    pub base: (i32, i32),
+    pub tip: (i32, i32),
+    /// Half-width of the ear shell at its widest point (mid-bone). The ear
+    /// tapers toward both ends.
+    pub width: u32,
+    /// Outer ear color (the shell).
+    pub outer: Palette,
+    /// Inner ear color (the darker patch in the middle of the shell).
+    /// Skipped when None.
+    pub inner: Option<Palette>,
+    /// Perpendicular tuft strokes along the outside of the shell. Skipped
+    /// when None — useful for non-furred species.
+    pub tuft: Option<Palette>,
+}
+
+impl EarTuft {
+    pub const fn new(base: (i32, i32), tip: (i32, i32), width: u32, outer: Palette) -> Self {
+        Self { base, tip, width, outer, inner: None, tuft: None }
+    }
+
+    pub const fn with_inner(mut self, color: Palette) -> Self {
+        self.inner = Some(color);
+        self
+    }
+
+    pub const fn with_tuft(mut self, color: Palette) -> Self {
+        self.tuft = Some(color);
+        self
+    }
+
+    pub fn paint_with(
+        &self,
+        img: &mut RgbaImage,
+        outer: Rgba<u8>,
+        inner: Option<Rgba<u8>>,
+        tuft: Option<Rgba<u8>>,
+    ) {
+        let (sx, sy) = self.base;
+        let (ex, ey) = self.tip;
+        let dx = (ex - sx) as f32;
+        let dy = (ey - sy) as f32;
+        let length = (dx * dx + dy * dy).sqrt().max(1.0);
+        let perp_x = -dy / length;
+        let perp_y = dx / length;
+        let max_w = self.width.max(1) as f32;
+
+        let w_img = img.width() as i32;
+        let h_img = img.height() as i32;
+        let steps = (length * 2.0) as i32 + 1;
+
+        // 1. Shell + inner patch — walk the spine, paint a band whose
+        // half-width follows a "leaf" profile (peaks at mid-bone, tapers
+        // at the ends) so the ear reads as oval rather than a strip.
+        for i in 0..=steps {
+            let t = i as f32 / steps as f32;
+            // Leaf profile: 4t(1-t) peaks at 1.0 at t=0.5, hits 0 at the
+            // ends — a parabola scaled to the ear's max width.
+            let half_w = (max_w * (4.0 * t * (1.0 - t))).round() as i32;
+            let cx = sx as f32 + dx * t;
+            let cy = sy as f32 + dy * t;
+
+            for off in -half_w..=half_w {
+                let px = (cx + perp_x * off as f32).round() as i32;
+                let py = (cy + perp_y * off as f32).round() as i32;
+                if px >= 0 && py >= 0 && px < w_img && py < h_img {
+                    img.put_pixel(px as u32, py as u32, outer);
+                }
+            }
+
+            // Inner patch: narrower band (60% of shell width), only in the
+            // middle 60% of the ear length.
+            if let Some(ic) = inner {
+                if t > 0.2 && t < 0.8 {
+                    let inner_half = (half_w as f32 * 0.6).round() as i32;
+                    for off in -inner_half..=inner_half {
+                        let px = (cx + perp_x * off as f32).round() as i32;
+                        let py = (cy + perp_y * off as f32).round() as i32;
+                        if px >= 0 && py >= 0 && px < w_img && py < h_img {
+                            img.put_pixel(px as u32, py as u32, ic);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Tuft strokes — single-pixel pokes one step *outside* the
+        // shell, every 2 spine samples, on both perpendicular sides.
+        // These are what sells the ear as "fluffy" rather than glossy.
+        if let Some(tc) = tuft {
+            for i in (3..steps - 2).step_by(2) {
+                let t = i as f32 / steps as f32;
+                let half_w = (max_w * (4.0 * t * (1.0 - t))).round() as i32;
+                let cx = sx as f32 + dx * t;
+                let cy = sy as f32 + dy * t;
+                for off in [half_w + 1, -(half_w + 1)] {
+                    let px = (cx + perp_x * off as f32).round() as i32;
+                    let py = (cy + perp_y * off as f32).round() as i32;
+                    if px >= 0 && py >= 0 && px < w_img && py < h_img {
+                        img.put_pixel(px as u32, py as u32, tc);
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl Brush for EarTuft {
+    fn paint(&self, img: &mut RgbaImage) {
+        self.paint_with(
+            img,
+            self.outer.into(),
+            self.inner.map(Into::into),
+            self.tuft.map(Into::into),
+        );
+    }
+}
+
+// =====================================================================
+// RingedTail — sixth primitive: tapered banded tail along a polyline
+// =====================================================================
+
+/// A red-panda-style ringed tail painted along a polyline of joints (the
+/// caller typically passes world positions of a chain of tail bones).
+/// Tapers from `base_width` at the first joint to a single pixel at the
+/// last; alternates between two colors at fixed intervals along the path
+/// to produce the iconic ringed look.
+///
+/// Distinct from `TaperedTail` (which is a single straight segment): the
+/// polyline lets the tail follow whatever curve the rig + soft-body
+/// produces, and rings stay properly distributed along arc length even
+/// when the path bends sharply.
+#[derive(Debug, Clone)]
+pub struct RingedTail {
+    /// Spine joints in order, base → tip. Caller is responsible for
+    /// providing at least 2.
+    pub joints: Vec<(i32, i32)>,
+    /// Half-width at the first joint (tapers to 1px at the last).
+    pub base_width: u32,
+    pub body: Palette,
+    pub ring: Palette,
+    /// Distance in pixels (along arc length) between consecutive ring-band
+    /// CENTRES. Ring band starts at the cycle and is `ring_thickness` long.
+    pub ring_period: u32,
+    pub ring_thickness: u32,
+}
+
+impl RingedTail {
+    pub fn new(joints: Vec<(i32, i32)>, base_width: u32, body: Palette, ring: Palette) -> Self {
+        Self {
+            joints,
+            base_width,
+            body,
+            ring,
+            ring_period: 4,
+            ring_thickness: 2,
+        }
+    }
+
+    pub fn with_rings(mut self, period: u32, thickness: u32) -> Self {
+        self.ring_period = period;
+        self.ring_thickness = thickness;
+        self
+    }
+
+    pub fn paint_with(&self, img: &mut RgbaImage, body: Rgba<u8>, ring: Rgba<u8>) {
+        if self.joints.len() < 2 {
+            return;
+        }
+
+        // Pre-compute per-segment lengths and total arc length so taper +
+        // ring phase use real distance (not naive parameter t per segment).
+        let mut seg_lens = Vec::with_capacity(self.joints.len() - 1);
+        let mut total = 0.0_f32;
+        for w in self.joints.windows(2) {
+            let dx = (w[1].0 - w[0].0) as f32;
+            let dy = (w[1].1 - w[0].1) as f32;
+            let l = (dx * dx + dy * dy).sqrt();
+            seg_lens.push(l);
+            total += l;
+        }
+        if total < 0.5 {
+            return;
+        }
+
+        let max_w = self.base_width.max(1) as f32;
+        let period = self.ring_period.max(2) as f32;
+        let thickness = self.ring_thickness.max(1) as f32;
+        let w_img = img.width() as i32;
+        let h_img = img.height() as i32;
+
+        let mut traveled = 0.0_f32;
+        for (i, w) in self.joints.windows(2).enumerate() {
+            let (sx, sy) = w[0];
+            let (ex, ey) = w[1];
+            let dx = (ex - sx) as f32;
+            let dy = (ey - sy) as f32;
+            let l = seg_lens[i].max(1e-3);
+            let perp_x = -dy / l;
+            let perp_y = dx / l;
+            let steps = (l * 2.0) as i32 + 1;
+
+            for s in 0..=steps {
+                let t = s as f32 / steps as f32;
+                let cur = traveled + l * t;
+                let frac = (cur / total).clamp(0.0, 1.0);
+                // Linear taper. +0.5 so 1.0 frac still renders at least a
+                // single-pixel tip rather than nothing.
+                let half_w = (max_w * (1.0 - frac) + 0.5).round() as i32;
+
+                // Ring vs body color is decided by arc-length phase, so
+                // the band thickness in pixels stays consistent regardless
+                // of segment direction or how the spine bends.
+                let phase = cur % period;
+                let color = if phase < thickness { ring } else { body };
+
+                let cx = sx as f32 + dx * t;
+                let cy = sy as f32 + dy * t;
+                for off in -half_w..=half_w {
+                    let px = (cx + perp_x * off as f32).round() as i32;
+                    let py = (cy + perp_y * off as f32).round() as i32;
+                    if px >= 0 && py >= 0 && px < w_img && py < h_img {
+                        img.put_pixel(px as u32, py as u32, color);
+                    }
+                }
+            }
+            traveled += l;
+        }
+    }
+}
+
+impl Brush for RingedTail {
+    fn paint(&self, img: &mut RgbaImage) {
+        self.paint_with(img, self.body.into(), self.ring.into());
+    }
+}
+
 /// Tiny deterministic hash. Splitmix-style folded to u32. Enough entropy for
 /// per-sector perturbation; not cryptographic.
 const fn hash2(a: u32, b: u32) -> u32 {
@@ -744,5 +994,128 @@ mod tests {
         assert_eq!(GlintCorner::TopRight.signs(), (1, -1));
         assert_eq!(GlintCorner::BottomLeft.signs(), (-1, 1));
         assert_eq!(GlintCorner::BottomRight.signs(), (1, 1));
+    }
+
+    #[test]
+    fn ear_tuft_paints_oval_shell_along_axis() {
+        let mut img = RgbaImage::new(32, 32);
+        EarTuft::new((10, 16), (28, 16), 4, Palette::Tan).paint(&mut img);
+        let tan: Rgba<u8> = Palette::Tan.into();
+        // Mid-bone (x=19) at the spine axis should be painted.
+        assert_eq!(img.get_pixel(19, 16), &tan);
+        // Mid-bone perpendicular reach should hit half_width pixels above
+        // and below the axis (leaf profile peak ≈ width 4 at t=0.5).
+        assert_eq!(img.get_pixel(19, 12), &tan);
+        assert_eq!(img.get_pixel(19, 20), &tan);
+        // Ends taper to nothing — pixel beyond shell width at the base
+        // should NOT be painted.
+        assert_ne!(img.get_pixel(10, 12), &tan);
+        save_swatch(&img, "ear_tuft_plain.png");
+    }
+
+    #[test]
+    fn ear_tuft_inner_paints_inside_shell() {
+        let mut img = RgbaImage::new(32, 32);
+        EarTuft::new((10, 16), (28, 16), 4, Palette::Tan)
+            .with_inner(Palette::Brown)
+            .paint(&mut img);
+        let brown: Rgba<u8> = Palette::Brown.into();
+        // Centre of ear (mid-bone) should be inner color, not outer.
+        assert_eq!(img.get_pixel(19, 16), &brown);
+    }
+
+    #[test]
+    fn ear_tuft_with_tuft_paints_pixels_outside_shell() {
+        let mut img = RgbaImage::new(32, 32);
+        EarTuft::new((10, 16), (28, 16), 4, Palette::Tan)
+            .with_tuft(Palette::CreamLight)
+            .paint(&mut img);
+        let tuft: Rgba<u8> = Palette::CreamLight.into();
+        // At least one tuft pixel should be visible in the image.
+        let saw_tuft = img.pixels().any(|p| p == &tuft);
+        assert!(saw_tuft, "expected at least one tuft pixel");
+        save_swatch(&img, "ear_tuft_full.png");
+    }
+
+    #[test]
+    fn ear_tuft_diagonal_axis_works() {
+        // The brush should orient along whatever direction base→tip points.
+        let mut img = RgbaImage::new(32, 32);
+        EarTuft::new((8, 24), (24, 8), 3, Palette::Brown)
+            .with_tuft(Palette::Cream)
+            .paint(&mut img);
+        let brown: Rgba<u8> = Palette::Brown.into();
+        // Midpoint along diagonal ≈ (16, 16) — must be painted.
+        assert_eq!(img.get_pixel(16, 16), &brown);
+        save_swatch(&img, "ear_tuft_diagonal.png");
+    }
+
+    #[test]
+    fn ringed_tail_paints_both_colors_along_path() {
+        let mut img = RgbaImage::new(64, 32);
+        let joints = vec![(8, 16), (24, 16), (40, 16), (56, 16)];
+        RingedTail::new(joints, 4, Palette::Brown, Palette::OrangeBright)
+            .with_rings(6, 2)
+            .paint(&mut img);
+        let brown: Rgba<u8> = Palette::Brown.into();
+        let ring: Rgba<u8> = Palette::OrangeBright.into();
+        let saw_brown = img.pixels().any(|p| p == &brown);
+        let saw_ring = img.pixels().any(|p| p == &ring);
+        assert!(saw_brown && saw_ring, "both body and ring colors must appear");
+        save_swatch(&img, "ringed_tail_horizontal.png");
+    }
+
+    #[test]
+    fn ringed_tail_tapers_to_a_point() {
+        let mut img = RgbaImage::new(64, 32);
+        let joints = vec![(8, 16), (56, 16)];
+        RingedTail::new(joints, 5, Palette::Brown, Palette::OrangeBright).paint(&mut img);
+        let brown: Rgba<u8> = Palette::Brown.into();
+        let ring: Rgba<u8> = Palette::OrangeBright.into();
+        let any_color = |x: u32, y: u32| {
+            let p = img.get_pixel(x, y);
+            p == &brown || p == &ring
+        };
+        // Count painted pixels in a vertical column near base vs near tip.
+        let count_in_col = |x: u32| -> u32 {
+            (0..32u32).filter(|&y| any_color(x, y)).count() as u32
+        };
+        let base_col = count_in_col(10);
+        let tip_col = count_in_col(54);
+        assert!(
+            base_col > tip_col,
+            "base column ({base_col}) should be thicker than tip ({tip_col})"
+        );
+    }
+
+    #[test]
+    fn ringed_tail_curved_path_paints_both_segments() {
+        let mut img = RgbaImage::new(64, 64);
+        // L-shaped path: along +x then turning down +y.
+        let joints = vec![(8, 16), (40, 16), (40, 56)];
+        RingedTail::new(joints, 3, Palette::Brown, Palette::OrangeBright)
+            .with_rings(8, 3)
+            .paint(&mut img);
+        let brown: Rgba<u8> = Palette::Brown.into();
+        let ring: Rgba<u8> = Palette::OrangeBright.into();
+        let any_color = |x: u32, y: u32| {
+            let p = img.get_pixel(x, y);
+            p == &brown || p == &ring
+        };
+        // Pixel on the horizontal segment.
+        assert!(any_color(20, 16));
+        // Pixel on the vertical segment.
+        assert!(any_color(40, 40));
+        save_swatch(&img, "ringed_tail_l_shape.png");
+    }
+
+    #[test]
+    fn ringed_tail_too_short_input_is_a_noop() {
+        // Single joint → nothing to paint, must not panic.
+        let mut img = RgbaImage::new(16, 16);
+        RingedTail::new(vec![(8, 8)], 3, Palette::Brown, Palette::OrangeBright).paint(&mut img);
+        // No pixels of either color should be set.
+        let brown: Rgba<u8> = Palette::Brown.into();
+        assert!(img.pixels().all(|p| p != &brown));
     }
 }

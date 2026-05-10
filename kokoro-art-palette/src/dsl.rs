@@ -720,6 +720,109 @@ impl Brush for RingedTail {
     }
 }
 
+// =====================================================================
+// FurFluff — seventh primitive: speckle cluster suggesting volumetric fur
+// =====================================================================
+
+/// A cluster of short outward-pointing strokes that read as fur volume on
+/// top of a body silhouette. Use to break up a flat-color body so it
+/// looks furry rather than rubber-skinned.
+///
+/// Painted around a centre point with a given outward angle: each stroke
+/// pokes ~1-2px out from the silhouette edge in directions roughly
+/// perpendicular to the body's local surface. Density and stroke length
+/// are tunable. Deterministic — uses the same `hash2` as `BumpyDome` so
+/// the same `seed` always produces the same fluff pattern.
+///
+/// Where it pokes: an annular ring of pixels around `(cx, cy)` between
+/// `inner_radius` and `outer_radius`. Set `inner_radius` to roughly the
+/// body radius so the fluff sits on top of the silhouette edge instead
+/// of on top of the body's interior (which would look like pixel noise).
+#[derive(Debug, Copy, Clone)]
+pub struct FurFluff {
+    pub cx: i32,
+    pub cy: i32,
+    /// Inner radius — fluff pixels start outside this radius. Match this
+    /// to the underlying body's radius.
+    pub inner_radius: u32,
+    /// Outer radius — fluff pixels end inside this radius. Pick
+    /// `inner_radius + 2` for short stubble, `inner_radius + 4` for
+    /// fluffier cub down.
+    pub outer_radius: u32,
+    /// 0.0 = no pixels, 1.0 = every candidate pixel painted. Pixel-art
+    /// fluff usually wants 0.30–0.55 — denser than that reads as a halo.
+    pub density: f32,
+    pub color: Palette,
+    pub seed: u32,
+}
+
+impl FurFluff {
+    pub const fn new(cx: i32, cy: i32, inner_radius: u32, outer_radius: u32, color: Palette) -> Self {
+        Self {
+            cx,
+            cy,
+            inner_radius,
+            outer_radius,
+            density: 0.4,
+            color,
+            seed: 0,
+        }
+    }
+
+    pub const fn with_density(mut self, d: f32) -> Self {
+        self.density = d;
+        self
+    }
+
+    pub const fn with_seed(mut self, s: u32) -> Self {
+        self.seed = s;
+        self
+    }
+
+    pub fn paint_with(&self, img: &mut RgbaImage, color: Rgba<u8>) {
+        let inner = self.inner_radius.max(0) as i32;
+        let outer = self.outer_radius.max(self.inner_radius + 1) as i32;
+        let inner_sq = inner * inner;
+        let outer_sq = outer * outer;
+        let density = self.density.clamp(0.0, 1.0);
+        // Quantise density to 0..1000 so the deterministic hash can pick
+        // pixels in/out without floats in the inner loop.
+        let density_threshold = (density * 1000.0) as u32;
+        let w = img.width() as i32;
+        let h = img.height() as i32;
+
+        for dy in -outer..=outer {
+            for dx in -outer..=outer {
+                let dist_sq = dx * dx + dy * dy;
+                if dist_sq < inner_sq || dist_sq > outer_sq {
+                    continue;
+                }
+                let px = self.cx + dx;
+                let py = self.cy + dy;
+                if px < 0 || py < 0 || px >= w || py >= h {
+                    continue;
+                }
+                // Hash of (dx, dy, seed) decides whether to paint this
+                // candidate pixel — same seed → same fluff every frame.
+                let h2 = hash2(
+                    ((dx + outer) as u32).wrapping_mul(73)
+                        ^ ((dy + outer) as u32),
+                    self.seed,
+                );
+                if (h2 % 1000) < density_threshold {
+                    img.put_pixel(px as u32, py as u32, color);
+                }
+            }
+        }
+    }
+}
+
+impl Brush for FurFluff {
+    fn paint(&self, img: &mut RgbaImage) {
+        self.paint_with(img, self.color.into());
+    }
+}
+
 /// Tiny deterministic hash. Splitmix-style folded to u32. Enough entropy for
 /// per-sector perturbation; not cryptographic.
 const fn hash2(a: u32, b: u32) -> u32 {
@@ -1117,5 +1220,73 @@ mod tests {
         // No pixels of either color should be set.
         let brown: Rgba<u8> = Palette::Brown.into();
         assert!(img.pixels().all(|p| p != &brown));
+    }
+
+    #[test]
+    fn fur_fluff_paints_pixels_in_annular_ring() {
+        let mut img = RgbaImage::new(32, 32);
+        FurFluff::new(16, 16, 6, 9, Palette::Brown)
+            .with_density(0.7)
+            .with_seed(5)
+            .paint(&mut img);
+        let brown: Rgba<u8> = Palette::Brown.into();
+
+        // No pixels inside the inner radius (centre region must be clean
+        // so the underlying body shows through).
+        for dy in -4..=4i32 {
+            for dx in -4..=4i32 {
+                if dx * dx + dy * dy < 25 {
+                    let p = img.get_pixel((16 + dx) as u32, (16 + dy) as u32);
+                    assert_ne!(p, &brown, "fluff bleeding into core at ({dx},{dy})");
+                }
+            }
+        }
+        // At least some pixels in the ring band should be painted.
+        let painted = img.pixels().filter(|p| **p == brown).count();
+        assert!(painted > 4, "expected several fluff pixels, got {painted}");
+        save_swatch(&img, "fur_fluff_ring.png");
+    }
+
+    #[test]
+    fn fur_fluff_density_zero_paints_nothing() {
+        let mut img = RgbaImage::new(32, 32);
+        FurFluff::new(16, 16, 4, 8, Palette::Brown)
+            .with_density(0.0)
+            .paint(&mut img);
+        let brown: Rgba<u8> = Palette::Brown.into();
+        assert_eq!(img.pixels().filter(|p| **p == brown).count(), 0);
+    }
+
+    #[test]
+    fn fur_fluff_is_deterministic_per_seed() {
+        let mut a = RgbaImage::new(32, 32);
+        let mut b = RgbaImage::new(32, 32);
+        FurFluff::new(16, 16, 5, 9, Palette::Brown)
+            .with_density(0.5)
+            .with_seed(11)
+            .paint(&mut a);
+        FurFluff::new(16, 16, 5, 9, Palette::Brown)
+            .with_density(0.5)
+            .with_seed(11)
+            .paint(&mut b);
+        // Same seed → identical pixels.
+        let differ = a.pixels().zip(b.pixels()).filter(|(p, q)| p != q).count();
+        assert_eq!(differ, 0, "same seed should produce same fluff pattern");
+    }
+
+    #[test]
+    fn fur_fluff_seed_variation_changes_pattern() {
+        let mut a = RgbaImage::new(32, 32);
+        let mut b = RgbaImage::new(32, 32);
+        FurFluff::new(16, 16, 5, 9, Palette::Brown)
+            .with_density(0.6)
+            .with_seed(1)
+            .paint(&mut a);
+        FurFluff::new(16, 16, 5, 9, Palette::Brown)
+            .with_density(0.6)
+            .with_seed(99)
+            .paint(&mut b);
+        let differ = a.pixels().zip(b.pixels()).filter(|(p, q)| p != q).count();
+        assert!(differ > 3, "different seeds should produce different patterns ({differ} differing pixels)");
     }
 }

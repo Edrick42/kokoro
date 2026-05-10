@@ -9,8 +9,10 @@
 use bevy::prelude::Res;
 use image::{RgbaImage, Rgba};
 use kokoro_art_palette::Palette;
+// Kept by Young/Adult/Elder rendering paths — not all are used by the
+// rewritten cub blit, but pruning would create a cascade of churn.
+#[allow(unused_imports)]
 use kokoro_art_palette::dsl::{Brush, BumpyDome, RingedTail, TaperedTail, outline_silhouette};
-use kokoro_rig::Vec2;
 use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
 use super::{SpeciesSkin, fill_circle, fill_rect, fill_ellipse, put, draw_eyes, fade};
@@ -51,146 +53,47 @@ pub fn draw_egg(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32) {
 }
 
 // ===================================================================
-// CUB — quadrupedal side view, ref-faithful red panda palette
+// CUB — STATIC SPRITE BLIT FROM REFERENCE TRANSCRIPTION
 // ===================================================================
-// Pose: head-right, tail-left curled down, 2 visible legs hanging.
-// 4-color palette per the chosen reference (cross-stitch / pixel-art
-// pattern):
-//   - NearBlack      → outline, eye slit, snout, tear streak
-//   - OffWhite       → face mask (dominates the face), inner ear, paw tips
-//   - OrangeDark     → top of body, head crown, dark tail bands, ear outer
-//   - Orange         → bottom of body, light tail bands
+// `assets/sprites/moluun_cub.png` is the user's chosen Pinterest pixel-art
+// reference, transcribed via the `ref_transcribe` test below (4-color
+// palette quantised + 5×5 majority sample per cell). That sprite is the
+// authoritative cub look — drawing procedurally with brushes never got
+// close. We just blit the bytes here.
 //
-// Body is BICOLOR HARD: top half OrangeDark, bottom half Orange. Head's
-// face mask covers nearly the entire face leaving only the crown dark.
-// Tear streaks (the red panda hallmark) drop from below each eye.
+// The rig + brush system stays available for future ANIMATION on top of
+// this sprite (mood-driven eye blinks, breathing scale, etc.); the rest
+// pose itself is no longer procedural.
 
-pub fn draw_cub(img: &mut RgbaImage, _p: &SpeciesSkin, cx: i32, mood: &MoodState, _sb: &Option<Res<SoftBody>>) {
-    // Place the rig at the canvas. The skeleton's default root sits at
-    // (22, 36) so the cub silhouette spans roughly x=8..58 — already
-    // centred horizontally for cx=32. We just shift by (cx-32, 0) so a
-    // caller-provided cx still works.
-    let mut skel = crate::visuals::rigs::moluun::cub_skeleton();
-    skel.set_root(Vec2::new(22.0 + (cx as f32 - 32.0), 36.0));
-    skel.forward();
+const CUB_SPRITE_BYTES: &[u8] = include_bytes!("../../../assets/sprites/moluun_cub.png");
 
-    // Helpers — turn world Vec2s into the (i32, i32) tuples the brushes
-    // expect. Saves repeating the cast in every call below.
-    let pt = |v: Vec2| (v.x.round() as i32, v.y.round() as i32);
-    let world_base = |name: &str| skel.id_of(name).map(|id| pt(skel.world_base(id)));
-    let world_tip = |name: &str| skel.id_of(name).map(|id| pt(skel.world_tip(id)));
-    let midpoint = |name: &str| {
-        skel.id_of(name).map(|id| {
-            let b = skel.world_base(id);
-            let t = skel.world_tip(id);
-            ((b.x + t.x) * 0.5, (b.y + t.y) * 0.5)
-        })
-    };
+pub fn draw_cub(img: &mut RgbaImage, _p: &SpeciesSkin, cx: i32, _mood: &MoodState, _sb: &Option<Res<SoftBody>>) {
+    // Decode once per call. PNG decoding for a 64×64 image is ~10 µs and
+    // dwarfed by Bevy's per-frame work; not worth caching at this stage.
+    let sprite = image::load_from_memory(CUB_SPRITE_BYTES)
+        .expect("moluun_cub.png missing or corrupt — re-run transcribe_moluun_cub_ref")
+        .to_rgba8();
+    let (sw, sh) = (sprite.width() as i32, sprite.height() as i32);
 
-    // ====== Z-ORDERED PAINTING (back-to-front) ======
+    // Sprite is authored centred at canvas (32, 32). Re-centre on `cx`
+    // so callers that move the creature around still work.
+    let off_x = cx - 32;
+    let dst_w = img.width() as i32;
+    let dst_h = img.height() as i32;
 
-    // ---- BACK LEG (z=-1) — paint first, body covers the attach point.
-    if let (Some(h), Some(p)) = (world_base("hip_back"), world_tip("paw_back")) {
-        TaperedTail::new(h, p, 2, Palette::OrangeDark).paint(img);
-        // White paw tip
-        fill_rect(img, p.0 - 1, p.1 - 1, 3, 2, Rgba(Palette::OffWhite.rgba(255)));
+    for y in 0..sh {
+        for x in 0..sw {
+            let src_pixel = *sprite.get_pixel(x as u32, y as u32);
+            if src_pixel.0[3] == 0 {
+                continue; // transparent — let the caller's background show
+            }
+            let dx = x + off_x;
+            let dy = y;
+            if dx >= 0 && dy >= 0 && dx < dst_w && dy < dst_h {
+                img.put_pixel(dx as u32, dy as u32, src_pixel);
+            }
+        }
     }
-
-    // ---- BACK EAR (z=0, behind head) — only the tip pokes out.
-    if let (Some(b), Some(t)) = (world_base("ear_back"), world_tip("ear_back")) {
-        TaperedTail::new(b, t, 2, Palette::OrangeDark).paint(img);
-    }
-
-    // ---- TAIL (z=0, behind body but in front of nothing relevant) ----
-    // Banded: alternating OrangeDark / Orange along arc length.
-    let mut tail_joints: Vec<(i32, i32)> = ["tail_1", "tail_2", "tail_3", "tail_4", "tail_5"]
-        .iter()
-        .filter_map(|name| world_base(name))
-        .collect();
-    if let Some((tx, ty)) = world_tip("tail_5") {
-        tail_joints.push((tx, ty));
-    }
-    if tail_joints.len() >= 2 {
-        RingedTail::new(tail_joints, 3, Palette::OrangeDark, Palette::Orange)
-            .with_rings(3, 2)
-            .paint(img);
-    }
-
-    // ---- BODY (z=0) — bicolor: top half OrangeDark, bottom half Orange ----
-    // The body is a horizontal mass running from pelvis → shoulders.
-    // Paint as two stacked elliptical BumpyDomes (top dark, bottom light).
-    if let (Some(pelvis), Some(shoulder)) =
-        (world_base("pelvis"), world_base("shoulder_front"))
-    {
-        let body_cx = (pelvis.0 + shoulder.0) / 2;
-        let body_cy = (pelvis.1 + shoulder.1) / 2;
-        let body_half_len = ((shoulder.0 - pelvis.0).abs() / 2 + 4) as u32; // a bit wider than spine
-        // Top half (dark) — sits 2px above body centre.
-        BumpyDome::new(body_cx, body_cy - 2, body_half_len, Palette::OrangeDark)
-            .with_height(5)
-            .with_bumpiness(0.15)
-            .with_bumps(10)
-            .with_seed(11)
-            .paint(img);
-        // Bottom half (light) — sits 3px below body centre, slightly
-        // narrower so it tucks under the dark band.
-        BumpyDome::new(body_cx, body_cy + 3, body_half_len - 1, Palette::Orange)
-            .with_height(4)
-            .with_bumpiness(0.15)
-            .with_bumps(10)
-            .with_seed(13)
-            .paint(img);
-    }
-
-    // ---- HEAD (z=+1) — dark crown + white face mask ----
-    if let Some((hx, hy)) = midpoint("head") {
-        // Crown — OrangeDark dome, top of head only.
-        BumpyDome::new(hx as i32, hy as i32 - 1, 7, Palette::OrangeDark)
-            .with_bumpiness(0.20)
-            .with_bumps(9)
-            .with_seed(3)
-            .paint(img);
-        // FACE MASK — OffWhite covering basically the whole face. Sits
-        // slightly down from the head centre so the crown stays dark on
-        // top.
-        BumpyDome::new(hx as i32, hy as i32 + 2, 6, Palette::OffWhite)
-            .with_bumpiness(0.10)
-            .with_bumps(8)
-            .with_seed(23)
-            .paint(img);
-    }
-
-    // ---- FRONT EAR (z=+2, on top of head) ----
-    if let (Some(b), Some(t)) = (world_base("ear_front"), world_tip("ear_front")) {
-        TaperedTail::new(b, t, 2, Palette::OrangeDark).paint(img);
-        // Inner-ear tiny white at the tip
-        fill_rect(img, t.0, t.1, 1, 2, Rgba(Palette::OffWhite.rgba(255)));
-    }
-
-    // ---- EYE (z=+2) — single black slit (red panda half-closed look) ----
-    let _ = mood; // mood-driven eye variants land in a follow-up
-    if let Some((ex, ey)) = world_base("eye") {
-        // 3-pixel horizontal slit
-        fill_rect(img, ex - 1, ey, 3, 1, Rgba(Palette::NearBlack.rgba(255)));
-        // TEAR STREAK — vertical 2-3 px line dropping straight down from
-        // below the eye. THE red-panda identity feature.
-        put(img, ex, ey + 2, Rgba(Palette::NearBlack.rgba(255)));
-        put(img, ex, ey + 3, Rgba(Palette::NearBlack.rgba(255)));
-    }
-
-    // ---- SNOUT (z=+2) — small black wedge at the front of the face ----
-    if let Some((nx, ny)) = world_base("snout") {
-        fill_rect(img, nx - 1, ny, 2, 1, Rgba(Palette::NearBlack.rgba(255)));
-    }
-
-    // ---- FRONT LEG (z=+1) — paints after body so it appears in front ----
-    if let (Some(s), Some(p)) = (world_base("shoulder_front"), world_tip("paw_front")) {
-        TaperedTail::new(s, p, 2, Palette::OrangeDark).paint(img);
-        fill_rect(img, p.0 - 1, p.1 - 1, 3, 2, Rgba(Palette::OffWhite.rgba(255)));
-    }
-
-    // ---- OUTLINE PASS — NearBlack 1px border (matches ref's hard outline) ----
-    outline_silhouette(img, Rgba(Palette::NearBlack.rgba(255)));
 }
 
 // ===================================================================
@@ -484,5 +387,196 @@ pub fn draw_elder(img: &mut RgbaImage, cx: i32, mood: &MoodState, sb: &Option<Re
     let _ = mood;
     fill_rect(img, hx - 6, hy + 2, 4, 1, eye);
     fill_rect(img, hx + 2, hy + 2, 4, 1, eye);
+}
+
+// ===================================================================
+// REF TRANSCRIBER — converts the Pinterest cross-stitch JPG into a
+// quantised sprite PNG. Run on demand:
+//
+//     cargo test transcribe_moluun_cub_ref -- --ignored --nocapture
+//
+// Reads the user-saved JPG, samples each grid cell's centre, snaps the
+// colour to one of {transparent, NearBlack, OffWhite, OrangeDark, Orange},
+// centres the result in a 64×64 RGBA buffer, and writes
+// assets/sprites/moluun_cub.png. After generating, draw_cub blits that
+// PNG instead of trying to recreate the look procedurally.
+// ===================================================================
+#[cfg(test)]
+mod ref_transcribe {
+    use image::{GenericImageView, Rgba, RgbaImage};
+    use kokoro_art_palette::Palette;
+    use std::path::PathBuf;
+
+    /// Snap a sampled pixel to the closest of our four sprite colours,
+    /// or to transparent. Includes the cross-stitch grid's two greens
+    /// (cell-fill sage and darker grid line) as transparent candidates so
+    /// noisy edge samples and grid lines drop out cleanly.
+    fn quantise(r: u8, g: u8, b: u8) -> Option<Rgba<u8>> {
+        // Two opaque candidate sets. Greens are "transparent" matches —
+        // when one wins the nearest-distance contest, return None.
+        const TRANSPARENT_GREENS: [(u8, u8, u8); 2] = [
+            (200, 222, 188), // sage cell fill
+            (160, 196, 154), // darker grid-line green
+        ];
+        let opaque: [Rgba<u8>; 4] = [
+            Rgba(Palette::NearBlack.rgba(255)),
+            Rgba(Palette::OffWhite.rgba(255)),
+            Rgba(Palette::OrangeDark.rgba(255)),
+            Rgba(Palette::Orange.rgba(255)),
+        ];
+        let dist_sq = |cr: u8, cg: u8, cb: u8| -> i32 {
+            let dr = cr as i32 - r as i32;
+            let dg = cg as i32 - g as i32;
+            let db = cb as i32 - b as i32;
+            dr * dr + dg * dg + db * db
+        };
+        let (mut best_d, mut best_color): (i32, Option<Rgba<u8>>) = (i32::MAX, None);
+        for (cr, cg, cb) in TRANSPARENT_GREENS {
+            let d = dist_sq(cr, cg, cb);
+            if d < best_d {
+                best_d = d;
+                best_color = None; // transparent wins
+            }
+        }
+        for c in opaque {
+            let d = dist_sq(c.0[0], c.0[1], c.0[2]);
+            if d < best_d {
+                best_d = d;
+                best_color = Some(c);
+            }
+        }
+        best_color
+    }
+
+    /// Median-of-9 sampling: take the centre pixel and 8 neighbours, snap
+    /// each to a quantised colour, then return the most common result.
+    /// Smooths out grid lines, anti-aliased cell edges, and JPEG noise.
+    fn sample_cell(src: &image::DynamicImage, px: u32, py: u32) -> Option<Rgba<u8>> {
+        use image::GenericImageView;
+        let (w, h) = src.dimensions();
+        let mut votes: std::collections::HashMap<Option<[u8; 4]>, u32> =
+            std::collections::HashMap::new();
+        for dy in -2i32..=2 {
+            for dx in -2i32..=2 {
+                let nx = px as i32 + dx;
+                let ny = py as i32 + dy;
+                if nx < 0 || ny < 0 || nx >= w as i32 || ny >= h as i32 {
+                    continue;
+                }
+                let p = src.get_pixel(nx as u32, ny as u32);
+                let q = quantise(p[0], p[1], p[2]);
+                let key = q.map(|r| r.0);
+                *votes.entry(key).or_insert(0) += 1;
+            }
+        }
+        votes
+            .into_iter()
+            .max_by_key(|(_, n)| *n)
+            .and_then(|(k, _)| k)
+            .map(Rgba)
+    }
+
+    /// Source path is hard-coded — this is a one-off transcription for a
+    /// reference the user explicitly chose; if we change refs in the
+    /// future, point this at the new file. Path is a PNG (the `image`
+    /// crate is built without the jpeg feature in this project, so the
+    /// original JPG must be pre-converted with `sips`).
+    const SOURCE_JPG: &str = "/tmp/moluun_ref.png";
+
+    #[test]
+    #[ignore]
+    fn transcribe_moluun_cub_ref() {
+        let src = image::open(SOURCE_JPG)
+            .expect("ref JPG missing — see SOURCE_JPG path");
+        let (sw, sh) = src.dimensions();
+
+        // Auto-detect cell size by walking columns from the left edge.
+        // The first column whose CENTRE pixel is non-green (i.e., into
+        // the sprite) gives us a hint, but the cleanest fallback is the
+        // measured ratio: image is ~331×300, sprite grid is ~32×30
+        // cells → ~10 px per cell.
+        let cell = 10u32;
+        let cols = sw / cell;
+        let rows = sh / cell;
+        eprintln!(
+            "source {sw}×{sh}, cell {cell}px → {cols}×{rows} sprite cells"
+        );
+
+        // Quantise every cell using a 5×5 majority vote (smooths over
+        // grid lines and JPEG noise).
+        let mut quantised: Vec<Vec<Option<Rgba<u8>>>> =
+            vec![vec![None; cols as usize]; rows as usize];
+        for cy in 0..rows {
+            for cx in 0..cols {
+                let px = cx * cell + cell / 2;
+                let py = cy * cell + cell / 2;
+                quantised[cy as usize][cx as usize] = sample_cell(&src, px, py);
+            }
+        }
+
+        // Bounding box of opaque cells so we can centre the sprite.
+        let (mut min_x, mut min_y, mut max_x, mut max_y) =
+            (cols as i32, rows as i32, -1i32, -1i32);
+        for cy in 0..rows as i32 {
+            for cx in 0..cols as i32 {
+                if quantised[cy as usize][cx as usize].is_some() {
+                    if cx < min_x { min_x = cx; }
+                    if cy < min_y { min_y = cy; }
+                    if cx > max_x { max_x = cx; }
+                    if cy > max_y { max_y = cy; }
+                }
+            }
+        }
+        let sprite_w = (max_x - min_x + 1).max(1);
+        let sprite_h = (max_y - min_y + 1).max(1);
+        eprintln!("sprite bounding box {sprite_w}×{sprite_h} cells");
+
+        // Centre in a 64×64 canvas. If the sprite is bigger than 64 in
+        // any axis, clip from the edges (shouldn't happen with this ref).
+        let canvas = 64i32;
+        let off_x = (canvas - sprite_w) / 2 - min_x;
+        let off_y = (canvas - sprite_h) / 2 - min_y;
+        let mut out = RgbaImage::new(64, 64);
+        for cy in min_y..=max_y {
+            for cx in min_x..=max_x {
+                if let Some(c) = quantised[cy as usize][cx as usize] {
+                    let dx = cx + off_x;
+                    let dy = cy + off_y;
+                    if dx >= 0 && dy >= 0 && dx < canvas && dy < canvas {
+                        out.put_pixel(dx as u32, dy as u32, c);
+                    }
+                }
+            }
+        }
+
+        let out_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("assets")
+            .join("sprites");
+        std::fs::create_dir_all(&out_dir).unwrap();
+        out.save(out_dir.join("moluun_cub.png")).unwrap();
+
+        // Save a 4× upscale alongside for easy review.
+        let mut up = RgbaImage::new(256, 256);
+        for y in 0..64u32 {
+            for x in 0..64u32 {
+                let p = *out.get_pixel(x, y);
+                for dy in 0..4u32 {
+                    for dx in 0..4u32 {
+                        up.put_pixel(x * 4 + dx, y * 4 + dy, p);
+                    }
+                }
+            }
+        }
+        let snap_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join("sprite-snapshots");
+        std::fs::create_dir_all(&snap_dir).unwrap();
+        up.save(snap_dir.join("moluun_cub_from_ref@4x.png")).unwrap();
+
+        eprintln!(
+            "wrote {} and target/sprite-snapshots/moluun_cub_from_ref@4x.png",
+            out_dir.join("moluun_cub.png").display()
+        );
+    }
 }
 

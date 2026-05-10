@@ -380,8 +380,16 @@ mod tests {
         assert!(approx(head_b.y - head_a.y, 8.0, 1e-3));
     }
 
-    /// Saves a PNG of the cub skeleton to target/sprite-snapshots/ for
-    /// visual review. Ignored by default — run with:
+    /// Saves PNGs of the cub skeleton to target/sprite-snapshots/ for
+    /// visual review:
+    ///
+    /// - `moluun_cub_skeleton.png` — bone-stick view (joints + 1px lines)
+    /// - `moluun_cub_silhouette.png` — thick filled bones tinted by region
+    ///   (head=gold, body=brown, arms=tan, legs=charcoal, tail=red), so
+    ///   the silhouette suggests the actual creature shape before any
+    ///   brush detail.
+    ///
+    /// Both saved at native + 4× upscale. Ignored by default; run with:
     ///
     /// ```bash
     /// cargo test moluun_cub_skeleton -- --ignored --nocapture
@@ -390,49 +398,85 @@ mod tests {
     #[ignore]
     fn snapshot_moluun_cub_skeleton() {
         use image::{Rgba, RgbaImage};
+        use kokoro_rig::Bone;
         use std::path::PathBuf;
 
         let mut sk = cub_skeleton();
         sk.forward();
 
-        let mut img = RgbaImage::new(64, 64);
-        // Cream background — picks the master palette's neutral so the
-        // dark bone strokes pop.
-        for px in img.pixels_mut() {
-            *px = Rgba([217, 199, 174, 255]);
-        }
-
-        kokoro_rig::debug::render_skeleton_overlay(
-            &mut img,
-            &sk,
-            Rgba([59, 36, 24, 255]),    // DeepBrown line stroke
-            Rgba([217, 13, 67, 255]),   // Red joint dots (pop against cream)
-            true,                        // tint by z so layering reads at a glance
-        );
-
         let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("target")
             .join("sprite-snapshots");
         std::fs::create_dir_all(&dir).unwrap();
-        img.save(dir.join("moluun_cub_skeleton.png")).unwrap();
 
-        // 4× upscale alongside, same trick the snapshot_sprites test uses.
-        let mut up = RgbaImage::new(256, 256);
-        for y in 0..64u32 {
-            for x in 0..64u32 {
+        // ----- View 1: bone-stick (joints + thin lines, z-tinted) -----
+        let mut sticks = RgbaImage::new(64, 64);
+        for px in sticks.pixels_mut() {
+            *px = Rgba([217, 199, 174, 255]); // Cream
+        }
+        kokoro_rig::debug::render_skeleton_overlay(
+            &mut sticks,
+            &sk,
+            Rgba([59, 36, 24, 255]),  // DeepBrown
+            Rgba([217, 13, 67, 255]), // Red joints
+            true,
+        );
+        save_with_4x(&sticks, &dir, "moluun_cub_skeleton");
+
+        // ----- View 2: thick-bone silhouette tinted by region -----
+        let mut silh = RgbaImage::new(64, 64);
+        for px in silh.pixels_mut() {
+            *px = Rgba([217, 199, 174, 255]);
+        }
+        // Region palette: red panda anchors. Body = warm gold, ears + face
+        // = lighter gold, tail = bright red panda red, limbs = darker
+        // brown so they read as "behind/under" the body mass.
+        let color_for = |bone: &Bone| -> Rgba<u8> {
+            match bone.name {
+                // Head + face: warm gold (red panda head color).
+                "head" | "neck" | "spine" => Rgba([217, 164, 4, 255]),
+                "ear_l" | "ear_r" => Rgba([240, 136, 40, 255]), // OrangeBright
+                "eye_l" | "eye_r" => Rgba([27, 19, 13, 255]),   // NearBlack
+                "snout" => Rgba([139, 90, 58, 255]),            // Brown
+                // Tail: red panda's signature crimson.
+                "tail_1" | "tail_2" | "tail_3" | "tail_4" | "tail_5" => {
+                    Rgba([217, 13, 67, 255])
+                }
+                // Arms: tan (lighter than legs so they read as front).
+                "shoulder_l" | "arm_l" | "paw_l" | "shoulder_r" | "arm_r" | "paw_r" => {
+                    Rgba([196, 152, 112, 255]) // Tan
+                }
+                // Legs: dark brown.
+                "hip_l" | "thigh_l" | "foot_l" | "hip_r" | "thigh_r" | "foot_r" => {
+                    Rgba([90, 54, 34, 255]) // BrownDark
+                }
+                // Pelvis pivot: hidden behind everything.
+                _ => Rgba([0, 0, 0, 0]),
+            }
+        };
+        kokoro_rig::debug::render_skeleton_silhouette(&mut silh, &sk, color_for);
+        save_with_4x(&silh, &dir, "moluun_cub_silhouette");
+
+        eprintln!(
+            "moluun_cub: wrote skeleton + silhouette PNGs (native + 4x) to {:?}",
+            dir.canonicalize().unwrap_or(dir)
+        );
+    }
+
+    fn save_with_4x(img: &image::RgbaImage, dir: &std::path::Path, name: &str) {
+        img.save(dir.join(format!("{name}.png"))).unwrap();
+        let (w, h) = (img.width(), img.height());
+        let mut up = image::RgbaImage::new(w * 4, h * 4);
+        for y in 0..h {
+            for x in 0..w {
                 let p = *img.get_pixel(x, y);
-                for dy in 0..4u32 {
-                    for dx in 0..4u32 {
+                for dy in 0..4 {
+                    for dx in 0..4 {
                         up.put_pixel(x * 4 + dx, y * 4 + dy, p);
                     }
                 }
             }
         }
-        up.save(dir.join("moluun_cub_skeleton@4x.png")).unwrap();
-
-        eprintln!(
-            "moluun_cub_skeleton: wrote PNGs to {:?}",
-            dir.canonicalize().unwrap_or(dir)
-        );
+        up.save(dir.join(format!("{name}@4x.png"))).unwrap();
     }
 }

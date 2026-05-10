@@ -448,9 +448,9 @@ mod ref_transcribe {
         best_color
     }
 
-    /// Median-of-9 sampling: take the centre pixel and 8 neighbours, snap
-    /// each to a quantised colour, then return the most common result.
-    /// Smooths out grid lines, anti-aliased cell edges, and JPEG noise.
+    /// 5×5 majority-vote sampling around `(px, py)`. Wide enough to ride
+    /// over grid lines and JPEG noise; the float-grid centre keeps the
+    /// window biased toward the cell's interior.
     fn sample_cell(src: &image::DynamicImage, px: u32, py: u32) -> Option<Rgba<u8>> {
         use image::GenericImageView;
         let (w, h) = src.dimensions();
@@ -490,27 +490,64 @@ mod ref_transcribe {
             .expect("ref JPG missing — see SOURCE_JPG path");
         let (sw, sh) = src.dimensions();
 
-        // Auto-detect cell size by walking columns from the left edge.
-        // The first column whose CENTRE pixel is non-green (i.e., into
-        // the sprite) gives us a hint, but the cleanest fallback is the
-        // measured ratio: image is ~331×300, sprite grid is ~32×30
-        // cells → ~10 px per cell.
-        let cell = 10u32;
-        let cols = sw / cell;
-        let rows = sh / cell;
+        // The cross-stitch source is 331×300 with a 33×30 grid → cells
+        // are ~10.03 × 10.0 pixels. Using integer 10 accumulates ≈1px of
+        // drift across the row and starts catching grid lines instead of
+        // cell centres. Float cell size + floored centre keeps the sample
+        // point inside each cell's interior every time.
+        let cols = 33u32;
+        let rows = 30u32;
+        let cell_w = sw as f32 / cols as f32;
+        let cell_h = sh as f32 / rows as f32;
         eprintln!(
-            "source {sw}×{sh}, cell {cell}px → {cols}×{rows} sprite cells"
+            "source {sw}×{sh}, grid {cols}×{rows}, cell {cell_w:.2}×{cell_h:.2}px"
         );
 
-        // Quantise every cell using a 5×5 majority vote (smooths over
-        // grid lines and JPEG noise).
         let mut quantised: Vec<Vec<Option<Rgba<u8>>>> =
             vec![vec![None; cols as usize]; rows as usize];
         for cy in 0..rows {
             for cx in 0..cols {
-                let px = cx * cell + cell / 2;
-                let py = cy * cell + cell / 2;
+                let px = ((cx as f32 + 0.5) * cell_w).floor() as u32;
+                let py = ((cy as f32 + 0.5) * cell_h).floor() as u32;
                 quantised[cy as usize][cx as usize] = sample_cell(&src, px, py);
+            }
+        }
+
+        // Iterative denoise: each pass drops opaque cells that have fewer
+        // than 2 same-coloured 8-neighbours. Two passes converge on a
+        // clean silhouette — first pass kills the obviously-isolated
+        // pixels, second cleans up the survivors that lost their only
+        // partner in pass one. Real pixel art always has each painted
+        // pixel sitting in a ≥3-pixel cluster; relying on 2+ neighbours
+        // is conservative and still drops the grid-line noise.
+        for _pass in 0..2 {
+            let snapshot = quantised.clone();
+            for cy in 0..rows as usize {
+                for cx in 0..cols as usize {
+                    let cur = snapshot[cy][cx];
+                    if cur.is_none() {
+                        continue;
+                    }
+                    let mut same = 0u32;
+                    for dy in -1i32..=1 {
+                        for dx in -1i32..=1 {
+                            if dx == 0 && dy == 0 {
+                                continue;
+                            }
+                            let nx = cx as i32 + dx;
+                            let ny = cy as i32 + dy;
+                            if nx < 0 || ny < 0 || nx >= cols as i32 || ny >= rows as i32 {
+                                continue;
+                            }
+                            if snapshot[ny as usize][nx as usize] == cur {
+                                same += 1;
+                            }
+                        }
+                    }
+                    if same < 2 {
+                        quantised[cy][cx] = None;
+                    }
+                }
             }
         }
 

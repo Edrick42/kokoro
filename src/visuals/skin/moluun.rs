@@ -10,7 +10,7 @@ use bevy::prelude::Res;
 use image::{RgbaImage, Rgba};
 use kokoro_art_palette::Palette;
 use kokoro_art_palette::dsl::{
-    Brush, BumpyDome, EarTuft, FurFluff, GlintCorner, KawaiiEye, RingedTail, TaperedTail,
+    Brush, BumpyDome, EarTuft, GlintCorner, KawaiiEye, RingedTail, TaperedTail,
     outline_silhouette,
 };
 use kokoro_rig::Vec2;
@@ -100,44 +100,39 @@ pub fn draw_cub(img: &mut RgbaImage, _p: &SpeciesSkin, cx: i32, mood: &MoodState
         TaperedTail::new(h, f, 3, Palette::BrownDark).paint(img);
     }
 
-    // ---- BODY MASS — separate from head, smaller for cub proportions ----
-    // Body sits at y=33 (lower torso), radius 7 — small enough that head
-    // (at y≈17, radius 11) clearly dominates per cub kindchenschema. Cap
-    // of head stays Gold (the red panda "cap"); a Cream face mask paints
-    // on top of head's lower face below for the bicolour signature.
-    if let (Some((sx, _sy)), Some((hx, hy))) = (midpoint("spine"), midpoint("head")) {
-        // Lower-torso body dome.
-        BumpyDome::new(sx as i32, 33, 7, Palette::Gold)
+    // ---- BODY MASS — clean two-dome silhouette, no extras ----
+    // FurFluff was creating a noisy "confetti coroa" of orange/brown
+    // pixels around the head; the separate belly BumpyDome was reading
+    // as a "skirt" sitting under the body. Stripped both — the bicolour
+    // red-panda look comes only from the head face mask now.
+    if let Some((hx, hy)) = midpoint("head") {
+        // Lower-torso body dome at y=32 (raised 1px so it overlaps the
+        // head dome more — gives a continuous body→head silhouette
+        // without a gap reading as a "neck pinch").
+        BumpyDome::new(hx as i32, 32, 8, Palette::Gold)
             .with_bumpiness(0.25)
             .with_bumps(10)
             .with_seed(11)
             .paint(img);
-        // Head dome.
+        // Head dome (raised slightly to widen apparent head/body ratio).
         BumpyDome::new(hx as i32, hy as i32, 11, Palette::Gold)
             .with_bumpiness(0.30)
             .with_bumps(10)
             .with_seed(3)
             .paint(img);
-        // RED PANDA FACE MASK — Cream patch covering lower 2/3 of head
-        // (the "muzzle + cheeks + brow" zone). Eyes/snout/blush paint on
-        // top of this so they pop. Slight downward y offset places the
-        // cream over the face, leaving the gold "cap" intact at the top.
+        // RED PANDA FACE MASK — Cream patch covering lower 2/3 of head.
+        // Eyes/snout/blush paint on top of this so they pop. Gold "cap"
+        // at the top stays intact for the bicolour silhouette.
         BumpyDome::new(hx as i32, hy as i32 + 3, 7, Palette::Cream)
             .with_bumpiness(0.15)
             .with_bumps(8)
             .with_seed(23)
             .paint(img);
-        // Cream belly — front-of-torso lighter band (red panda bicolour).
-        BumpyDome::new(sx as i32, 36, 4, Palette::Cream)
-            .with_bumpiness(0.20)
-            .with_bumps(8)
-            .with_seed(19)
-            .paint(img);
-        // Fluff halo around the head silhouette in OrangeBright.
-        FurFluff::new(hx as i32, hy as i32, 11, 13, Palette::OrangeBright)
-            .with_density(0.45)
-            .with_seed(7)
-            .paint(img);
+        // Front-of-body Cream BIB — a small cream patch on the upper
+        // chest, between front legs. Painted as a small ellipse instead
+        // of a separate BumpyDome so it integrates into the body shape
+        // instead of reading as a separate item.
+        fill_ellipse(img, hx as i32, 33, 3, 4, Rgba(Palette::Cream.rgba(255)));
     }
 
     // ---- EARS — koala-style EarTuft on each side ----
@@ -198,15 +193,12 @@ pub fn draw_cub(img: &mut RgbaImage, _p: &SpeciesSkin, cx: i32, mood: &MoodState
     if let (Some(h), Some(f)) = (world_base("hip_r"), world_tip("foot_r")) {
         TaperedTail::new(h, f, 3, Palette::BrownDark).paint(img);
     }
-    // Foot/paw "pad" tips — small dark BumpyDome at each end so feet read
-    // as terminating in something rather than fading out.
-    for name in ["paw_l", "paw_r", "foot_l", "foot_r"] {
-        if let Some((px, py)) = world_tip(name) {
-            BumpyDome::new(px, py, 1, Palette::BrownDark)
-                .with_bumpiness(0.0)
-                .paint(img);
-        }
-    }
+    // Removed: per-tip "pad" BumpyDomes. Single 3×3 discs at each foot
+    // tip ended up isolated against the canvas, got picked up by
+    // outline_silhouette (since they DID have body-pixel neighbours
+    // through the limb's TaperedTail), and then read as dark splotches
+    // hanging off the limbs. The TaperedTail's natural taper handles
+    // termination cleanly without them.
 
     // ---- TAIL — RED PANDA SIGNATURE (5 joints → RingedTail) ----
     let mut tail_joints: Vec<(i32, i32)> = ["tail_1", "tail_2", "tail_3", "tail_4", "tail_5"]

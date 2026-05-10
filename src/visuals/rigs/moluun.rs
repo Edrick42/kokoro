@@ -175,39 +175,40 @@ pub fn cub_skeleton() -> Skeleton {
     );
 
     // ============================================================
-    // TAIL — RED PANDA SIGNATURE. Long, ringed, peeking out behind-right.
+    // TAIL — RED PANDA SIGNATURE. Long, ringed, peeking out behind-RIGHT
+    // and slightly UPWARD so it doesn't visually overlap the legs.
     // ============================================================
     // Five tapered segments, total length 4+4+4+3+2 = 17 px (vs body ~6).
-    // tail_1 attaches behind+below pelvis: pelvis-local (-3, 5) → world
-    // (5, +3) from pelvis ⇒ tail base at (37, 35). Initial angle 2π/3
-    // against pelvis → world angle -π/2 + 2π/3 = π/6 (down-right). Each
-    // subsequent segment bends slightly back up (-π/12 local) so the tail
-    // forms a gentle S-curve to the right of the cub.
+    // tail_1 attaches at pelvis-local (-3, 5) → world (5, +3) from pelvis
+    // ⇒ tail base at (37, 35). Initial angle PI/2 against pelvis → world
+    // angle -π/2 + π/2 = 0 (straight right). Each subsequent segment
+    // bends slightly upward (-π/8 local) so the tail forms an arc up and
+    // away from the body, clearing the legs entirely.
     // Most of the tail is Soft so simulation can sway it independently.
     bones.push(
-        Bone::child("tail_1", pelvis, Vec2::new(-3.0, 5.0), 2.0 * PI / 3.0, 4.0, 3.0).with_z(1),
+        Bone::child("tail_1", pelvis, Vec2::new(-3.0, 5.0), PI / 2.0, 4.0, 3.0).with_z(1),
     );
     let tail_1 = BoneId(21);
     bones.push(
-        Bone::child("tail_2", tail_1, Vec2::ZERO, -PI / 12.0, 4.0, 2.5)
+        Bone::child("tail_2", tail_1, Vec2::ZERO, -PI / 8.0, 4.0, 2.5)
             .with_z(1)
             .with_stiffness(Stiffness::Soft),
     );
     let tail_2 = BoneId(22);
     bones.push(
-        Bone::child("tail_3", tail_2, Vec2::ZERO, -PI / 12.0, 4.0, 2.0)
+        Bone::child("tail_3", tail_2, Vec2::ZERO, -PI / 8.0, 4.0, 2.0)
             .with_z(1)
             .with_stiffness(Stiffness::Soft),
     );
     let tail_3 = BoneId(23);
     bones.push(
-        Bone::child("tail_4", tail_3, Vec2::ZERO, -PI / 12.0, 3.0, 1.5)
+        Bone::child("tail_4", tail_3, Vec2::ZERO, -PI / 8.0, 3.0, 1.5)
             .with_z(1)
             .with_stiffness(Stiffness::Soft),
     );
     let tail_4 = BoneId(24);
     bones.push(
-        Bone::child("tail_5", tail_4, Vec2::ZERO, -PI / 12.0, 2.0, 1.0)
+        Bone::child("tail_5", tail_4, Vec2::ZERO, -PI / 8.0, 2.0, 1.0)
             .with_z(1)
             .with_stiffness(Stiffness::Soft),
     );

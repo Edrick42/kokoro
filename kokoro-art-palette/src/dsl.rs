@@ -823,6 +823,61 @@ impl Brush for FurFluff {
     }
 }
 
+// =====================================================================
+// outline_silhouette — post-process: 1px dark border on every silhouette
+// =====================================================================
+
+/// Replace every opaque pixel that touches a transparent neighbour (or the
+/// image edge) with `color`. Net effect: a 1-pixel dark outline around
+/// each shape in the image, *inside* the existing silhouette — the sprite
+/// doesn't grow.
+///
+/// Two-pass implementation: first scan the image read-only and collect
+/// every pixel that needs to change, then paint them. A single-pass
+/// implementation would propagate (a freshly-painted dark pixel becomes
+/// "opaque" for the next pixel's neighbour check, walking the outline
+/// inward across the body).
+///
+/// Use after every brush has finished. Per the project palette spec,
+/// `Palette::DeepBrown` is the warm-species outline and `Palette::DeepTeal`
+/// the cool-species outline; those are conventions, the function takes any
+/// `Rgba<u8>`.
+pub fn outline_silhouette(img: &mut RgbaImage, color: Rgba<u8>) {
+    let w = img.width() as i32;
+    let h = img.height() as i32;
+    let mut to_paint: Vec<(u32, u32)> = Vec::new();
+
+    for y in 0..h {
+        for x in 0..w {
+            let p = img.get_pixel(x as u32, y as u32);
+            if p.0[3] == 0 {
+                continue; // already transparent — skip
+            }
+            // Out-of-bounds counts as transparent so sprite edges get
+            // outlined too (a body filling the canvas corner still gets a
+            // border on the outer edge).
+            let touches_void = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+                .iter()
+                .any(|(dx, dy)| {
+                    let nx = x + dx;
+                    let ny = y + dy;
+                    nx < 0
+                        || ny < 0
+                        || nx >= w
+                        || ny >= h
+                        || img.get_pixel(nx as u32, ny as u32).0[3] == 0
+                });
+            if touches_void {
+                to_paint.push((x as u32, y as u32));
+            }
+        }
+    }
+
+    for (x, y) in to_paint {
+        img.put_pixel(x, y, color);
+    }
+}
+
 /// Tiny deterministic hash. Splitmix-style folded to u32. Enough entropy for
 /// per-sector perturbation; not cryptographic.
 const fn hash2(a: u32, b: u32) -> u32 {
@@ -1272,6 +1327,78 @@ mod tests {
         // Same seed → identical pixels.
         let differ = a.pixels().zip(b.pixels()).filter(|(p, q)| p != q).count();
         assert_eq!(differ, 0, "same seed should produce same fluff pattern");
+    }
+
+    #[test]
+    fn outline_silhouette_paints_edge_pixels_dark() {
+        // 5×5 solid block at canvas centre. After outlining, the 1-pixel
+        // outer ring of the block must be dark; the 3×3 interior must
+        // keep its original colour.
+        let mut img = RgbaImage::new(16, 16);
+        let body: Rgba<u8> = Palette::Gold.into();
+        for y in 5..10 {
+            for x in 5..10 {
+                img.put_pixel(x, y, body);
+            }
+        }
+        let outline: Rgba<u8> = Palette::DeepBrown.into();
+        outline_silhouette(&mut img, outline);
+
+        // Outer ring: every edge pixel of the block is now dark.
+        for x in 5..10 {
+            assert_eq!(img.get_pixel(x, 5), &outline, "top edge ({x},5)");
+            assert_eq!(img.get_pixel(x, 9), &outline, "bottom edge ({x},9)");
+        }
+        for y in 5..10 {
+            assert_eq!(img.get_pixel(5, y), &outline, "left edge (5,{y})");
+            assert_eq!(img.get_pixel(9, y), &outline, "right edge (9,{y})");
+        }
+        // Interior: 3×3 must still be Gold.
+        for y in 6..9 {
+            for x in 6..9 {
+                assert_eq!(img.get_pixel(x, y), &body, "interior ({x},{y})");
+            }
+        }
+        // Outside the silhouette: still transparent.
+        assert_eq!(img.get_pixel(4, 4).0[3], 0);
+    }
+
+    #[test]
+    fn outline_silhouette_treats_image_edge_as_transparent() {
+        // A pixel sitting on the canvas edge gets outlined even when its
+        // out-of-bounds neighbour isn't actually transparent.
+        let mut img = RgbaImage::new(8, 8);
+        let body: Rgba<u8> = Palette::Gold.into();
+        img.put_pixel(0, 0, body); // top-left corner
+        let outline: Rgba<u8> = Palette::DeepBrown.into();
+        outline_silhouette(&mut img, outline);
+        assert_eq!(img.get_pixel(0, 0), &outline);
+    }
+
+    #[test]
+    fn outline_silhouette_no_op_on_empty_image() {
+        let mut img = RgbaImage::new(8, 8);
+        outline_silhouette(&mut img, Palette::DeepBrown.into());
+        assert!(img.pixels().all(|p| p.0[3] == 0));
+    }
+
+    #[test]
+    fn outline_silhouette_does_not_propagate_through_body() {
+        // Single-pass sanity: a wide block must keep its interior even
+        // after outlining (a naïve in-place loop would walk inward
+        // because freshly-painted dark pixels look opaque to later
+        // neighbour checks).
+        let mut img = RgbaImage::new(16, 16);
+        let body: Rgba<u8> = Palette::Gold.into();
+        for y in 4..12 {
+            for x in 4..12 {
+                img.put_pixel(x, y, body);
+            }
+        }
+        outline_silhouette(&mut img, Palette::DeepBrown.into());
+        // Centre pixel (way inside the 8×8 block) must still be Gold.
+        assert_eq!(img.get_pixel(8, 8), &body);
+        assert_eq!(img.get_pixel(7, 7), &body);
     }
 
     #[test]

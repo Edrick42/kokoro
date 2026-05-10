@@ -9,10 +9,7 @@
 use bevy::prelude::Res;
 use image::{RgbaImage, Rgba};
 use kokoro_art_palette::Palette;
-use kokoro_art_palette::dsl::{
-    Brush, BumpyDome, EarTuft, GlintCorner, KawaiiEye, RingedTail, TaperedTail,
-    outline_silhouette,
-};
+use kokoro_art_palette::dsl::{Brush, BumpyDome, RingedTail, TaperedTail, outline_silhouette};
 use kokoro_rig::Vec2;
 use crate::creature::interaction::soft_body::SoftBody;
 use crate::mind::MoodState;
@@ -54,28 +51,27 @@ pub fn draw_egg(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32) {
 }
 
 // ===================================================================
-// CUB — rig-driven (red panda body plan + wombat juvenile mass)
+// CUB — quadrupedal side view, ref-faithful red panda palette
 // ===================================================================
-// Builds the bone hierarchy from `crate::visuals::rigs::moluun::cub_skeleton`,
-// walks bones in z-order, and paints each with the brush appropriate for
-// its body region:
-//   pelvis/hips/shoulders → invisible 0-length pivots, skipped
-//   spine + neck         → fluffy body BumpyDome around their midpoint
-//   head                 → larger BumpyDome, with FurFluff edge halo
-//   ear_l/r              → EarTuft (koala-style)
-//   eye_l/r              → KawaiiEye with glint (skipped when sleeping)
-//   snout                → tiny BumpyDome in DeepBrown
-//   arm/thigh segments   → TaperedTail along the bone path
-//   paw / foot tips      → small BumpyDome in BrownDark
-//   tail_1..tail_5       → single RingedTail across all five joints
-// Final pass: outline_silhouette in DeepBrown.
+// Pose: head-right, tail-left curled down, 2 visible legs hanging.
+// 4-color palette per the chosen reference (cross-stitch / pixel-art
+// pattern):
+//   - NearBlack      → outline, eye slit, snout, tear streak
+//   - OffWhite       → face mask (dominates the face), inner ear, paw tips
+//   - OrangeDark     → top of body, head crown, dark tail bands, ear outer
+//   - Orange         → bottom of body, light tail bands
+//
+// Body is BICOLOR HARD: top half OrangeDark, bottom half Orange. Head's
+// face mask covers nearly the entire face leaving only the crown dark.
+// Tear streaks (the red panda hallmark) drop from below each eye.
 
 pub fn draw_cub(img: &mut RgbaImage, _p: &SpeciesSkin, cx: i32, mood: &MoodState, _sb: &Option<Res<SoftBody>>) {
-    // Place the rig at the requested centre. y = 32 is the canvas vertical
-    // mid (matches docs/aesthetic-targets cub framing — creature occupies
-    // roughly y=9..47, leaving 9px of headroom and ~17px of foot-to-floor).
+    // Place the rig at the canvas. The skeleton's default root sits at
+    // (22, 36) so the cub silhouette spans roughly x=8..58 — already
+    // centred horizontally for cx=32. We just shift by (cx-32, 0) so a
+    // caller-provided cx still works.
     let mut skel = crate::visuals::rigs::moluun::cub_skeleton();
-    skel.set_root(Vec2::new(cx as f32, 32.0));
+    skel.set_root(Vec2::new(22.0 + (cx as f32 - 32.0), 36.0));
     skel.forward();
 
     // Helpers — turn world Vec2s into the (i32, i32) tuples the brushes
@@ -91,116 +87,22 @@ pub fn draw_cub(img: &mut RgbaImage, _p: &SpeciesSkin, cx: i32, mood: &MoodState
         })
     };
 
-    // ---- BACK LIMBS (z=-1 — render before body so body covers attach) ----
-    // base_width 3 → 7px-wide chubby cub limbs (was 2 = 5px sticks).
-    if let (Some(s), Some(p_)) = (world_base("shoulder_l"), world_tip("paw_l")) {
-        TaperedTail::new(s, p_, 3, Palette::Gold).paint(img);
-    }
-    if let (Some(h), Some(f)) = (world_base("hip_l"), world_tip("foot_l")) {
-        TaperedTail::new(h, f, 3, Palette::BrownDark).paint(img);
+    // ====== Z-ORDERED PAINTING (back-to-front) ======
+
+    // ---- BACK LEG (z=-1) — paint first, body covers the attach point.
+    if let (Some(h), Some(p)) = (world_base("hip_back"), world_tip("paw_back")) {
+        TaperedTail::new(h, p, 2, Palette::OrangeDark).paint(img);
+        // White paw tip
+        fill_rect(img, p.0 - 1, p.1 - 1, 3, 2, Rgba(Palette::OffWhite.rgba(255)));
     }
 
-    // ---- BODY MASS — clean two-dome silhouette, no extras ----
-    // FurFluff was creating a noisy "confetti coroa" of orange/brown
-    // pixels around the head; the separate belly BumpyDome was reading
-    // as a "skirt" sitting under the body. Stripped both — the bicolour
-    // red-panda look comes only from the head face mask now.
-    if let Some((hx, hy)) = midpoint("head") {
-        // Lower-torso body dome at y=32 (raised 1px so it overlaps the
-        // head dome more — gives a continuous body→head silhouette
-        // without a gap reading as a "neck pinch").
-        BumpyDome::new(hx as i32, 32, 8, Palette::Gold)
-            .with_bumpiness(0.25)
-            .with_bumps(10)
-            .with_seed(11)
-            .paint(img);
-        // Head dome (raised slightly to widen apparent head/body ratio).
-        BumpyDome::new(hx as i32, hy as i32, 11, Palette::Gold)
-            .with_bumpiness(0.30)
-            .with_bumps(10)
-            .with_seed(3)
-            .paint(img);
-        // RED PANDA FACE MASK — Cream patch covering lower 2/3 of head.
-        // Eyes/snout/blush paint on top of this so they pop. Gold "cap"
-        // at the top stays intact for the bicolour silhouette.
-        BumpyDome::new(hx as i32, hy as i32 + 3, 7, Palette::Cream)
-            .with_bumpiness(0.15)
-            .with_bumps(8)
-            .with_seed(23)
-            .paint(img);
-        // Front-of-body Cream BIB — a small cream patch on the upper
-        // chest, between front legs. Painted as a small ellipse instead
-        // of a separate BumpyDome so it integrates into the body shape
-        // instead of reading as a separate item.
-        fill_ellipse(img, hx as i32, 33, 3, 4, Rgba(Palette::Cream.rgba(255)));
+    // ---- BACK EAR (z=0, behind head) — only the tip pokes out.
+    if let (Some(b), Some(t)) = (world_base("ear_back"), world_tip("ear_back")) {
+        TaperedTail::new(b, t, 2, Palette::OrangeDark).paint(img);
     }
 
-    // ---- EARS — koala-style EarTuft on each side ----
-    for (base_name, tip_name, seed) in [
-        ("ear_l", "ear_l", 0u32),
-        ("ear_r", "ear_r", 1u32),
-    ] {
-        let _ = seed;
-        if let (Some(b), Some(t)) = (world_base(base_name), world_tip(tip_name)) {
-            EarTuft::new(b, t, 3, Palette::OrangeBright)
-                .with_inner(Palette::Brown)
-                .with_tuft(Palette::Cream)
-                .paint(img);
-        }
-    }
-
-    // ---- FACE FEATURES ----
-    if *mood != MoodState::Sleeping {
-        if let Some((ex, ey)) = world_base("eye_l") {
-            KawaiiEye::new(ex, ey, Palette::NearBlack)
-                .with_size(1, 2)
-                .with_glint(GlintCorner::TopRight, Palette::CreamLight)
-                .paint(img);
-        }
-        if let Some((ex, ey)) = world_base("eye_r") {
-            KawaiiEye::new(ex, ey, Palette::NearBlack)
-                .with_size(1, 2)
-                .with_glint(GlintCorner::TopRight, Palette::CreamLight)
-                .paint(img);
-        }
-    } else {
-        // Closed-eye line (zzz pose) — short horizontal stroke per eye.
-        if let Some((ex, ey)) = world_base("eye_l") {
-            fill_rect(img, ex - 1, ey, 3, 1, Rgba(Palette::NearBlack.rgba(255)));
-        }
-        if let Some((ex, ey)) = world_base("eye_r") {
-            fill_rect(img, ex - 1, ey, 3, 1, Rgba(Palette::NearBlack.rgba(255)));
-        }
-    }
-    if let Some((nx, ny)) = world_base("snout") {
-        BumpyDome::new(nx, ny, 1, Palette::DeepBrown)
-            .with_bumpiness(0.0)
-            .paint(img);
-    }
-    // Cub blush — Coral-pink dabs on the cheeks below the eyes (kawaii
-    // signature, fades out for older stages per spec §4b).
-    if let Some((ex, ey)) = world_base("eye_l") {
-        fill_rect(img, ex - 2, ey + 2, 2, 2, Rgba(Palette::CoralPink.rgba(255)));
-    }
-    if let Some((ex, ey)) = world_base("eye_r") {
-        fill_rect(img, ex + 1, ey + 2, 2, 2, Rgba(Palette::CoralPink.rgba(255)));
-    }
-
-    // ---- FRONT LIMBS (z=+1 — render after body, chubby base_width 3) ----
-    if let (Some(s), Some(p_)) = (world_base("shoulder_r"), world_tip("paw_r")) {
-        TaperedTail::new(s, p_, 3, Palette::Gold).paint(img);
-    }
-    if let (Some(h), Some(f)) = (world_base("hip_r"), world_tip("foot_r")) {
-        TaperedTail::new(h, f, 3, Palette::BrownDark).paint(img);
-    }
-    // Removed: per-tip "pad" BumpyDomes. Single 3×3 discs at each foot
-    // tip ended up isolated against the canvas, got picked up by
-    // outline_silhouette (since they DID have body-pixel neighbours
-    // through the limb's TaperedTail), and then read as dark splotches
-    // hanging off the limbs. The TaperedTail's natural taper handles
-    // termination cleanly without them.
-
-    // ---- TAIL — RED PANDA SIGNATURE (5 joints → RingedTail) ----
+    // ---- TAIL (z=0, behind body but in front of nothing relevant) ----
+    // Banded: alternating OrangeDark / Orange along arc length.
     let mut tail_joints: Vec<(i32, i32)> = ["tail_1", "tail_2", "tail_3", "tail_4", "tail_5"]
         .iter()
         .filter_map(|name| world_base(name))
@@ -209,16 +111,86 @@ pub fn draw_cub(img: &mut RgbaImage, _p: &SpeciesSkin, cx: i32, mood: &MoodState
         tail_joints.push((tx, ty));
     }
     if tail_joints.len() >= 2 {
-        // Bushier red panda tail: base_width 4 (was 3) → 9px wide at base.
-        // Tighter ring period (3, was 4) puts more rings along the path
-        // for the iconic banded look.
-        RingedTail::new(tail_joints, 4, Palette::Red, Palette::Cream)
+        RingedTail::new(tail_joints, 3, Palette::OrangeDark, Palette::Orange)
             .with_rings(3, 2)
             .paint(img);
     }
 
-    // ---- OUTLINE PASS — DeepBrown 1px border on every silhouette ----
-    outline_silhouette(img, Rgba(Palette::DeepBrown.rgba(255)));
+    // ---- BODY (z=0) — bicolor: top half OrangeDark, bottom half Orange ----
+    // The body is a horizontal mass running from pelvis → shoulders.
+    // Paint as two stacked elliptical BumpyDomes (top dark, bottom light).
+    if let (Some(pelvis), Some(shoulder)) =
+        (world_base("pelvis"), world_base("shoulder_front"))
+    {
+        let body_cx = (pelvis.0 + shoulder.0) / 2;
+        let body_cy = (pelvis.1 + shoulder.1) / 2;
+        let body_half_len = ((shoulder.0 - pelvis.0).abs() / 2 + 4) as u32; // a bit wider than spine
+        // Top half (dark) — sits 2px above body centre.
+        BumpyDome::new(body_cx, body_cy - 2, body_half_len, Palette::OrangeDark)
+            .with_height(5)
+            .with_bumpiness(0.15)
+            .with_bumps(10)
+            .with_seed(11)
+            .paint(img);
+        // Bottom half (light) — sits 3px below body centre, slightly
+        // narrower so it tucks under the dark band.
+        BumpyDome::new(body_cx, body_cy + 3, body_half_len - 1, Palette::Orange)
+            .with_height(4)
+            .with_bumpiness(0.15)
+            .with_bumps(10)
+            .with_seed(13)
+            .paint(img);
+    }
+
+    // ---- HEAD (z=+1) — dark crown + white face mask ----
+    if let Some((hx, hy)) = midpoint("head") {
+        // Crown — OrangeDark dome, top of head only.
+        BumpyDome::new(hx as i32, hy as i32 - 1, 7, Palette::OrangeDark)
+            .with_bumpiness(0.20)
+            .with_bumps(9)
+            .with_seed(3)
+            .paint(img);
+        // FACE MASK — OffWhite covering basically the whole face. Sits
+        // slightly down from the head centre so the crown stays dark on
+        // top.
+        BumpyDome::new(hx as i32, hy as i32 + 2, 6, Palette::OffWhite)
+            .with_bumpiness(0.10)
+            .with_bumps(8)
+            .with_seed(23)
+            .paint(img);
+    }
+
+    // ---- FRONT EAR (z=+2, on top of head) ----
+    if let (Some(b), Some(t)) = (world_base("ear_front"), world_tip("ear_front")) {
+        TaperedTail::new(b, t, 2, Palette::OrangeDark).paint(img);
+        // Inner-ear tiny white at the tip
+        fill_rect(img, t.0, t.1, 1, 2, Rgba(Palette::OffWhite.rgba(255)));
+    }
+
+    // ---- EYE (z=+2) — single black slit (red panda half-closed look) ----
+    let _ = mood; // mood-driven eye variants land in a follow-up
+    if let Some((ex, ey)) = world_base("eye") {
+        // 3-pixel horizontal slit
+        fill_rect(img, ex - 1, ey, 3, 1, Rgba(Palette::NearBlack.rgba(255)));
+        // TEAR STREAK — vertical 2-3 px line dropping straight down from
+        // below the eye. THE red-panda identity feature.
+        put(img, ex, ey + 2, Rgba(Palette::NearBlack.rgba(255)));
+        put(img, ex, ey + 3, Rgba(Palette::NearBlack.rgba(255)));
+    }
+
+    // ---- SNOUT (z=+2) — small black wedge at the front of the face ----
+    if let Some((nx, ny)) = world_base("snout") {
+        fill_rect(img, nx - 1, ny, 2, 1, Rgba(Palette::NearBlack.rgba(255)));
+    }
+
+    // ---- FRONT LEG (z=+1) — paints after body so it appears in front ----
+    if let (Some(s), Some(p)) = (world_base("shoulder_front"), world_tip("paw_front")) {
+        TaperedTail::new(s, p, 2, Palette::OrangeDark).paint(img);
+        fill_rect(img, p.0 - 1, p.1 - 1, 3, 2, Rgba(Palette::OffWhite.rgba(255)));
+    }
+
+    // ---- OUTLINE PASS — NearBlack 1px border (matches ref's hard outline) ----
+    outline_silhouette(img, Rgba(Palette::NearBlack.rgba(255)));
 }
 
 // ===================================================================

@@ -56,9 +56,13 @@ pub fn paint_anatomical_tail(img: &mut RgbaImage, tail: &MoluunCubTail) {
         let base = skeleton.world_base(bone_id);
         let tip  = skeleton.world_tip(bone_id);
         let (flex_t, ext_t) = thicknesses_for(tail, bone_id);
+        // Fur halo around the anatomy — see `cub_tail_fur_length`.
+        // Adds the same amount to both perp sides so the fur is
+        // symmetric even when the underlying muscle pair is asymmetric.
+        let fur = tail.fur_lengths.get(seg).copied().unwrap_or(0.0);
         let is_ring = seg > 0 && seg % RING_STRIDE == 0;
         let body_color = if is_ring { RING } else { BODY };
-        stamp_tube(img, base, tip, flex_t, ext_t, body_color);
+        stamp_tube(img, base, tip, flex_t + fur, ext_t + fur, body_color);
     }
 }
 
@@ -192,10 +196,15 @@ mod snapshot {
             Vec2::new(48.0, 32.0),
             std::f32::consts::PI,
         );
+        let fur_lengths = (0..STANDALONE_TAIL_SEGMENTS).map(|i| {
+            let t = (i as f32) / ((STANDALONE_TAIL_SEGMENTS - 1) as f32);
+            2.5 * (std::f32::consts::PI * t).sin()
+        }).collect();
         let mut tail = super::super::moluun_runtime::MoluunCubTail {
             body,
             sim_time: 0.0,
             last_intent: vec![kokoro_body::actuation::PairIntent::rest(); 16],
+            fur_lengths,
         };
         let mut img = RgbaImage::new(64, 64);
         for px in img.pixels_mut() { *px = Rgba([0, 0, 0, 0]); }
@@ -218,10 +227,15 @@ mod snapshot {
             Vec2::new(48.0, 32.0),
             std::f32::consts::PI,
         );
+        let fur_lengths = (0..STANDALONE_TAIL_SEGMENTS).map(|i| {
+            let t = (i as f32) / ((STANDALONE_TAIL_SEGMENTS - 1) as f32);
+            2.5 * (std::f32::consts::PI * t).sin()
+        }).collect();
         let mut tail = super::super::moluun_runtime::MoluunCubTail {
             body,
             sim_time: 0.0,
             last_intent: vec![kokoro_body::actuation::PairIntent::rest(); 16],
+            fur_lengths,
         };
         tail.body.skeleton.forward();
         for a in tail.body.actuators.iter_mut() {

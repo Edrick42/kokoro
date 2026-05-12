@@ -45,11 +45,19 @@ const CUB_TAIL_BASE_ANGLE: f32 = std::f32::consts::PI;
 /// step so debug overlays can read what the mind asked of each muscle
 /// without re-deriving it. Index `i` corresponds to segment bone `i+1`
 /// (bone 0 is the anchor root).
+///
+/// `fur_lengths` is the per-segment fur length, in canvas pixels,
+/// perpendicular to the skin. Treated as quasi-static (genome-derived)
+/// today; promoted to a real `kokoro_body::Fur` struct on `Body` once
+/// other body parts also grow fur and the layer needs cross-body
+/// state. Distribution follows a bell curve (zero at base + tip, peak
+/// in the middle) so the cub's tail reads as fusiform.
 #[derive(Resource)]
 pub struct MoluunCubTail {
     pub body: Body,
     pub sim_time: f32,
     pub last_intent: Vec<PairIntent>,
+    pub fur_lengths: Vec<f32>,
 }
 
 pub struct MoluunCubTailPlugin;
@@ -71,11 +79,28 @@ fn init_tail_body(mut commands: Commands, genome: Res<Genome>) {
         Vec2::new(CUB_TAIL_ATTACH_X, CUB_TAIL_ATTACH_Y),
         CUB_TAIL_BASE_ANGLE,
     );
+    let fur_lengths = (0..STANDALONE_TAIL_SEGMENTS)
+        .map(|seg| cub_tail_fur_length(seg, STANDALONE_TAIL_SEGMENTS, genome.tail.strength))
+        .collect();
     commands.insert_resource(MoluunCubTail {
         body,
         sim_time: 0.0,
         last_intent: vec![PairIntent::rest(); STANDALONE_TAIL_SEGMENTS],
+        fur_lengths,
     });
+}
+
+/// Bell-curve fur distribution along the tail, in canvas pixels.
+///
+/// The classic fusiform "thin-thick-thin" silhouette of a red-panda-style
+/// tail comes from the fur, not from any underlying anatomy: the bones
+/// + muscles taper monotonically while the fur halo peaks in the middle.
+/// Genome `strength` scales the whole halo so bushier cubs read bigger.
+fn cub_tail_fur_length(seg: usize, segments: usize, strength: f32) -> f32 {
+    const MAX_FUR_PX: f32 = 2.5;
+    let t = (seg as f32) / ((segments - 1).max(1) as f32);
+    let bell = (std::f32::consts::PI * t).sin();
+    MAX_FUR_PX * bell * (0.75 + 0.5 * strength.clamp(0.0, 1.0))
 }
 
 fn step_tail_body(

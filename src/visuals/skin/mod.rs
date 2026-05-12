@@ -5,7 +5,6 @@
 //! Anatomy data (skeleton, muscles, fat, skin) drives visual parameters.
 
 pub mod moluun;
-pub mod moluun_tail_sim;
 pub mod nyxal;
 pub mod params;
 pub mod pylum;
@@ -69,7 +68,7 @@ fn attach_skin(
     involuntary: Res<InvoluntaryState>,
     soft_body: Option<Res<SoftBody>>,
     expression: Res<ExpressionOverride>,
-    moluun_tail: Option<Res<moluun_tail_sim::MoluunCubTail>>,
+    moluun_tail: Option<Res<crate::creature::biomechanics::moluun_runtime::MoluunCubTail>>,
     #[cfg(feature = "dev")] dev_state: Option<Res<crate::dev::DevModeState>>,
 ) {
     #[cfg(feature = "dev")]
@@ -123,7 +122,7 @@ fn update_skin(
     involuntary: Res<InvoluntaryState>,
     soft_body: Option<Res<SoftBody>>,
     expression: Res<ExpressionOverride>,
-    moluun_tail: Option<Res<moluun_tail_sim::MoluunCubTail>>,
+    moluun_tail: Option<Res<crate::creature::biomechanics::moluun_runtime::MoluunCubTail>>,
     mut images: ResMut<Assets<BevyImage>>,
     creature_q: Query<&Sprite, With<CreatureSkin>>,
     mut pixel_buf: Local<Option<RgbaImage>>,

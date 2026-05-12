@@ -68,9 +68,9 @@ const JOINT_COLOR: Rgba<u8> = Rgba(Palette::CyanBright.rgba(220));
 
 /// Paint the physical tail of a `MoluunCubTail` over the current pixel
 /// buffer using the `FusiformTail` brush.
-pub fn overlay_tail(img: &mut RgbaImage, tail: &super::moluun_tail_sim::MoluunCubTail) {
+pub fn overlay_tail(img: &mut RgbaImage, tail: &crate::creature::biomechanics::moluun_runtime::MoluunCubTail) {
     use kokoro_art_palette::dsl::{Brush, FusiformTail};
-    let Some(joints) = super::moluun_tail_sim::joints_for_overlay(tail) else {
+    let Some(joints) = crate::creature::biomechanics::moluun_runtime::joints_for_overlay(tail) else {
         return;
     };
     FusiformTail::new(joints, 3, Palette::Orange, Palette::OffWhite)
@@ -82,7 +82,7 @@ pub fn overlay_tail(img: &mut RgbaImage, tail: &super::moluun_tail_sim::MoluunCu
 /// joint (bone base + tip) as a cyan dot. Reads bone positions straight
 /// from the post-FK `Skeleton`, so any bone added to the rig shows up
 /// automatically with no extra draw code.
-pub fn overlay_skeleton_wireframe(img: &mut RgbaImage, tail: &super::moluun_tail_sim::MoluunCubTail) {
+pub fn overlay_skeleton_wireframe(img: &mut RgbaImage, tail: &crate::creature::biomechanics::moluun_runtime::MoluunCubTail) {
     use kokoro_rig::BoneId;
     let skeleton = &tail.body.skeleton;
     if skeleton.dirty() {

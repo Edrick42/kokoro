@@ -17,6 +17,7 @@ use bevy::prelude::*;
 use audio::SoundPlugin;
 use creature::{
     anatomy::AnatomyPlugin,
+    biomechanics::moluun_runtime::MoluunCubTailPlugin,
     lifecycle::collection::MultiCreaturePlugin,
     lifecycle::egg::EggPlugin,
     lifecycle::spawn::CreatureVisualsPlugin,
@@ -60,7 +61,6 @@ use visuals::{
     genome_visuals::apply_genome_visuals,
     mood_sync::sync_mood_sprites,
     skin::SkinPlugin,
-    skin::moluun_tail_sim::MoluunCubTailPlugin,
     resonance_glow::ResonanceGlowPlugin,
     species_behavior::SpeciesBehaviorPlugin,
 };

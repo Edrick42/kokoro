@@ -3,6 +3,10 @@
 // Body simulation (skeleton, joints, muscles, skin, fat)
 pub mod anatomy;
 
+// Per-species rig templates + Bevy plugins that step them each frame.
+// Lives here (not under visuals/) because rigs produce motion, not pixels.
+pub mod biomechanics;
+
 // Behavior (pose, reactions, idle, involuntary)
 pub mod behavior;
 

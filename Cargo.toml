@@ -1,3 +1,15 @@
+[workspace]
+# Cargo workspace — every path-dep crate lives here so they share one
+# Cargo.lock + target/ + dependency tree. kokoro-web stays out (it has
+# its own workspace and ships independently).
+members = [
+    "kokoro-art-palette",
+    "kokoro-rig",
+    "kokoro-body",
+    "kokoro-shared",
+]
+resolver = "3"
+
 [package]
 name = "kokoro"
 version = "0.1.0"

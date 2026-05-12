@@ -24,7 +24,7 @@ use crate::genome::Genome;
 use crate::mind::Mind;
 use crate::visuals::evolution::{GrowthStage, GrowthState};
 
-use super::super::rigs::moluun::{
+use super::moluun::{
     STANDALONE_TAIL_SEGMENTS, cub_tail_body_for_creature, cub_tail_intent,
     cub_tail_pattern_for_mood,
 };

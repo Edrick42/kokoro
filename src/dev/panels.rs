@@ -68,10 +68,7 @@ pub fn dev_panels_system(
             ui.checkbox(&mut dev_state.biomech_bones,   "Bones (black lines)");
             ui.checkbox(&mut dev_state.biomech_joints,  "Joints (cyan → red)");
             ui.checkbox(&mut dev_state.biomech_muscles, "Muscles (pink bellies, brighter when firing)");
-            ui.add_enabled_ui(false, |ui| {
-                let mut nerve = false;
-                ui.checkbox(&mut nerve, "Nerves — needs latency/health law");
-            });
+            ui.checkbox(&mut dev_state.biomech_nerves,  "Nerves (cyan filaments, brighter when firing)");
             ui.separator();
             // --- Render-layer visibility (strip a tissue from the silhouette) ---
             ui.label(egui::RichText::new("Anatomical layers (strip to inspect)").strong());

@@ -45,6 +45,11 @@ const MUSCLE_REST_ALPHA:   u8 = 120;
 /// Fully firing muscle alpha. Saturated CoralPink jumps out against
 /// the orange tail body underneath.
 const MUSCLE_FIRING_ALPHA: u8 = 240;
+/// Nerve filament colours. Faint cyan at rest, vivid CyanBright when a
+/// signal is travelling. Drawn as a thin line beside each muscle's
+/// belly so it reads as the wire feeding the muscle.
+const NERVE_REST_ALPHA:    u8 = 110;
+const NERVE_FIRING_ALPHA:  u8 = 240;
 
 // --- Public layer entry points --------------------------------------------
 
@@ -125,6 +130,88 @@ pub fn paint_muscles(img: &mut RgbaImage, tail: &MoluunCubTail) {
         let ext_th  = actuator.muscles.extensor.current_thickness();
         let ext_act = actuator.muscles.extensor.activation;
         paint_muscle_belly(img, base, tip, dx, dy, len, -nx, -ny, ext_th, ext_act);
+    }
+}
+
+/// Paints every nerve in the rig as a thin CyanBright filament along
+/// the bone, on the same perpendicular side as the muscle it feeds.
+/// Brightness rises with the muscle's activation, since in our model
+/// the nerve's role is to carry the signal that drove that
+/// contraction. Real nerves don't disappear when an animal sleeps —
+/// they just go quiet — so the filament is always drawn, never
+/// thresholded off.
+pub fn paint_nerves(img: &mut RgbaImage, tail: &MoluunCubTail) {
+    let skeleton = &tail.body.skeleton;
+    if skeleton.dirty() {
+        return;
+    }
+    for seg in 0..STANDALONE_TAIL_SEGMENTS {
+        let bone_id = BoneId((seg + 1) as u16);
+        let base = skeleton.world_base(bone_id);
+        let tip  = skeleton.world_tip(bone_id);
+        let dx = tip.x - base.x;
+        let dy = tip.y - base.y;
+        let len = (dx * dx + dy * dy).sqrt();
+        if len < 0.5 {
+            continue;
+        }
+        let nx = -dy / len;
+        let ny = dx / len;
+
+        let Some(actuator) = tail.body.actuators.iter().find(|a| a.bone == bone_id) else { continue };
+
+        // Two nerve filaments per segment: one feeds the flexor on
+        // +perp, one feeds the extensor on −perp. Each is offset just
+        // outside its muscle belly so they read as the "wire" running
+        // to the muscle rather than overlapping it.
+        let flex_act = actuator.muscles.flexor.activation;
+        let ext_act  = actuator.muscles.extensor.activation;
+        let flex_offset = actuator.muscles.flexor.rest_thickness * 1.05;
+        let ext_offset  = actuator.muscles.extensor.rest_thickness * 1.05;
+        paint_nerve_filament(img, base, tip,  nx,  ny, flex_offset, flex_act);
+        paint_nerve_filament(img, base, tip, -nx, -ny, ext_offset, ext_act);
+    }
+}
+
+/// Paint one nerve filament: a 1-pixel line parallel to the bone,
+/// offset perpendicular by `offset` toward `(perp_x, perp_y)`. Alpha
+/// lerps from `NERVE_REST_ALPHA` (quiet) to `NERVE_FIRING_ALPHA`
+/// (signal travelling).
+fn paint_nerve_filament(
+    img: &mut RgbaImage,
+    base: kokoro_rig::Vec2,
+    tip: kokoro_rig::Vec2,
+    perp_x: f32, perp_y: f32,
+    offset: f32,
+    activation: f32,
+) {
+    let alpha = (NERVE_REST_ALPHA as f32
+        + (NERVE_FIRING_ALPHA - NERVE_REST_ALPHA) as f32 * activation.clamp(0.0, 1.0))
+        .round() as u8;
+    let [r, g, b] = Palette::CyanBright.rgb();
+    let color = Rgba([r, g, b, alpha]);
+    let x0 = (base.x + perp_x * offset).round() as i32;
+    let y0 = (base.y + perp_y * offset).round() as i32;
+    let x1 = (tip.x  + perp_x * offset).round() as i32;
+    let y1 = (tip.y  + perp_y * offset).round() as i32;
+    draw_blended_line(img, x0, y0, x1, y1, color);
+}
+
+/// Bresenham line with per-pixel alpha blending so the nerve filament
+/// tints the orange tail underneath instead of replacing it.
+fn draw_blended_line(img: &mut RgbaImage, x0: i32, y0: i32, x1: i32, y1: i32, color: Rgba<u8>) {
+    let (mut x, mut y) = (x0, y0);
+    let dx = (x1 - x0).abs();
+    let dy = -(y1 - y0).abs();
+    let sx = if x0 < x1 { 1 } else { -1 };
+    let sy = if y0 < y1 { 1 } else { -1 };
+    let mut err = dx + dy;
+    loop {
+        blend_pixel(img, x, y, color);
+        if x == x1 && y == y1 { break; }
+        let e2 = 2 * err;
+        if e2 >= dy { err += dy; x += sx; }
+        if e2 <= dx { err += dx; y += sy; }
     }
 }
 

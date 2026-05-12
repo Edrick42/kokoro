@@ -29,6 +29,7 @@ pub struct DevModeState {
     pub biomech_bones: bool,
     pub biomech_joints: bool,
     pub biomech_muscles: bool,
+    pub biomech_nerves: bool,
     /// Rendering layer visibility — when off, that anatomical layer
     /// contributes zero thickness to the silhouette, so the dev viewer
     /// literally sees the cub minus that tissue. Useful for "what does
@@ -53,6 +54,7 @@ impl Default for DevModeState {
             biomech_bones: true,
             biomech_joints: true,
             biomech_muscles: true,
+            biomech_nerves: true,
             render_fat: true,
             render_skin: true,
             render_fur: true,

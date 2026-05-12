@@ -206,6 +206,7 @@ fn paint_biomech_layers(
     if !dev.active { return; }
     let skeleton = &tail.body.skeleton;
     if dev.biomech_muscles { debug_overlay::paint_muscles(buf, tail); }
+    if dev.biomech_nerves  { debug_overlay::paint_nerves(buf, tail); }
     if dev.biomech_bones   { debug_overlay::paint_bones(buf, skeleton); }
     if dev.biomech_joints  { debug_overlay::paint_joints(buf, skeleton); }
 }

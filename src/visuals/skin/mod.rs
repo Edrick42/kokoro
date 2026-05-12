@@ -5,6 +5,7 @@
 //! Anatomy data (skeleton, muscles, fat, skin) drives visual parameters.
 
 pub mod moluun;
+pub mod moluun_tail_sim;
 pub mod nyxal;
 pub mod params;
 pub mod pylum;
@@ -68,6 +69,7 @@ fn attach_skin(
     involuntary: Res<InvoluntaryState>,
     soft_body: Option<Res<SoftBody>>,
     expression: Res<ExpressionOverride>,
+    moluun_tail: Option<Res<moluun_tail_sim::MoluunCubTail>>,
     #[cfg(feature = "dev")] dev_state: Option<Res<crate::dev::DevModeState>>,
 ) {
     #[cfg(feature = "dev")]
@@ -84,6 +86,12 @@ fn attach_skin(
                 .map(|a| SkinParams::from_anatomy(a, &genome.species, &growth.stage))
                 .unwrap_or_else(SkinParams::healthy_default);
             draw_creature(&mut buf, &genome.species, &mind.mood, &growth.stage, &sp, &soft_body, &expression, &involuntary, debug_overlay);
+            if matches!(genome.species, Species::Moluun) && matches!(growth.stage, GrowthStage::Cub) {
+                if let Some(tail) = moluun_tail.as_ref() {
+                    moluun::overlay_tail(&mut buf, tail);
+                    moluun::overlay_skeleton_wireframe(&mut buf, tail);
+                }
+            }
             if let Some(ref mut data) = image.data {
                 data.copy_from_slice(buf.as_raw());
             }
@@ -115,6 +123,7 @@ fn update_skin(
     involuntary: Res<InvoluntaryState>,
     soft_body: Option<Res<SoftBody>>,
     expression: Res<ExpressionOverride>,
+    moluun_tail: Option<Res<moluun_tail_sim::MoluunCubTail>>,
     mut images: ResMut<Assets<BevyImage>>,
     creature_q: Query<&Sprite, With<CreatureSkin>>,
     mut pixel_buf: Local<Option<RgbaImage>>,
@@ -143,6 +152,17 @@ fn update_skin(
         .map(|a| SkinParams::from_anatomy(a, &genome.species, &growth.stage))
         .unwrap_or_else(SkinParams::healthy_default);
     draw_creature(buf, &genome.species, &mind.mood, &growth.stage, &sp, &soft_body, &expression, &involuntary, debug_overlay);
+
+    // Moluun cub: the rig is the only authoritative source. `overlay_tail`
+    // paints the simulated tail, `overlay_skeleton_wireframe` overlays
+    // the bones+joints so every new body part shows up as soon as it is
+    // added to the rig.
+    if matches!(genome.species, Species::Moluun) && matches!(growth.stage, GrowthStage::Cub) {
+        if let Some(tail) = moluun_tail.as_ref() {
+            moluun::overlay_tail(buf, tail);
+            moluun::overlay_skeleton_wireframe(buf, tail);
+        }
+    }
 
     for sprite in creature_q.iter() {
         if let Some(image) = images.get_mut(&sprite.image) {
@@ -291,7 +311,12 @@ fn draw_creature(img: &mut RgbaImage, species: &Species, mood: &MoodState, stage
     // Draw mouth AFTER species draw, with mouth_mood (not eye_mood).
     // Mouth position comes directly from the "mouth" soft-body point —
     // it follows the head, eyes, and chewing animation through the bounds+cluster.
-    if *stage != GrowthStage::Egg {
+    //
+    // Skip for Moluun cubs: the cub is currently rendered as rig-only
+    // (wireframe + simulated tail), so a floating mouth would look broken.
+    // It comes back once a head bone exists.
+    let skip_face = matches!(species, Species::Moluun) && matches!(stage, GrowthStage::Cub);
+    if *stage != GrowthStage::Egg && !skip_face {
         let mouth_color = species_skin(species).mouth;
         let (head_x, mouth_y) = soft_body.as_ref()
             .map(|b| b.point("mouth").px())

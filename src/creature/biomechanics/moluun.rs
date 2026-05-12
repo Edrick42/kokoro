@@ -486,8 +486,12 @@ pub fn cub_tail_body_for_creature(
 /// `TIP_THICK_PX` at the last segment; the `strength` gene scales the
 /// whole curve so a strong cub has a chunkier tail.
 fn cub_tail_rest_thickness(seg: usize, segments: usize, strength: &f32) -> f32 {
-    const BASE_THICK_PX: f32 = 1.7;
-    const TIP_THICK_PX:  f32 = 0.4;
+    // Half-widths in canvas pixels. The renderer adds the two sides
+    // together for total tube radius, so 2.2 + 2.2 = 4.4 px at the base
+    // and 0.8 + 0.8 = 1.6 px at the tip — both above the
+    // one-pixel-coverage floor that pixel-art rendering requires.
+    const BASE_THICK_PX: f32 = 2.2;
+    const TIP_THICK_PX:  f32 = 0.8;
     let t = ((seg.saturating_sub(1)) as f32) / ((segments - 1).max(1) as f32);
     let interp = BASE_THICK_PX * (1.0 - t) + TIP_THICK_PX * t;
     // Strength gene 0..1 → 0.75x .. 1.25x scaling on the whole tube.

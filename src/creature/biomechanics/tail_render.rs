@@ -1,25 +1,27 @@
 //! Anatomical tail renderer — the *visible* shape of the tail is derived
 //! from the live muscle state, not a fixed brush.
 //!
-//! Each segment's silhouette has two perpendicular thicknesses, one per
-//! muscle in the antagonist pair:
+//! Each bone segment is rendered as an asymmetric tube of overlapping
+//! filled discs. Two muscle thicknesses determine the tube at each
+//! point:
 //!
 //! - The **flexor** (firing side `+perp`) bulges by
 //!   `rest_thickness × (1 + 0.4 × activation)` — same volume-conservation
-//!   approximation [`kokoro_body::muscle::MUSCLE_BULGE_FACTOR`] codifies.
+//!   approximation that [`kokoro_body::muscle::MUSCLE_BULGE_FACTOR`]
+//!   codifies.
 //! - The **extensor** does the same on `−perp`.
 //!
-//! So a Playful wave inflates one side of the tail and deflates the
-//! other in lockstep with the muscle the mind is firing. The pixels
-//! that paint the tail come straight from physical state; no animation
-//! curve is invented at render time.
+//! A disc per stamp gives crisp pixel-art silhouettes at any scale and
+//! lets adjacent segments naturally blend together without scanline
+//! gaps at fractional thicknesses. The disc is *shifted* off the bone
+//! axis toward whichever side is firing harder, so the tail's centre
+//! line drifts (skin pushed by the contracting muscle) and its envelope
+//! grows on that side — the same way a real wagging tail looks.
 //!
-//! Z-order inside this module:
-//! 1. Filled polygon body (`Palette::Orange`)
-//! 2. Edge outline (`Palette::OrangeDark`) so the silhouette reads
-//!    cleanly against any background
-//! 3. Cream rings stamped at every Nth segment for the species'
-//!    signature banded look
+//! Render order per segment:
+//! 1. Edge disc in `Palette::OrangeDark` (slight outline halo)
+//! 2. Body disc in `Palette::Orange` (or `Palette::OffWhite` if the
+//!    segment is on the ring stride for that signature banded look)
 //!
 //! The biomechanics debug overlay (bones, joints, muscles) is layered
 //! *on top* of this by `skin::mod.rs`; this renderer paints only the
@@ -27,16 +29,19 @@
 
 use image::{Rgba, RgbaImage};
 use kokoro_art_palette::Palette;
-use kokoro_rig::{BoneId, Skeleton};
+use kokoro_rig::BoneId;
 
 use super::moluun::STANDALONE_TAIL_SEGMENTS;
 use super::moluun_runtime::MoluunCubTail;
 
-const BODY:        Rgba<u8> = Rgba(Palette::Orange.rgba(255));
-const EDGE:        Rgba<u8> = Rgba(Palette::OrangeDark.rgba(255));
-const RING:        Rgba<u8> = Rgba(Palette::OffWhite.rgba(255));
-/// Every Nth segment along the tail gets a cream ring stamped on top.
-const RING_STRIDE: usize    = 4;
+const BODY: Rgba<u8> = Rgba(Palette::Orange.rgba(255));
+const EDGE: Rgba<u8> = Rgba(Palette::OrangeDark.rgba(255));
+const RING: Rgba<u8> = Rgba(Palette::OffWhite.rgba(255));
+/// Every Nth segment stamps a cream disc instead of orange — the cub's
+/// banded-tail identity. Stride 4 over 16 segments gives 4 rings.
+const RING_STRIDE: usize = 4;
+/// Outline halo thickness (pixels) added around every body disc.
+const OUTLINE_PAD: f32 = 0.5;
 
 /// Paint the cub's tail anatomically: each segment widens or narrows
 /// with the matching muscle's current thickness. The shape literally
@@ -46,122 +51,72 @@ pub fn paint_anatomical_tail(img: &mut RgbaImage, tail: &MoluunCubTail) {
     if skeleton.dirty() {
         return;
     }
-
-    // Build the two side polylines: top = flexor side, bot = extensor side.
-    // One vertex per bone joint, plus the chain's base, so the polygon has
-    // (segments + 1) vertices per side and stays continuous along the
-    // entire tail.
-    let mut top: Vec<(f32, f32)> = Vec::with_capacity(STANDALONE_TAIL_SEGMENTS + 1);
-    let mut bot: Vec<(f32, f32)> = Vec::with_capacity(STANDALONE_TAIL_SEGMENTS + 1);
-
-    for v in 0..=STANDALONE_TAIL_SEGMENTS {
-        let Some((px, py, nx, ny)) = segment_frame(skeleton, v) else { continue };
-        let (flex_t, ext_t) = vertex_thickness(tail, v);
-        top.push((px + nx * flex_t, py + ny * flex_t));
-        bot.push((px - nx * ext_t, py - ny * ext_t));
-    }
-
-    if top.len() < 2 {
-        return;
-    }
-
-    // Fill: scanline through quads (top[i], top[i+1], bot[i+1], bot[i]).
-    // Each quad is small (segment-length × thickness), so quad-by-quad is
-    // both simpler and cheaper than a single polygon scan over all 16.
-    for i in 0..(top.len() - 1) {
-        fill_quad(img, top[i], top[i + 1], bot[i + 1], bot[i], BODY);
-    }
-
-    // Outline pass: 1-pixel edges along both polylines + the two end caps.
-    for i in 0..(top.len() - 1) {
-        draw_line_f(img, top[i], top[i + 1], EDGE);
-        draw_line_f(img, bot[i], bot[i + 1], EDGE);
-    }
-    if let (Some(&t0), Some(&b0)) = (top.first(), bot.first()) {
-        draw_line_f(img, t0, b0, EDGE);
-    }
-    if let (Some(&tn), Some(&bn)) = (top.last(), bot.last()) {
-        draw_line_f(img, tn, bn, EDGE);
-    }
-
-    // Rings: a cream stripe across the tail's cross-section every
-    // RING_STRIDE segments. Stamps the chord top[i]→bot[i].
-    for i in (0..top.len()).step_by(RING_STRIDE).skip(1) {
-        if i >= bot.len() { break; }
-        draw_line_f(img, top[i], bot[i], RING);
+    for seg in 0..STANDALONE_TAIL_SEGMENTS {
+        let bone_id = BoneId((seg + 1) as u16);
+        let base = skeleton.world_base(bone_id);
+        let tip  = skeleton.world_tip(bone_id);
+        let (flex_t, ext_t) = thicknesses_for(tail, bone_id);
+        let is_ring = seg > 0 && seg % RING_STRIDE == 0;
+        let body_color = if is_ring { RING } else { BODY };
+        stamp_tube(img, base, tip, flex_t, ext_t, body_color);
     }
 }
 
-/// `v` is a vertex index 0..=N where N = number of segments. v = 0 is
-/// the base (root tip), v = i is the tip of bone i.  Returns the
-/// vertex's world position plus a unit perpendicular pointing toward
-/// the flexor side. Returns `None` if either adjacent bone is too short
-/// to derive a direction.
-fn segment_frame(sk: &Skeleton, v: usize) -> Option<(f32, f32, f32, f32)> {
-    let segments = STANDALONE_TAIL_SEGMENTS;
-    // Sample the bone direction adjacent to this vertex. For interior
-    // vertices we average the incoming and outgoing bone directions so
-    // the perpendicular tracks the local curve instead of jumping at
-    // every joint. End vertices use whichever single bone they touch.
-    let pos = if v == 0 {
-        sk.world_base(BoneId(1))
+/// Stamp an asymmetric disc-tube along the segment from `base` to `tip`.
+/// `flex_t` is the muscle thickness on `+perp`; `ext_t` on `−perp`.
+/// Two passes: outline halo first, body fill on top.
+fn stamp_tube(
+    img: &mut RgbaImage,
+    base: kokoro_rig::Vec2,
+    tip: kokoro_rig::Vec2,
+    flex_t: f32,
+    ext_t: f32,
+    body_color: Rgba<u8>,
+) {
+    let dx = tip.x - base.x;
+    let dy = tip.y - base.y;
+    let len = (dx * dx + dy * dy).sqrt();
+    if len < 0.5 {
+        return; // degenerate
+    }
+    let nx = -dy / len;
+    let ny = dx / len;
+
+    // The disc that approximates this segment's cross-section is
+    // centred on the bone axis, offset perpendicular by (flex - ext)/2
+    // so the firing side gets more of the bulge. Its radius is the
+    // average of the two muscle thicknesses — the *radial extent* the
+    // tube takes up around its (shifted) centre line.
+    let perp_offset = (flex_t - ext_t) * 0.5;
+    let radius = (flex_t + ext_t) * 0.5;
+    if radius < 0.3 {
+        return; // sub-pixel — nothing to draw
+    }
+
+    // Roughly one stamp per pixel of bone length so adjacent stamps
+    // overlap and the tube reads as continuous instead of beaded.
+    let samples = (len.ceil() as i32).max(2);
+    for k in 0..=samples {
+        let s = k as f32 / samples as f32;
+        let cx = base.x + dx * s + nx * perp_offset;
+        let cy = base.y + dy * s + ny * perp_offset;
+        fill_disc(img, cx, cy, radius + OUTLINE_PAD, EDGE);
+    }
+    for k in 0..=samples {
+        let s = k as f32 / samples as f32;
+        let cx = base.x + dx * s + nx * perp_offset;
+        let cy = base.y + dy * s + ny * perp_offset;
+        fill_disc(img, cx, cy, radius, body_color);
+    }
+}
+
+/// Lookup the current_thickness for the muscle pair attached to `bone`.
+/// Returns rest thickness (or 1.0 fallback) if the actuator isn't found.
+fn thicknesses_for(tail: &MoluunCubTail, bone: BoneId) -> (f32, f32) {
+    if let Some(a) = tail.body.actuators.iter().find(|a| a.bone == bone) {
+        (a.muscles.flexor.current_thickness(), a.muscles.extensor.current_thickness())
     } else {
-        sk.world_tip(BoneId(v as u16))
-    };
-    let dir = if v == 0 {
-        bone_direction(sk, 1)?
-    } else if v >= segments {
-        bone_direction(sk, segments as u16)?
-    } else {
-        // Average tangent of the two adjacent bones.
-        let d_in = bone_direction(sk, v as u16)?;
-        let d_out = bone_direction(sk, (v + 1) as u16)?;
-        let avg = (d_in.0 + d_out.0, d_in.1 + d_out.1);
-        normalize(avg)?
-    };
-    let perp = (-dir.1, dir.0);
-    Some((pos.x, pos.y, perp.0, perp.1))
-}
-
-fn bone_direction(sk: &Skeleton, bone: u16) -> Option<(f32, f32)> {
-    let base = sk.world_base(BoneId(bone));
-    let tip  = sk.world_tip(BoneId(bone));
-    normalize((tip.x - base.x, tip.y - base.y))
-}
-
-fn normalize(v: (f32, f32)) -> Option<(f32, f32)> {
-    let len = (v.0 * v.0 + v.1 * v.1).sqrt();
-    if len < 1e-4 { None } else { Some((v.0 / len, v.1 / len)) }
-}
-
-/// For vertex `v`, return `(flexor_thickness, extensor_thickness)` in
-/// pixels. The thicknesses live on the muscles flanking the bone(s)
-/// adjacent to the vertex — interior vertices average the two
-/// neighbours so the silhouette is continuous, end vertices use only
-/// the touching bone's muscle pair.
-fn vertex_thickness(tail: &MoluunCubTail, v: usize) -> (f32, f32) {
-    let segments = STANDALONE_TAIL_SEGMENTS;
-    let muscle_thickness_at = |seg_idx: usize| -> Option<(f32, f32)> {
-        // seg_idx is 1-based to match BoneId. Actuators are indexed by
-        // attachment order, which mirrors that ordering in
-        // cub_tail_body_for_creature.
-        let actuator = tail.body.actuators.iter().find(|a| a.bone == BoneId(seg_idx as u16))?;
-        Some((
-            actuator.muscles.flexor.current_thickness(),
-            actuator.muscles.extensor.current_thickness(),
-        ))
-    };
-
-    if v == 0 {
-        muscle_thickness_at(1).unwrap_or((1.0, 1.0))
-    } else if v >= segments {
-        muscle_thickness_at(segments).unwrap_or((1.0, 1.0))
-    } else {
-        // Interior: average adjacent muscle pairs so the polygon edge is
-        // continuous (no width jumps at every joint).
-        let a = muscle_thickness_at(v).unwrap_or((1.0, 1.0));
-        let b = muscle_thickness_at(v + 1).unwrap_or((1.0, 1.0));
-        ((a.0 + b.0) * 0.5, (a.1 + b.1) * 0.5)
+        (1.0, 1.0)
     }
 }
 
@@ -169,66 +124,23 @@ fn vertex_thickness(tail: &MoluunCubTail, v: usize) -> (f32, f32) {
 // Pixel primitives
 // ---------------------------------------------------------------------------
 
-/// Fill a convex quad given in CCW order around the perimeter. Pixel art
-/// scanline: walk every integer y in the bounding box, find the polygon's
-/// x range on that scanline (point-in-quad test by checking if the y is
-/// between every edge's endpoints), and fill the run.
-fn fill_quad(
-    img: &mut RgbaImage,
-    a: (f32, f32),
-    b: (f32, f32),
-    c: (f32, f32),
-    d: (f32, f32),
-    color: Rgba<u8>,
-) {
-    let pts = [a, b, c, d];
-    let min_y = pts.iter().map(|p| p.1).fold(f32::INFINITY, f32::min).floor() as i32;
-    let max_y = pts.iter().map(|p| p.1).fold(f32::NEG_INFINITY, f32::max).ceil() as i32;
-    let min_x = pts.iter().map(|p| p.0).fold(f32::INFINITY, f32::min).floor() as i32;
-    let max_x = pts.iter().map(|p| p.0).fold(f32::NEG_INFINITY, f32::max).ceil() as i32;
-    for y in min_y..=max_y {
-        for x in min_x..=max_x {
-            if point_in_quad(x as f32 + 0.5, y as f32 + 0.5, &pts) {
+fn fill_disc(img: &mut RgbaImage, cx: f32, cy: f32, radius: f32, color: Rgba<u8>) {
+    if radius <= 0.0 {
+        return;
+    }
+    let r_sq = radius * radius;
+    let x0 = (cx - radius - 0.5).floor() as i32;
+    let x1 = (cx + radius + 0.5).ceil() as i32;
+    let y0 = (cy - radius - 0.5).floor() as i32;
+    let y1 = (cy + radius + 0.5).ceil() as i32;
+    for y in y0..=y1 {
+        for x in x0..=x1 {
+            let dx = x as f32 + 0.5 - cx;
+            let dy = y as f32 + 0.5 - cy;
+            if dx * dx + dy * dy <= r_sq {
                 put(img, x, y, color);
             }
         }
-    }
-}
-
-/// Half-plane test for a CCW quad. Each consecutive edge defines a line;
-/// the point is inside iff it lies on the same side (≥0 cross product)
-/// of every edge.
-fn point_in_quad(px: f32, py: f32, pts: &[(f32, f32); 4]) -> bool {
-    let mut sign: f32 = 0.0;
-    for i in 0..4 {
-        let (ax, ay) = pts[i];
-        let (bx, by) = pts[(i + 1) % 4];
-        let cross = (bx - ax) * (py - ay) - (by - ay) * (px - ax);
-        if cross.abs() < 1e-6 { continue; }
-        if sign == 0.0 {
-            sign = cross.signum();
-        } else if cross.signum() != sign {
-            return false;
-        }
-    }
-    true
-}
-
-fn draw_line_f(img: &mut RgbaImage, a: (f32, f32), b: (f32, f32), color: Rgba<u8>) {
-    let (x0, y0) = (a.0.round() as i32, a.1.round() as i32);
-    let (x1, y1) = (b.0.round() as i32, b.1.round() as i32);
-    let dx =  (x1 - x0).abs();
-    let dy = -(y1 - y0).abs();
-    let sx = if x0 < x1 { 1 } else { -1 };
-    let sy = if y0 < y1 { 1 } else { -1 };
-    let mut err = dx + dy;
-    let (mut x, mut y) = (x0, y0);
-    loop {
-        put(img, x, y, color);
-        if x == x1 && y == y1 { break; }
-        let e2 = 2 * err;
-        if e2 >= dy { err += dy; x += sx; }
-        if e2 <= dx { err += dx; y += sy; }
     }
 }
 
@@ -237,4 +149,88 @@ fn put(img: &mut RgbaImage, x: i32, y: i32, color: Rgba<u8>) {
         return;
     }
     img.put_pixel(x as u32, y as u32, color);
+}
+
+#[cfg(test)]
+mod snapshot {
+    use super::*;
+    use crate::genome::TailGenes;
+    use kokoro_rig::Vec2;
+    use std::path::PathBuf;
+
+    fn out_dir() -> PathBuf {
+        let p = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join("sprite-snapshots");
+        let _ = std::fs::create_dir_all(&p);
+        p
+    }
+
+    fn upscale_save(img: &RgbaImage, name: &str) {
+        let dir = out_dir();
+        let _ = img.save(dir.join(format!("{name}.png")));
+        let (w, h) = (img.width(), img.height());
+        let mut up = RgbaImage::new(w * 4, h * 4);
+        for y in 0..h { for x in 0..w {
+            let p = *img.get_pixel(x, y);
+            for dy in 0..4 { for dx in 0..4 {
+                up.put_pixel(x * 4 + dx, y * 4 + dy, p);
+            }}
+        }}
+        let _ = up.save(dir.join(format!("{name}@4x.png")));
+    }
+
+    /// Tail at rest — both muscles slack. Visualises the natural taper
+    /// from base to tip without any wave deformation.
+    #[test]
+    #[ignore]
+    fn snapshot_anatomical_tail_rest() {
+        let genes = TailGenes::default();
+        let body = super::super::moluun::cub_tail_body_for_creature(
+            &genes,
+            32.0,
+            Vec2::new(48.0, 32.0),
+            std::f32::consts::PI,
+        );
+        let mut tail = super::super::moluun_runtime::MoluunCubTail {
+            body,
+            sim_time: 0.0,
+            last_intent: vec![kokoro_body::actuation::PairIntent::rest(); 16],
+        };
+        let mut img = RgbaImage::new(64, 64);
+        for px in img.pixels_mut() { *px = Rgba([0, 0, 0, 0]); }
+        tail.body.skeleton.forward();
+        paint_anatomical_tail(&mut img, &tail);
+        upscale_save(&img, "anatomical_tail_rest");
+    }
+
+    /// Tail with every flexor fired at 1.0 — every disc shifts toward
+    /// +perp and bulges to its 40%-bigger contracted thickness. Looks
+    /// like a tail held curled rigidly to one side; useful as a sanity
+    /// check that the asymmetry plumbs through.
+    #[test]
+    #[ignore]
+    fn snapshot_anatomical_tail_flexed() {
+        let genes = TailGenes::default();
+        let body = super::super::moluun::cub_tail_body_for_creature(
+            &genes,
+            32.0,
+            Vec2::new(48.0, 32.0),
+            std::f32::consts::PI,
+        );
+        let mut tail = super::super::moluun_runtime::MoluunCubTail {
+            body,
+            sim_time: 0.0,
+            last_intent: vec![kokoro_body::actuation::PairIntent::rest(); 16],
+        };
+        tail.body.skeleton.forward();
+        for a in tail.body.actuators.iter_mut() {
+            a.muscles.flexor.activation = 1.0;
+            a.muscles.extensor.activation = 0.0;
+        }
+        let mut img = RgbaImage::new(64, 64);
+        for px in img.pixels_mut() { *px = Rgba([0, 0, 0, 0]); }
+        paint_anatomical_tail(&mut img, &tail);
+        upscale_save(&img, "anatomical_tail_flexed");
+    }
 }

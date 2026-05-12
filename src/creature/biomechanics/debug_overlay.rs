@@ -8,18 +8,20 @@
 //!
 //! Layers painted today (every one corresponds to real state in the sim):
 //!
-//! - **`paint_bones`** — every bone, as a black line + cyan dot at each
-//!   joint. Reads `Skeleton::world_base`/`world_tip` directly.
+//! - **`paint_bones`** — every bone, as an opaque NearBlack 1-pixel line.
+//!   Reads `Skeleton::world_base`/`world_tip` directly.
 //! - **`paint_joints`** — joint dots coloured by how close the current
 //!   angle is to the ROM limit. Reads `Joint::range_min/max` +
-//!   `JointState::angle`. Stress 0 = at rest (cyan), 1 = at ROM cap (red).
-//! - **`paint_muscles`** — for each bone segment with an active joint, a
-//!   pink "muscle belly" on each side of the bone. Brightness modulates
-//!   with the `PairIntent` from the last sim step (flexor on one perp
-//!   side, extensor on the opposite).
+//!   `JointState::angle`. Stress 0 = at rest (CyanBright), 1 = at ROM
+//!   cap (Red). Fully opaque so the colour reads clearly.
+//! - **`paint_muscles`** — for each active segment, an opaque CoralPink
+//!   2×2 marker on the perp side that the mind is *currently firing
+//!   above threshold*. The opposite (resting) side stays bare. This way
+//!   the overlay only shows muscles that are actually doing work, so
+//!   actual bone motion remains visible between markers.
 //!
-//! All overlays are blits over the existing buffer — they don't clear or
-//! own the canvas.
+//! All paints are OPAQUE (no alpha blending) so colours stay vivid and
+//! crisp at the 64×64 native canvas resolution.
 
 use image::{Rgba, RgbaImage};
 use kokoro_art_palette::Palette;
@@ -31,16 +33,24 @@ use kokoro_rig::{BoneId, Skeleton};
 const BONE_COLOR:       Rgba<u8> = Rgba(Palette::NearBlack.rgba(255));
 const JOINT_REST_RGB:   [u8; 3]  = Palette::CyanBright.rgb();
 const JOINT_STRESS_RGB: [u8; 3]  = Palette::Red.rgb();
-// Muscle baseline (at-rest tone, just barely visible) and saturated active.
-const MUSCLE_REST_A:    u8 = 70;
-const MUSCLE_ACTIVE_A:  u8 = 230;
+
+/// Muscle intent threshold below which we don't paint at all. The
+/// opposite-side muscle in an antagonist pair almost always sits at
+/// 0–0.1 in a normal wave; cutting that off keeps the overlay honest
+/// (only firing muscles paint) and stops the at-rest muscles from
+/// hiding bone motion.
+const MUSCLE_INTENT_THRESHOLD: f32 = 0.15;
+/// Perpendicular distance from the bone axis at which the muscle marker
+/// is drawn. The `FusiformTail` brush is 3 px wide (half-width ≈ 1.5),
+/// so 2.5 px places the marker just outside the painted skin envelope
+/// where it is clearly readable.
+const MUSCLE_PERP_OFFSET: f32 = 2.5;
 
 // --- Public layer entry points --------------------------------------------
 
-/// Paints every bone in `skeleton` as a 1-pixel line with a joint dot at
-/// each endpoint. Caller must have run `Skeleton::forward` already; if
-/// the dirty flag is set the function is a no-op (we'd paint stale
-/// positions, which would lie).
+/// Paints every bone in `skeleton` as a 1-pixel line. Caller must have
+/// run `Skeleton::forward` already; if the dirty flag is set the function
+/// is a no-op (we'd paint stale positions, which would lie).
 pub fn paint_bones(img: &mut RgbaImage, skeleton: &Skeleton) {
     if skeleton.dirty() {
         return;
@@ -72,20 +82,18 @@ pub fn paint_joints(img: &mut RgbaImage, skeleton: &Skeleton) {
     }
 }
 
-/// Paints the muscle layer for every bone segment with an active joint:
-/// a `CoralPink` shape on each perpendicular side of the bone. The shape
-/// brightness rises with the matching half of the segment's `PairIntent`,
-/// so the side that the mind is firing reads as the bright one and the
-/// at-rest side stays a dim trace.
+/// Paints the muscle layer for every active segment: an opaque CoralPink
+/// 2×2 marker on the side currently firing above threshold. The side at
+/// rest is intentionally not painted, so the visual is sparse and bone
+/// motion shows through.
 ///
-/// `intents[i]` is interpreted as the intent for bone `i + 1` (bone 0 is
-/// the anchor root and has no muscle pair). The function clamps to the
-/// shorter of `intents.len()` and the skeleton's active segment count, so
-/// a mid-resize is safe.
+/// `intents[i]` corresponds to bone `i + 1` (bone 0 is the anchor root).
 pub fn paint_muscles(img: &mut RgbaImage, skeleton: &Skeleton, intents: &[PairIntent]) {
     if skeleton.dirty() {
         return;
     }
+    let [r, g, b] = Palette::CoralPink.rgb();
+    let color = Rgba([r, g, b, 255]);
     let segment_count = intents.len().min(skeleton.len().saturating_sub(1));
     for seg in 0..segment_count {
         let id = BoneId((seg + 1) as u16);
@@ -95,38 +103,34 @@ pub fn paint_muscles(img: &mut RgbaImage, skeleton: &Skeleton, intents: &[PairIn
         let dy = tip.y - base.y;
         let len = (dx * dx + dy * dy).sqrt();
         if len < 0.5 {
-            continue; // degenerate segment — skip rather than divide by zero
+            continue; // degenerate segment — skip
         }
-        // Unit perpendicular vector (rotate 90°). One side is the flexor
-        // belly, the opposite side is the extensor belly. Hinge sign
-        // convention: +perp ≈ where a positive angle takes the tip.
+        // Unit perpendicular vector (rotate 90°). +perp side hosts the
+        // flexor belly, -perp side hosts the extensor belly.
         let nx = -dy / len;
         let ny = dx / len;
         let mid_x = (base.x + tip.x) * 0.5;
         let mid_y = (base.y + tip.y) * 0.5;
-        let belly_offset = 1.6_f32; // distance from bone axis to muscle centre
 
-        let flexor_alpha = muscle_alpha(intents[seg].flexor);
-        let extensor_alpha = muscle_alpha(intents[seg].extensor);
+        let flexor = intents[seg].flexor;
+        let extensor = intents[seg].extensor;
 
-        paint_muscle_belly(
-            img,
-            mid_x + nx * belly_offset,
-            mid_y + ny * belly_offset,
-            len,
-            nx,
-            ny,
-            flexor_alpha,
-        );
-        paint_muscle_belly(
-            img,
-            mid_x - nx * belly_offset,
-            mid_y - ny * belly_offset,
-            len,
-            -nx,
-            -ny,
-            extensor_alpha,
-        );
+        if flexor > MUSCLE_INTENT_THRESHOLD {
+            paint_marker(
+                img,
+                mid_x + nx * MUSCLE_PERP_OFFSET,
+                mid_y + ny * MUSCLE_PERP_OFFSET,
+                color,
+            );
+        }
+        if extensor > MUSCLE_INTENT_THRESHOLD {
+            paint_marker(
+                img,
+                mid_x - nx * MUSCLE_PERP_OFFSET,
+                mid_y - ny * MUSCLE_PERP_OFFSET,
+                color,
+            );
+        }
     }
 }
 
@@ -150,76 +154,15 @@ fn joint_stress(skeleton: &Skeleton, id: BoneId) -> f32 {
     (delta.abs() / span).clamp(0.0, 1.0)
 }
 
-/// Maps muscle intent (0..=1, may exceed 1 if the closure returns a
-/// surge) to a render alpha in `[MUSCLE_REST_A, MUSCLE_ACTIVE_A]`.
-fn muscle_alpha(intent: f32) -> u8 {
-    let t = intent.clamp(0.0, 1.0);
-    let a = MUSCLE_REST_A as f32 + (MUSCLE_ACTIVE_A - MUSCLE_REST_A) as f32 * t;
-    a.round().clamp(0.0, 255.0) as u8
-}
-
-/// Paints a muscle belly as a series of stacked filled circles forming a
-/// tapered tube along the bone direction. Radius peaks at the middle
-/// (biceps-like belly) and tapers to a thin attachment near both joints.
-///
-/// `cx, cy` is the belly centre, `len` the bone length (used to scale how
-/// many samples we take), `(tx, ty)` the tangent along the bone, and
-/// `alpha` the per-call opacity from current intent.
-fn paint_muscle_belly(img: &mut RgbaImage, cx: f32, cy: f32, len: f32, tx: f32, ty: f32, alpha: u8) {
-    if alpha < MUSCLE_REST_A.saturating_sub(2) {
-        return;
-    }
-    let [r, g, b] = Palette::CoralPink.rgb();
-    let color = Rgba([r, g, b, alpha]);
-    // Tangent direction (already perpendicular to perp_normal). We sample
-    // along the bone axis from -0.5 to +0.5 of its length.
-    // Sample every 0.6 px so even short segments get at least a couple
-    // of stamps; multi-stamp keeps the belly contiguous in pixel space.
-    let samples = ((len * 1.7).round() as i32).max(3);
-    let mid_radius_px = 1.3_f32;
-    let edge_radius_px = 0.7_f32;
-    for k in 0..samples {
-        let t = -0.5 + (k as f32) / ((samples - 1).max(1) as f32);
-        // Belly bulges: cosine taper, max at t=0.
-        let bulge = 1.0 - (2.0 * t).abs(); // triangular fallback for any samples
-        let radius = edge_radius_px + (mid_radius_px - edge_radius_px) * bulge.max(0.0);
-        let px = cx + tx * len * t;
-        let py = cy + ty * len * t;
-        fill_disc(img, px, py, radius, color);
-    }
-}
-
-fn fill_disc(img: &mut RgbaImage, cx: f32, cy: f32, radius: f32, color: Rgba<u8>) {
-    let r = radius.max(0.5);
-    let r_sq = r * r;
-    let x0 = (cx - r).floor() as i32;
-    let x1 = (cx + r).ceil() as i32;
-    let y0 = (cy - r).floor() as i32;
-    let y1 = (cy + r).ceil() as i32;
-    for y in y0..=y1 {
-        for x in x0..=x1 {
-            let dx = x as f32 + 0.5 - cx;
-            let dy = y as f32 + 0.5 - cy;
-            if dx * dx + dy * dy <= r_sq {
-                blend_pixel(img, x, y, color);
-            }
-        }
-    }
-}
-
-/// Alpha-blends `color` over the destination pixel. Used so muscle bellies
-/// stack visually without fully repainting underlying bones.
-fn blend_pixel(img: &mut RgbaImage, x: i32, y: i32, color: Rgba<u8>) {
-    if x < 0 || y < 0 || x >= img.width() as i32 || y >= img.height() as i32 {
-        return;
-    }
-    let dst = img.get_pixel_mut(x as u32, y as u32);
-    let a = color.0[3] as f32 / 255.0;
-    let inv = 1.0 - a;
-    for c in 0..3 {
-        dst.0[c] = (color.0[c] as f32 * a + dst.0[c] as f32 * inv).round() as u8;
-    }
-    dst.0[3] = dst.0[3].max(color.0[3]);
+/// Paints a 2×2 opaque square centred on the nearest pixel to `(cx, cy)`.
+/// Compact, sharp, easy to spot on a 64×64 canvas.
+fn paint_marker(img: &mut RgbaImage, cx: f32, cy: f32, color: Rgba<u8>) {
+    let x = cx.round() as i32;
+    let y = cy.round() as i32;
+    put(img, x,     y,     color);
+    put(img, x + 1, y,     color);
+    put(img, x,     y + 1, color);
+    put(img, x + 1, y + 1, color);
 }
 
 fn draw_line(img: &mut RgbaImage, x0: i32, y0: i32, x1: i32, y1: i32, color: Rgba<u8>) {
@@ -239,11 +182,11 @@ fn draw_line(img: &mut RgbaImage, x0: i32, y0: i32, x1: i32, y1: i32, color: Rgb
 }
 
 fn draw_joint_dot(img: &mut RgbaImage, cx: i32, cy: i32, color: Rgba<u8>) {
-    put(img, cx, cy, color);
-    put(img, cx - 1, cy, color);
-    put(img, cx + 1, cy, color);
-    put(img, cx, cy - 1, color);
-    put(img, cx, cy + 1, color);
+    put(img, cx,     cy,     color);
+    put(img, cx - 1, cy,     color);
+    put(img, cx + 1, cy,     color);
+    put(img, cx,     cy - 1, color);
+    put(img, cx,     cy + 1, color);
 }
 
 fn put(img: &mut RgbaImage, x: i32, y: i32, color: Rgba<u8>) {
@@ -262,5 +205,5 @@ fn lerp_rgb(a: [u8; 3], b: [u8; 3], t: f32) -> Rgba<u8> {
     let mix = |x: u8, y: u8| -> u8 {
         (x as f32 + (y as f32 - x as f32) * t).round().clamp(0.0, 255.0) as u8
     };
-    Rgba([mix(a[0], b[0]), mix(a[1], b[1]), mix(a[2], b[2]), 230])
+    Rgba([mix(a[0], b[0]), mix(a[1], b[1]), mix(a[2], b[2]), 255])
 }

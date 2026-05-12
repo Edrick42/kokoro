@@ -63,6 +63,13 @@ pub fn dev_panels_system(
             ui.checkbox(&mut dev_state.show_cheats, "Cheats");
             ui.separator();
 
+            // --- Biomechanics layers (per-physical-layer overlay) ---
+            ui.label(egui::RichText::new("Biomechanics overlay").strong());
+            ui.checkbox(&mut dev_state.biomech_bones,   "Bones (black lines)");
+            ui.checkbox(&mut dev_state.biomech_joints,  "Joints (cyan → red)");
+            ui.checkbox(&mut dev_state.biomech_muscles, "Muscles (pink shapes)");
+            ui.separator();
+
             egui::ScrollArea::vertical().show(ui, |ui| {
                 if dev_state.show_stats {
                     draw_stats_panel(ui, mind.as_deref(), genome.as_deref());

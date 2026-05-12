@@ -72,7 +72,7 @@ fn attach_skin(
     #[cfg(feature = "dev")] dev_state: Option<Res<crate::dev::DevModeState>>,
 ) {
     #[cfg(feature = "dev")]
-    let debug_overlay = dev_state.map_or(false, |s| s.active);
+    let debug_overlay = dev_state.as_ref().map_or(false, |s| s.active);
     #[cfg(not(feature = "dev"))]
     let debug_overlay = false;
 
@@ -88,7 +88,8 @@ fn attach_skin(
             if matches!(genome.species, Species::Moluun) && matches!(growth.stage, GrowthStage::Cub) {
                 if let Some(tail) = moluun_tail.as_ref() {
                     moluun::overlay_tail(&mut buf, tail);
-                    paint_biomech_layers(&mut buf, tail);
+                    #[cfg(feature = "dev")]
+                    paint_biomech_layers(&mut buf, tail, dev_state.as_deref());
                 }
             }
             if let Some(ref mut data) = image.data {
@@ -129,7 +130,7 @@ fn update_skin(
     #[cfg(feature = "dev")] dev_state: Option<Res<crate::dev::DevModeState>>,
 ) {
     #[cfg(feature = "dev")]
-    let debug_overlay = dev_state.map_or(false, |s| s.active);
+    let debug_overlay = dev_state.as_ref().map_or(false, |s| s.active);
     #[cfg(not(feature = "dev"))]
     let debug_overlay = false;
 
@@ -153,13 +154,14 @@ fn update_skin(
     draw_creature(buf, &genome.species, &mind.mood, &growth.stage, &sp, &soft_body, &expression, &involuntary, debug_overlay);
 
     // Moluun cub: the rig is the only authoritative source. `overlay_tail`
-    // paints the simulated skin (FusiformTail); `paint_biomech_layers`
-    // overlays the physically-real layers (bones, joints, muscles) so
-    // every new body part shows up as soon as it is added to the rig.
+    // paints the simulated skin (FusiformTail). In dev builds the
+    // biomechanics overlay paints the physically-real layers on top,
+    // toggleable per layer via DevModeState.
     if matches!(genome.species, Species::Moluun) && matches!(growth.stage, GrowthStage::Cub) {
         if let Some(tail) = moluun_tail.as_ref() {
             moluun::overlay_tail(buf, tail);
-            paint_biomech_layers(buf, tail);
+            #[cfg(feature = "dev")]
+            paint_biomech_layers(buf, tail, dev_state.as_deref());
         }
     }
 
@@ -173,23 +175,29 @@ fn update_skin(
 }
 
 // ===================================================================
-// BIOMECHANICS DEBUG OVERLAY
+// BIOMECHANICS DEBUG OVERLAY (dev builds only)
 // ===================================================================
 // Paints the physically-real layers of a Moluun cub tail over the
 // canvas: bones, joint stress, muscle activation. The renderer never
 // invents motion — every pixel here mirrors state already living in the
-// kokoro-rig / kokoro-body sim. Layers backed by per-segment physical
-// state will be added as they come online (nerves, fat, skin).
+// kokoro-rig / kokoro-body sim. Each layer can be toggled independently
+// from the dev panel (F12 → Biomechanics overlay). Layers backed by
+// per-segment physical state will be added as they come online (nerves,
+// fat, skin).
 
+#[cfg(feature = "dev")]
 fn paint_biomech_layers(
     buf: &mut RgbaImage,
     tail: &crate::creature::biomechanics::moluun_runtime::MoluunCubTail,
+    dev: Option<&crate::dev::DevModeState>,
 ) {
     use crate::creature::biomechanics::debug_overlay;
+    let Some(dev) = dev else { return };
+    if !dev.active { return; }
     let skeleton = &tail.body.skeleton;
-    debug_overlay::paint_muscles(buf, skeleton, &tail.last_intent);
-    debug_overlay::paint_bones(buf, skeleton);
-    debug_overlay::paint_joints(buf, skeleton);
+    if dev.biomech_muscles { debug_overlay::paint_muscles(buf, skeleton, &tail.last_intent); }
+    if dev.biomech_bones   { debug_overlay::paint_bones(buf, skeleton); }
+    if dev.biomech_joints  { debug_overlay::paint_joints(buf, skeleton); }
 }
 
 // ===================================================================

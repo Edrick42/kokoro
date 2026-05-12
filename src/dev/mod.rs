@@ -23,6 +23,12 @@ pub struct DevModeState {
     pub show_neural: bool,
     pub show_physics: bool,
     pub show_cheats: bool,
+    /// Biomechanics overlay — paint each physical layer of the live rig.
+    /// Each toggle controls one independently so motion can be inspected
+    /// without occlusion.
+    pub biomech_bones: bool,
+    pub biomech_joints: bool,
+    pub biomech_muscles: bool,
     /// Tick speed multiplier (1.0 = normal, 5.0 = 5x faster)
     pub tick_speed: f32,
 }
@@ -37,6 +43,9 @@ impl Default for DevModeState {
             show_neural: true,
             show_physics: true,
             show_cheats: true,
+            biomech_bones: true,
+            biomech_joints: true,
+            biomech_muscles: true,
             tick_speed: 1.0,
         }
     }

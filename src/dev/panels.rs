@@ -67,7 +67,7 @@ pub fn dev_panels_system(
             ui.label(egui::RichText::new("Biomechanics overlay").strong());
             ui.checkbox(&mut dev_state.biomech_bones,   "Bones (black lines)");
             ui.checkbox(&mut dev_state.biomech_joints,  "Joints (cyan → red)");
-            ui.checkbox(&mut dev_state.biomech_muscles, "Muscles (pink shapes)");
+            ui.checkbox(&mut dev_state.biomech_muscles, "Muscles (pink bellies, brighter when firing)");
             // Placeholders: physical state does not exist per-segment yet.
             // Disabled so the user sees the full 5-layer list and knows
             // which laws still need to land.

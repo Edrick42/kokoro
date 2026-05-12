@@ -14,37 +14,37 @@
 //!   angle is to the ROM limit. Reads `Joint::range_min/max` +
 //!   `JointState::angle`. Stress 0 = at rest (CyanBright), 1 = at ROM
 //!   cap (Red). Fully opaque so the colour reads clearly.
-//! - **`paint_muscles`** — for each active segment, an opaque CoralPink
-//!   2×2 marker on the perp side that the mind is *currently firing
-//!   above threshold*. The opposite (resting) side stays bare. This way
-//!   the overlay only shows muscles that are actually doing work, so
-//!   actual bone motion remains visible between markers.
+//! - **`paint_muscles`** — for **every** muscle in the rig, a fusiform
+//!   belly is painted alongside its bone (flexor on `+perp`, extensor
+//!   on `−perp`). The belly's width comes from
+//!   [`kokoro_body::Muscle::current_thickness`] — `rest_thickness` at
+//!   activation 0, bulging by 40 % at activation 1 (volume
+//!   conservation). Brightness rises with activation so a firing muscle
+//!   reads bright pink while a resting one is faint pink — the muscle
+//!   never disappears, because *real muscles don't disappear when an
+//!   animal sleeps*; they just stop firing.
 //!
 //! All paints are OPAQUE (no alpha blending) so colours stay vivid and
 //! crisp at the 64×64 native canvas resolution.
 
 use image::{Rgba, RgbaImage};
 use kokoro_art_palette::Palette;
-use kokoro_body::actuation::PairIntent;
 use kokoro_rig::{BoneId, Skeleton};
+
+use super::moluun::STANDALONE_TAIL_SEGMENTS;
+use super::moluun_runtime::MoluunCubTail;
 
 // --- Palette anchors -------------------------------------------------------
 
 const BONE_COLOR:       Rgba<u8> = Rgba(Palette::NearBlack.rgba(255));
 const JOINT_REST_RGB:   [u8; 3]  = Palette::CyanBright.rgb();
 const JOINT_STRESS_RGB: [u8; 3]  = Palette::Red.rgb();
-
-/// Muscle intent threshold below which we don't paint at all. The
-/// opposite-side muscle in an antagonist pair almost always sits at
-/// 0–0.1 in a normal wave; cutting that off keeps the overlay honest
-/// (only firing muscles paint) and stops the at-rest muscles from
-/// hiding bone motion.
-const MUSCLE_INTENT_THRESHOLD: f32 = 0.15;
-/// Perpendicular distance from the bone axis at which the muscle marker
-/// is drawn. The `FusiformTail` brush is 3 px wide (half-width ≈ 1.5),
-/// so 2.5 px places the marker just outside the painted skin envelope
-/// where it is clearly readable.
-const MUSCLE_PERP_OFFSET: f32 = 2.5;
+/// Resting-state alpha for muscle bellies. Visible but understated so
+/// firing muscles clearly stand out against them.
+const MUSCLE_REST_ALPHA:   u8 = 120;
+/// Fully firing muscle alpha. Saturated CoralPink jumps out against
+/// the orange tail body underneath.
+const MUSCLE_FIRING_ALPHA: u8 = 240;
 
 // --- Public layer entry points --------------------------------------------
 
@@ -82,55 +82,92 @@ pub fn paint_joints(img: &mut RgbaImage, skeleton: &Skeleton) {
     }
 }
 
-/// Paints the muscle layer for every active segment: an opaque CoralPink
-/// 2×2 marker on the side currently firing above threshold. The side at
-/// rest is intentionally not painted, so the visual is sparse and bone
-/// motion shows through.
+/// Paints every muscle in the tail as a fusiform pink belly alongside
+/// its bone. The belly always renders — muscles exist whether the mind
+/// is firing them or not. Activation modulates two things:
 ///
-/// `intents[i]` corresponds to bone `i + 1` (bone 0 is the anchor root).
-pub fn paint_muscles(img: &mut RgbaImage, skeleton: &Skeleton, intents: &[PairIntent]) {
+/// 1. **Width**: `current_thickness = rest × (1 + 0.4 × activation)`,
+///    same volume-conservation formula the tail skin uses.
+/// 2. **Brightness**: alpha lerps from `MUSCLE_REST_ALPHA` (resting,
+///    faint) to `MUSCLE_FIRING_ALPHA` (firing, saturated).
+///
+/// At sleep with activation = 0 across the chain you see 32 faint pink
+/// fusiform dots lining the tail (flexor + extensor per segment); when
+/// Playful fires the wave each muscle in turn brightens and bulges as
+/// the signal passes.
+pub fn paint_muscles(img: &mut RgbaImage, tail: &MoluunCubTail) {
+    let skeleton = &tail.body.skeleton;
     if skeleton.dirty() {
         return;
     }
-    let [r, g, b] = Palette::CoralPink.rgb();
-    let color = Rgba([r, g, b, 255]);
-    let segment_count = intents.len().min(skeleton.len().saturating_sub(1));
-    for seg in 0..segment_count {
-        let id = BoneId((seg + 1) as u16);
-        let base = skeleton.world_base(id);
-        let tip = skeleton.world_tip(id);
+    for seg in 0..STANDALONE_TAIL_SEGMENTS {
+        let bone_id = BoneId((seg + 1) as u16);
+        let base = skeleton.world_base(bone_id);
+        let tip  = skeleton.world_tip(bone_id);
         let dx = tip.x - base.x;
         let dy = tip.y - base.y;
         let len = (dx * dx + dy * dy).sqrt();
         if len < 0.5 {
-            continue; // degenerate segment — skip
+            continue;
         }
-        // Unit perpendicular vector (rotate 90°). +perp side hosts the
-        // flexor belly, -perp side hosts the extensor belly.
-        let nx = -dy / len;
+        let nx = -dy / len; // unit perpendicular, +perp = flexor side
         let ny = dx / len;
-        let mid_x = (base.x + tip.x) * 0.5;
-        let mid_y = (base.y + tip.y) * 0.5;
 
-        let flexor = intents[seg].flexor;
-        let extensor = intents[seg].extensor;
+        let Some(actuator) = tail.body.actuators.iter().find(|a| a.bone == bone_id) else { continue };
 
-        if flexor > MUSCLE_INTENT_THRESHOLD {
-            paint_marker(
-                img,
-                mid_x + nx * MUSCLE_PERP_OFFSET,
-                mid_y + ny * MUSCLE_PERP_OFFSET,
-                color,
-            );
-        }
-        if extensor > MUSCLE_INTENT_THRESHOLD {
-            paint_marker(
-                img,
-                mid_x - nx * MUSCLE_PERP_OFFSET,
-                mid_y - ny * MUSCLE_PERP_OFFSET,
-                color,
-            );
-        }
+        // Flexor on +perp, extensor on −perp. Each belly's centre sits
+        // half its thickness off the bone axis, so the belly fills the
+        // tube between the bone (perp 0) and the skin edge.
+        let flex_th  = actuator.muscles.flexor.current_thickness();
+        let flex_act = actuator.muscles.flexor.activation;
+        paint_muscle_belly(img, base, tip, dx, dy, len, nx, ny, flex_th, flex_act);
+
+        let ext_th  = actuator.muscles.extensor.current_thickness();
+        let ext_act = actuator.muscles.extensor.activation;
+        paint_muscle_belly(img, base, tip, dx, dy, len, -nx, -ny, ext_th, ext_act);
+    }
+}
+
+/// Stamp one fusiform muscle belly on the `(perp_x, perp_y)` side of
+/// the bone. The shape tapers near the tendons (longitudinal ends) so
+/// it reads as a muscle belly rather than a uniform tube.
+fn paint_muscle_belly(
+    img: &mut RgbaImage,
+    base: kokoro_rig::Vec2,
+    _tip: kokoro_rig::Vec2,
+    dx: f32, dy: f32, len: f32,
+    perp_x: f32, perp_y: f32,
+    thickness: f32,
+    activation: f32,
+) {
+    let half_th = thickness * 0.5;
+    if half_th < 0.2 {
+        return;
+    }
+    // Belly centre = half a thickness off the bone, at the segment midpoint.
+    let mid_x = base.x + dx * 0.5;
+    let mid_y = base.y + dy * 0.5;
+
+    let alpha = (MUSCLE_REST_ALPHA as f32
+        + (MUSCLE_FIRING_ALPHA - MUSCLE_REST_ALPHA) as f32 * activation.clamp(0.0, 1.0))
+        .round() as u8;
+    let [r, g, b] = Palette::CoralPink.rgb();
+    let color = Rgba([r, g, b, alpha]);
+
+    // Sample points along the bone direction (tangent), tapering off
+    // toward both ends so the silhouette is fusiform (wider in the
+    // middle, narrower at the tendons).
+    let samples = (len.ceil() as i32 * 2).max(3);
+    for k in 0..=samples {
+        let s = (k as f32) / (samples as f32); // 0..1 along bone length
+        let along = s - 0.5;                   // −0.5..+0.5
+        // Parabolic taper: full radius in the middle, half at the ends.
+        let taper = 1.0 - (2.0 * along).abs().powi(2);
+        let r_local = half_th * (0.5 + 0.5 * taper.max(0.0));
+        let centre_offset = half_th; // pure perp distance from bone axis
+        let cx = mid_x + (dx / len) * len * along + perp_x * centre_offset;
+        let cy = mid_y + (dy / len) * len * along + perp_y * centre_offset;
+        blended_disc(img, cx, cy, r_local, color);
     }
 }
 
@@ -154,15 +191,40 @@ fn joint_stress(skeleton: &Skeleton, id: BoneId) -> f32 {
     (delta.abs() / span).clamp(0.0, 1.0)
 }
 
-/// Paints a 2×2 opaque square centred on the nearest pixel to `(cx, cy)`.
-/// Compact, sharp, easy to spot on a 64×64 canvas.
-fn paint_marker(img: &mut RgbaImage, cx: f32, cy: f32, color: Rgba<u8>) {
-    let x = cx.round() as i32;
-    let y = cy.round() as i32;
-    put(img, x,     y,     color);
-    put(img, x + 1, y,     color);
-    put(img, x,     y + 1, color);
-    put(img, x + 1, y + 1, color);
+/// Alpha-blend a filled disc over the existing buffer. The tail skin
+/// underneath is opaque orange; with muscle alpha < 255 the firing
+/// belly tints the orange peach instead of replacing it.
+fn blended_disc(img: &mut RgbaImage, cx: f32, cy: f32, radius: f32, color: Rgba<u8>) {
+    if radius <= 0.0 {
+        return;
+    }
+    let r_sq = radius * radius;
+    let x0 = (cx - radius - 0.5).floor() as i32;
+    let x1 = (cx + radius + 0.5).ceil() as i32;
+    let y0 = (cy - radius - 0.5).floor() as i32;
+    let y1 = (cy + radius + 0.5).ceil() as i32;
+    for y in y0..=y1 {
+        for x in x0..=x1 {
+            let dx = x as f32 + 0.5 - cx;
+            let dy = y as f32 + 0.5 - cy;
+            if dx * dx + dy * dy <= r_sq {
+                blend_pixel(img, x, y, color);
+            }
+        }
+    }
+}
+
+fn blend_pixel(img: &mut RgbaImage, x: i32, y: i32, color: Rgba<u8>) {
+    if x < 0 || y < 0 || x >= img.width() as i32 || y >= img.height() as i32 {
+        return;
+    }
+    let dst = img.get_pixel_mut(x as u32, y as u32);
+    let a = color.0[3] as f32 / 255.0;
+    let inv = 1.0 - a;
+    for c in 0..3 {
+        dst.0[c] = (color.0[c] as f32 * a + dst.0[c] as f32 * inv).round() as u8;
+    }
+    dst.0[3] = dst.0[3].max(color.0[3]);
 }
 
 fn draw_line(img: &mut RgbaImage, x0: i32, y0: i32, x1: i32, y1: i32, color: Rgba<u8>) {

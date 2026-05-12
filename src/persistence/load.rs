@@ -3,7 +3,7 @@
 use rusqlite::{Connection, Result};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::creature::anatomy::AnatomyState;
+use crate::creature::physiology::PhysiologyState;
 use crate::genome::{Genome, Species};
 use crate::mind::{Mind, MoodState, VitalStats};
 
@@ -138,11 +138,11 @@ pub fn load_collection(conn: &Connection) -> Result<Option<Vec<crate::creature::
                 hue: row.get(9)?,
                 tail: crate::genome::TailGenes::default(),
             };
-            let anatomy = AnatomyState::new_for(&species, &genome);
+            let physiology = PhysiologyState::new_for(&species, &genome);
             Ok(crate::creature::lifecycle::collection::StoredCreature {
                 name: row.get(1)?,
                 egg: crate::creature::lifecycle::egg::EggData { progress: 1.0, hatched: true },
-                anatomy,
+                physiology,
                 mind: Mind {
                     stats: VitalStats {
                         hunger: row.get(10)?,

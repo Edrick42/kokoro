@@ -6,8 +6,8 @@
 use bevy::prelude::*;
 
 use crate::config::environment as cfg;
-use crate::creature::anatomy::AnatomyState;
-use crate::creature::anatomy::skin::SkinCovering;
+use crate::creature::physiology::PhysiologyState;
+use crate::creature::physiology::skin_health::SkinCovering;
 use crate::game::state::AppState;
 use crate::genome::Genome;
 use crate::mind::Mind;
@@ -59,7 +59,7 @@ fn temperature_cycle_system(
 fn comfort_effect_system(
     env: Res<EnvironmentState>,
     genome: Res<Genome>,
-    anatomy: Option<Res<AnatomyState>>,
+    physiology: Option<Res<PhysiologyState>>,
     mut mind: ResMut<Mind>,
 ) {
     let (min_comfort, max_comfort) = cfg::comfort::range(&genome.species);
@@ -76,11 +76,11 @@ fn comfort_effect_system(
 
     // Insulation reduces discomfort
     let mut insulation = 0.0;
-    if let Some(ref anat) = anatomy {
+    if let Some(ref phys) = physiology {
         // Fat insulation
-        insulation += anat.fat.level * cfg::FAT_INSULATION_FACTOR;
+        insulation += phys.fat.level * cfg::FAT_INSULATION_FACTOR;
         // Skin type insulation
-        insulation += match anat.skin.covering {
+        insulation += match phys.skin_health.covering {
             SkinCovering::Fur      => cfg::skin_insulation::FUR,
             SkinCovering::Plumage  => cfg::skin_insulation::PLUMAGE,
             SkinCovering::Scales   => cfg::skin_insulation::SCALES,

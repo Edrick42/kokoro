@@ -13,7 +13,7 @@ use crate::creature::identity::species::CreatureRoot;
 use crate::genome::Genome;
 use crate::mind::{Mind, MoodState};
 use crate::visuals::evolution::{GrowthState, GrowthStage};
-use crate::creature::anatomy::AnatomyState;
+use crate::creature::physiology::PhysiologyState;
 use crate::creature::behavior::idle::IdleTimer;
 use crate::creature::behavior::reactions::ExpressionOverride;
 use crate::mind::hygiene::HygieneState;
@@ -38,7 +38,7 @@ pub fn dev_panels_system(
     expression: Option<Res<ExpressionOverride>>,
     idle_timer: Option<Res<IdleTimer>>,
     mut reaction_events: EventWriter<crate::creature::behavior::reactions::CreatureReaction>,
-    anatomy: Option<Res<AnatomyState>>,
+    physiology: Option<Res<PhysiologyState>>,
     hygiene: Option<Res<HygieneState>>,
     environment: Option<Res<EnvironmentState>>,
     ans: Option<Res<ANS>>,
@@ -110,14 +110,14 @@ pub fn dev_panels_system(
 
                 // Biology panel
                 ui.collapsing("Biology", |ui| {
-                    if let Some(ref anat) = anatomy {
-                        ui.label(format!("Bone health: {:.0}%", anat.skeleton.bone_health * 100.0));
-                        ui.label(format!("Muscle cond: {:.0}%", anat.muscles.condition * 100.0));
-                        ui.label(format!("Fat level: {:.0}%", anat.fat.level * 100.0));
-                        ui.label(format!("Skin integ: {:.0}%", anat.skin.integrity * 100.0));
-                        ui.label(format!("Skin hydra: {:.0}%", anat.skin.hydration * 100.0));
-                        ui.label(format!("Avg flex: {:.0}%", anat.avg_flexibility() * 100.0));
-                        ui.label(format!("Avg fatigue: {:.0}%", anat.avg_fatigue() * 100.0));
+                    if let Some(ref phys) = physiology {
+                        ui.label(format!("Bone health: {:.0}%", phys.bone_health.overall * 100.0));
+                        ui.label(format!("Muscle cond: {:.0}%", phys.muscle_health.condition * 100.0));
+                        ui.label(format!("Fat level: {:.0}%", phys.fat.level * 100.0));
+                        ui.label(format!("Skin integ: {:.0}%", phys.skin_health.integrity * 100.0));
+                        ui.label(format!("Skin hydra: {:.0}%", phys.skin_health.hydration * 100.0));
+                        ui.label(format!("Avg flex: {:.0}%", phys.avg_flexibility() * 100.0));
+                        ui.label(format!("Avg fatigue: {:.0}%", phys.avg_fatigue() * 100.0));
                     }
                     if let Some(ref hyg) = hygiene {
                         ui.separator();

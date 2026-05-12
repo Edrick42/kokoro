@@ -16,7 +16,7 @@ use bevy::prelude::*;
 use bevy::app::AppExit;
 
 use crate::config;
-use crate::creature::anatomy::AnatomyState;
+use crate::creature::physiology::PhysiologyState;
 use crate::genome::Genome;
 use crate::mind::Mind;
 use crate::mind::absence::{self, AbsenceState};
@@ -60,10 +60,10 @@ pub fn startup_load(mut commands: Commands) {
         }
     };
 
-    let anatomy = AnatomyState::new_for(&genome.species, &genome);
+    let physiology = PhysiologyState::new_for(&genome.species, &genome);
     commands.insert_resource(genome);
     commands.insert_resource(mind);
-    commands.insert_resource(anatomy);
+    commands.insert_resource(physiology);
     commands.insert_resource(AbsenceState::new(absence_secs));
     commands.insert_resource(DbConnection(Mutex::new(conn)));
 }

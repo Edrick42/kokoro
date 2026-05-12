@@ -19,7 +19,7 @@ use kokoro_art_palette::Palette;
 type BevyImage = Image;
 
 use crate::game::state::AppState;
-use crate::creature::anatomy::AnatomyState;
+use crate::creature::physiology::PhysiologyState;
 use crate::creature::behavior::involuntary::InvoluntaryState;
 use crate::creature::behavior::reactions::ExpressionOverride;
 use crate::creature::identity::species::CreatureRoot;
@@ -64,7 +64,7 @@ fn attach_skin(
     genome: Res<Genome>,
     mind: Res<Mind>,
     growth: Res<GrowthState>,
-    anatomy: Option<Res<AnatomyState>>,
+    physiology: Option<Res<PhysiologyState>>,
     involuntary: Res<InvoluntaryState>,
     soft_body: Option<Res<SoftBody>>,
     expression: Res<ExpressionOverride>,
@@ -81,8 +81,8 @@ fn attach_skin(
 
         if let Some(image) = images.get_mut(&handle) {
             let mut buf = RgbaImage::new(CANVAS_W, CANVAS_H);
-            let sp = anatomy.as_ref()
-                .map(|a| SkinParams::from_anatomy(a, &genome.species, &growth.stage))
+            let sp = physiology.as_ref()
+                .map(|p| SkinParams::from_anatomy(p, &genome.species, &growth.stage))
                 .unwrap_or_else(SkinParams::healthy_default);
             draw_creature(&mut buf, &genome.species, &mind.mood, &growth.stage, &sp, &soft_body, &expression, &involuntary, debug_overlay);
             if matches!(genome.species, Species::Moluun) && matches!(growth.stage, GrowthStage::Cub) {
@@ -118,7 +118,7 @@ fn update_skin(
     genome: Res<Genome>,
     mind: Res<Mind>,
     growth: Res<GrowthState>,
-    anatomy: Option<Res<AnatomyState>>,
+    physiology: Option<Res<PhysiologyState>>,
     involuntary: Res<InvoluntaryState>,
     soft_body: Option<Res<SoftBody>>,
     expression: Res<ExpressionOverride>,
@@ -140,15 +140,15 @@ fn update_skin(
 
     // Soft body changes every frame (physics) — always redraw when soft body exists
     let has_soft_body = soft_body.is_some();
-    let anatomy_changed = anatomy.as_ref().map_or(false, |a| a.is_changed());
+    let physiology_changed = physiology.as_ref().map_or(false, |p| p.is_changed());
     if !has_soft_body && !mind.is_changed() && !genome.is_changed() && !growth.is_changed()
-        && !anatomy_changed && !expression.is_changed()
+        && !physiology_changed && !expression.is_changed()
         && !involuntary.is_changed() {
         return;
     }
 
-    let sp = anatomy.as_ref()
-        .map(|a| SkinParams::from_anatomy(a, &genome.species, &growth.stage))
+    let sp = physiology.as_ref()
+        .map(|p| SkinParams::from_anatomy(p, &genome.species, &growth.stage))
         .unwrap_or_else(SkinParams::healthy_default);
     draw_creature(buf, &genome.species, &mind.mood, &growth.stage, &sp, &soft_body, &expression, &involuntary, debug_overlay);
 

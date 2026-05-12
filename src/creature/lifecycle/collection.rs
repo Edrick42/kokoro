@@ -14,7 +14,7 @@
 use bevy::prelude::*;
 
 use crate::game::state::AppState;
-use crate::creature::anatomy::AnatomyState;
+use crate::creature::physiology::PhysiologyState;
 use crate::genome::{Genome, Species};
 use crate::mind::Mind;
 use crate::creature::lifecycle::egg::EggData;
@@ -32,14 +32,14 @@ impl Plugin for MultiCreaturePlugin {
     }
 }
 
-/// A stored creature — genome + mind state + egg data + anatomy.
+/// A stored creature — genome + mind state + egg data + physiology.
 #[derive(Debug, Clone)]
 pub struct StoredCreature {
     pub name: String,
     pub genome: Genome,
     pub mind: Mind,
     pub egg: EggData,
-    pub anatomy: AnatomyState,
+    pub physiology: PhysiologyState,
 }
 
 /// Holds all creatures the player has. Index 0 = Moluun, 1 = Pylum, 2 = Skael.
@@ -63,7 +63,7 @@ pub struct SelectSpeciesEvent {
 fn init_collection(
     genome: Res<Genome>,
     mind: Res<Mind>,
-    anatomy: Res<AnatomyState>,
+    physiology: Res<PhysiologyState>,
     db: Res<DbConnection>,
     mut collection: ResMut<CreatureCollection>,
 ) {
@@ -84,46 +84,46 @@ fn init_collection(
 
     info!("No saved collection — creating fresh creatures");
 
-    // Moluun — use the persisted genome/mind/anatomy (already hatched)
+    // Moluun — use the persisted genome/mind/physiology (already hatched)
     collection.creatures.push(StoredCreature {
         name: "Moluun".to_string(),
         genome: genome.clone(),
         mind: mind.clone(),
         egg: EggData { progress: 1.0, hatched: true },
-        anatomy: anatomy.clone(),
+        physiology: physiology.clone(),
     });
 
     // Pylum — starts as egg
     let pylum_genome = Genome::random_for(Species::Pylum);
-    let pylum_anatomy = AnatomyState::new_for(&Species::Pylum, &pylum_genome);
+    let pylum_physiology = PhysiologyState::new_for(&Species::Pylum, &pylum_genome);
     collection.creatures.push(StoredCreature {
         name: "Pylum".to_string(),
         genome: pylum_genome,
         mind: Mind::new(),
         egg: EggData::default(),
-        anatomy: pylum_anatomy,
+        physiology: pylum_physiology,
     });
 
     // Skael — starts as egg
     let skael_genome = Genome::random_for(Species::Skael);
-    let skael_anatomy = AnatomyState::new_for(&Species::Skael, &skael_genome);
+    let skael_physiology = PhysiologyState::new_for(&Species::Skael, &skael_genome);
     collection.creatures.push(StoredCreature {
         name: "Skael".to_string(),
         genome: skael_genome,
         mind: Mind::new(),
         egg: EggData::default(),
-        anatomy: skael_anatomy,
+        physiology: skael_physiology,
     });
 
     // Nyxal — starts as egg
     let nyxal_genome = Genome::random_for(Species::Nyxal);
-    let nyxal_anatomy = AnatomyState::new_for(&Species::Nyxal, &nyxal_genome);
+    let nyxal_physiology = PhysiologyState::new_for(&Species::Nyxal, &nyxal_genome);
     collection.creatures.push(StoredCreature {
         name: "Nyxal".to_string(),
         genome: nyxal_genome,
         mind: Mind::new(),
         egg: EggData::default(),
-        anatomy: nyxal_anatomy,
+        physiology: nyxal_physiology,
     });
 
     collection.active_index = 0;
@@ -135,7 +135,7 @@ fn handle_select_species(
     mut collection: ResMut<CreatureCollection>,
     mut genome: ResMut<Genome>,
     mut mind: ResMut<Mind>,
-    mut anatomy: ResMut<AnatomyState>,
+    mut physiology: ResMut<PhysiologyState>,
 ) {
     for event in events.read() {
         // Find the creature of this species
@@ -155,7 +155,7 @@ fn handle_select_species(
         if let Some(current) = collection.creatures.get_mut(old_index) {
             current.genome = genome.clone();
             current.mind = mind.clone();
-            current.anatomy = anatomy.clone();
+            current.physiology = physiology.clone();
         }
 
         // Load target creature
@@ -163,7 +163,7 @@ fn handle_select_species(
         let creature = &collection.creatures[target_index];
         *genome = creature.genome.clone();
         *mind = creature.mind.clone();
-        *anatomy = creature.anatomy.clone();
+        *physiology = creature.physiology.clone();
 
         let name = creature.name.clone();
         let species = creature.genome.species.clone();

@@ -16,7 +16,7 @@ use bevy::prelude::*;
 
 use audio::SoundPlugin;
 use creature::{
-    anatomy::AnatomyPlugin,
+    physiology::PhysiologyPlugin,
     biomechanics::moluun_runtime::MoluunCubTailPlugin,
     lifecycle::collection::MultiCreaturePlugin,
     lifecycle::egg::EggPlugin,
@@ -103,8 +103,8 @@ fn main() {
         .add_plugins((NeuralMindPlugin, NutritionPlugin, HygienePlugin, DiseasePlugin, AutonomicPlugin))
         // UI plugins (gameplay)
         .add_plugins((StatsPlugin, ActionsPlugin, VitalsPlugin, SideMenuPlugin))
-        // Creature lifecycle — collection management + egg incubation + anatomy
-        .add_plugins((MultiCreaturePlugin, EggPlugin, TouchPlugin, PreferencePlugin, SoundPlugin, LifecyclePlugin, AnatomyPlugin, AbilityPlugin, ReactionPlugin, IdleBehaviorPlugin, InvoluntaryPlugin))
+        // Creature lifecycle — collection management + egg incubation + physiology
+        .add_plugins((MultiCreaturePlugin, EggPlugin, TouchPlugin, PreferencePlugin, SoundPlugin, LifecyclePlugin, PhysiologyPlugin, AbilityPlugin, ReactionPlugin, IdleBehaviorPlugin, InvoluntaryPlugin))
         // Physics — gravity, collision, buoyancy
         .add_plugins((PhysicsPlugin, SoftBodyPlugin, ImpulsePlugin, WobblePlugin))
         // Visual plugins — effects, animation, evolution, accessories, organic behavior

@@ -1,7 +1,7 @@
-//! Anatomy tick system — per-tick maintenance, stat integration, and damage cascade.
+//! Physiology tick system — per-tick maintenance, stat integration, and damage cascade.
 //!
 //! Runs after `mind.update_mood()` each game tick. Handles:
-//! 1. Skeleton maintenance (bone health, hydrostatic pressure)
+//! 1. Bone maintenance (health, hydrostatic pressure)
 //! 2. Muscle maintenance (fatigue, condition, tone)
 //! 3. Joint maintenance (lubrication, elder stiffening)
 //! 4. Skin maintenance (hydration, integrity)
@@ -17,12 +17,12 @@ use crate::mind::{Mind, MoodState};
 use crate::mind::nutrition::NutrientState;
 use crate::creature::identity::species::CreatureRoot;
 
-use super::AnatomyState;
-use super::skeleton::SkeletonType;
+use super::PhysiologyState;
+use super::bone_health::BoneStructure;
 
-/// Bevy system: updates anatomy each game tick and cascades into vital stats.
-pub fn anatomy_tick_system(
-    mut anatomy: ResMut<AnatomyState>,
+/// Bevy system: updates physiology each game tick and cascades into vital stats.
+pub fn physiology_tick_system(
+    mut physiology: ResMut<PhysiologyState>,
     mut mind: ResMut<Mind>,
     genome: Res<Genome>,
     nutrient_q: Query<&NutrientState, With<CreatureRoot>>,
@@ -54,23 +54,23 @@ pub fn anatomy_tick_system(
         .map(|n| if n.water < nutr::DEFICIENCY_THRESHOLD { n.water / nutr::DEFICIENCY_THRESHOLD } else { 1.0 })
         .unwrap_or(1.0);
 
-    update_skeleton(&mut anatomy, is_sick, hunger, mineral_mod, calm, arousal);
-    update_muscles(&mut anatomy, is_sick, is_sleeping, hunger, protein_mod, calm, arousal);
+    update_bones(&mut physiology, is_sick, hunger, mineral_mod, calm, arousal);
+    update_muscles(&mut physiology, is_sick, is_sleeping, hunger, protein_mod, calm, arousal);
 
     let is_elder = mind.age_ticks > 8_500_000;
-    update_joints(&mut anatomy, hunger, is_elder, calm);
-    update_skin(&mut anatomy, is_sick, hunger, water_mod, calm);
-    update_fat(&mut anatomy, &mut mind, calm, arousal);
+    update_joints(&mut physiology, hunger, is_elder, calm);
+    update_skin(&mut physiology, is_sick, hunger, water_mod, calm);
+    update_fat(&mut physiology, &mut mind, calm, arousal);
 
-    apply_health_ceiling(&anatomy, &mut mind);
-    apply_energy_penalties(&anatomy, &mut mind);
-    apply_mood_overrides(&anatomy, &mut mind, &genome);
-    check_bone_breaks(&mut anatomy, &mut mind);
+    apply_health_ceiling(&physiology, &mut mind);
+    apply_energy_penalties(&physiology, &mut mind);
+    apply_mood_overrides(&physiology, &mut mind, &genome);
+    check_bone_breaks(&mut physiology, &mut mind);
 }
 
 /// Fat burn/store system — buffer between hunger and starvation.
-fn update_fat(anatomy: &mut AnatomyState, mind: &mut Mind, calm: f32, arousal: f32) {
-    let fat = &mut anatomy.fat;
+fn update_fat(physiology: &mut PhysiologyState, mind: &mut Mind, calm: f32, arousal: f32) {
+    let fat = &mut physiology.fat;
 
     if mind.stats.hunger > 80.0 && fat.level > 0.0 {
         // Sympathetic burns fat faster (fight-or-flight energy demand)
@@ -83,51 +83,51 @@ fn update_fat(anatomy: &mut AnatomyState, mind: &mut Mind, calm: f32, arousal: f
     }
 }
 
-fn update_skeleton(anatomy: &mut AnatomyState, is_sick: bool, hunger: f32, mineral_mod: f32, calm: f32, arousal: f32) {
-    let skeleton = &mut anatomy.skeleton;
+fn update_bones(physiology: &mut PhysiologyState, is_sick: bool, hunger: f32, mineral_mod: f32, calm: f32, arousal: f32) {
+    let bones = &mut physiology.bone_health;
 
-    if skeleton.structure_type == SkeletonType::Hydrostatic {
+    if bones.structure == BoneStructure::Hydrostatic {
         if is_sick || hunger > cfg::HUNGER_DECAY_THRESHOLD {
-            skeleton.hydrostatic_pressure =
-                (skeleton.hydrostatic_pressure - cfg::skeleton::HYDROSTATIC_DECAY).max(0.0);
+            bones.hydrostatic_pressure =
+                (bones.hydrostatic_pressure - cfg::skeleton::HYDROSTATIC_DECAY).max(0.0);
         } else if hunger < cfg::HUNGER_REPAIR_THRESHOLD {
-            skeleton.hydrostatic_pressure =
-                (skeleton.hydrostatic_pressure + cfg::skeleton::HYDROSTATIC_REPAIR).min(1.0);
+            bones.hydrostatic_pressure =
+                (bones.hydrostatic_pressure + cfg::skeleton::HYDROSTATIC_REPAIR).min(1.0);
         }
         return;
     }
 
-    let decay_mult = match skeleton.structure_type {
-        SkeletonType::Hollow => cfg::skeleton::HOLLOW_DAMAGE_MULTIPLIER,
-        SkeletonType::Dense  => cfg::skeleton::DENSE_RESISTANCE_MULTIPLIER,
+    let decay_mult = match bones.structure {
+        BoneStructure::Hollow => cfg::skeleton::HOLLOW_DAMAGE_MULTIPLIER,
+        BoneStructure::Dense  => cfg::skeleton::DENSE_RESISTANCE_MULTIPLIER,
         _ => 1.0,
     };
 
     if is_sick || hunger > cfg::HUNGER_DECAY_THRESHOLD {
         // Sympathetic state accelerates decay (body under stress)
-        skeleton.bone_health =
-            (skeleton.bone_health - cfg::skeleton::BONE_HEALTH_DECAY * decay_mult * arousal).max(0.0);
-        for bone in &mut skeleton.bones {
+        bones.overall =
+            (bones.overall - cfg::skeleton::BONE_HEALTH_DECAY * decay_mult * arousal).max(0.0);
+        for bone in &mut bones.bones {
             bone.integrity =
                 (bone.integrity - cfg::skeleton::BONE_INTEGRITY_DECAY * decay_mult * arousal).max(0.0);
         }
     } else if hunger < cfg::HUNGER_REPAIR_THRESHOLD {
         // Parasympathetic state accelerates repair (rest & digest)
-        skeleton.bone_health =
-            (skeleton.bone_health + cfg::skeleton::BONE_HEALTH_REPAIR * mineral_mod * calm).min(1.0);
-        for bone in &mut skeleton.bones {
+        bones.overall =
+            (bones.overall + cfg::skeleton::BONE_HEALTH_REPAIR * mineral_mod * calm).min(1.0);
+        for bone in &mut bones.bones {
             bone.integrity =
                 (bone.integrity + cfg::skeleton::BONE_INTEGRITY_REPAIR * mineral_mod * calm).min(1.0);
         }
-        if skeleton.structure_type == SkeletonType::Dense {
-            skeleton.bone_health =
-                (skeleton.bone_health + cfg::skeleton::DENSE_REPAIR_BONUS).min(1.0);
+        if bones.structure == BoneStructure::Dense {
+            bones.overall =
+                (bones.overall + cfg::skeleton::DENSE_REPAIR_BONUS).min(1.0);
         }
     }
 }
 
-fn update_muscles(anatomy: &mut AnatomyState, is_sick: bool, is_sleeping: bool, hunger: f32, protein_mod: f32, calm: f32, arousal: f32) {
-    let muscles = &mut anatomy.muscles;
+fn update_muscles(physiology: &mut PhysiologyState, is_sick: bool, is_sleeping: bool, hunger: f32, protein_mod: f32, calm: f32, arousal: f32) {
+    let muscles = &mut physiology.muscle_health;
 
     if is_sleeping {
         // Parasympathetic recovery — calm multiplier boosts repair
@@ -151,8 +151,8 @@ fn update_muscles(anatomy: &mut AnatomyState, is_sick: bool, is_sleeping: bool, 
     muscles.tone += (muscles.condition - muscles.tone) * cfg::muscles::TONE_CONVERGENCE;
 }
 
-fn update_joints(anatomy: &mut AnatomyState, hunger: f32, is_elder: bool, calm: f32) {
-    for joint in &mut anatomy.joints.joints {
+fn update_joints(physiology: &mut PhysiologyState, hunger: f32, is_elder: bool, calm: f32) {
+    for joint in &mut physiology.joint_health.joints {
         if hunger > cfg::HUNGER_JOINT_THRESHOLD {
             joint.lubrication =
                 (joint.lubrication - cfg::joints::LUBRICATION_DECAY).max(0.0);
@@ -169,8 +169,8 @@ fn update_joints(anatomy: &mut AnatomyState, hunger: f32, is_elder: bool, calm: 
     }
 }
 
-fn update_skin(anatomy: &mut AnatomyState, is_sick: bool, hunger: f32, water_mod: f32, calm: f32) {
-    let skin = &mut anatomy.skin;
+fn update_skin(physiology: &mut PhysiologyState, is_sick: bool, hunger: f32, water_mod: f32, calm: f32) {
+    let skin = &mut physiology.skin_health;
 
     if hunger > cfg::HUNGER_SKIN_THRESHOLD {
         // Dehydration accelerated when water-deficient
@@ -188,28 +188,28 @@ fn update_skin(anatomy: &mut AnatomyState, is_sick: bool, hunger: f32, water_mod
     }
 }
 
-fn apply_health_ceiling(anatomy: &AnatomyState, mind: &mut Mind) {
-    let ceiling = anatomy.health_ceiling();
+fn apply_health_ceiling(physiology: &PhysiologyState, mind: &mut Mind) {
+    let ceiling = physiology.health_ceiling();
     if mind.stats.health > ceiling {
         mind.stats.health = ceiling;
     }
 }
 
-fn apply_energy_penalties(anatomy: &AnatomyState, mind: &mut Mind) {
-    if anatomy.muscles.condition < cfg::muscles::LOW_CONDITION_THRESHOLD {
-        let penalty = (cfg::muscles::LOW_CONDITION_THRESHOLD - anatomy.muscles.condition)
+fn apply_energy_penalties(physiology: &PhysiologyState, mind: &mut Mind) {
+    if physiology.muscle_health.condition < cfg::muscles::LOW_CONDITION_THRESHOLD {
+        let penalty = (cfg::muscles::LOW_CONDITION_THRESHOLD - physiology.muscle_health.condition)
             * cfg::muscles::ENERGY_PENALTY_FACTOR;
         mind.stats.energy = (mind.stats.energy - penalty).max(0.0);
     }
 
-    if anatomy.avg_lubrication() < cfg::joints::STIFFNESS_THRESHOLD {
+    if physiology.avg_lubrication() < cfg::joints::STIFFNESS_THRESHOLD {
         mind.stats.energy =
             (mind.stats.energy - cfg::joints::STIFFNESS_ENERGY_PENALTY).max(0.0);
     }
 }
 
-fn apply_mood_overrides(anatomy: &AnatomyState, mind: &mut Mind, genome: &Genome) {
-    let avg_flex = anatomy.avg_flexibility();
+fn apply_mood_overrides(physiology: &PhysiologyState, mind: &mut Mind, genome: &Genome) {
+    let avg_flex = physiology.avg_flexibility();
 
     if mind.mood == MoodState::Playful && avg_flex < cfg::joints::PLAYFUL_FLEX_BLOCK {
         mind.mood = MoodState::Happy;
@@ -226,8 +226,8 @@ fn apply_mood_overrides(anatomy: &AnatomyState, mind: &mut Mind, genome: &Genome
 }
 
 /// Checks for broken bones and cascades damage through connected joints and muscles.
-pub fn check_bone_breaks(anatomy: &mut AnatomyState, mind: &mut Mind) {
-    let broken_bone_names: Vec<String> = anatomy.skeleton.bones.iter()
+pub fn check_bone_breaks(physiology: &mut PhysiologyState, mind: &mut Mind) {
+    let broken_bone_names: Vec<String> = physiology.bone_health.bones.iter()
         .filter(|b| b.integrity <= 0.0)
         .map(|b| b.name.clone())
         .collect();
@@ -237,13 +237,13 @@ pub fn check_bone_breaks(anatomy: &mut AnatomyState, mind: &mut Mind) {
     }
 
     for broken_name in &broken_bone_names {
-        for joint in &mut anatomy.joints.joints {
+        for joint in &mut physiology.joint_health.joints {
             if joint.bone_a == *broken_name || joint.bone_b == *broken_name {
                 joint.flexibility = joint.flexibility.min(cfg::skeleton::BREAK_JOINT_FLEX_MIN);
                 joint.integrity = joint.integrity.min(cfg::skeleton::BREAK_JOINT_INTEGRITY_CAP);
 
                 let joint_name = joint.name.clone();
-                for group in &mut anatomy.muscles.groups {
+                for group in &mut physiology.muscle_health.groups {
                     if group.joint == joint_name {
                         group.strength *= cfg::skeleton::BREAK_MUSCLE_STRENGTH_FACTOR;
                     }

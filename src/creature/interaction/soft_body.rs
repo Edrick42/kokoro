@@ -268,7 +268,7 @@ fn reinit_on_stage_change(
 fn soft_body_step(
     time: Res<Time>,
     mut body: Option<ResMut<SoftBody>>,
-    anatomy: Option<Res<crate::creature::anatomy::AnatomyState>>,
+    anatomy: Option<Res<crate::creature::physiology::PhysiologyState>>,
 ) {
     let Some(ref mut body) = body else { return };
     let dt = time.delta_secs().min(0.033); // cap at ~30fps minimum
@@ -490,7 +490,7 @@ fn apply_clusters(body: &mut SoftBody) {
 /// If a bound is linked to an anatomy joint, the drift is modulated:
 /// - low flexibility (stiff/elder) → smaller drift (less mobile)
 /// - low integrity (broken bone) → larger drift (dangling part)
-fn apply_bounds(body: &mut SoftBody, anatomy: Option<&crate::creature::anatomy::AnatomyState>) {
+fn apply_bounds(body: &mut SoftBody, anatomy: Option<&crate::creature::physiology::PhysiologyState>) {
     // Iterate twice for stability when bounds chain (child of a child)
     for _ in 0..2 {
         for bound in body.bounds.clone().iter() {
@@ -498,7 +498,7 @@ fn apply_bounds(body: &mut SoftBody, anatomy: Option<&crate::creature::anatomy::
 
             // Compute effective drift from anatomy joint, if linked
             let drift = if let (Some(anat), Some(joint_name)) = (anatomy, &bound.joint_name) {
-                let joint = anat.joints.joints.iter().find(|j| j.name == *joint_name);
+                let joint = anat.joint_health.joints.iter().find(|j| j.name == *joint_name);
                 if let Some(j) = joint {
                     // flex_factor 0.4..1.0 (low flex → tight drift)
                     let flex_factor = 0.4 + 0.6 * j.flexibility;

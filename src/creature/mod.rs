@@ -1,7 +1,8 @@
 //! Creature systems — everything that makes a Kobara alive.
 
-// Body simulation (skeleton, joints, muscles, skin, fat)
-pub mod anatomy;
+// Slow-biology health (bone density, muscle conditioning, joint integrity, skin).
+// Distinct from kokoro-rig / kokoro-body (per-frame physics).
+pub mod physiology;
 
 // Per-species rig templates + Bevy plugins that step them each frame.
 // Lives here (not under visuals/) because rigs produce motion, not pixels.

@@ -1,4 +1,4 @@
-//! Skin — protection and sensation.
+//! Skin health — protection and sensation layer.
 //!
 //! Species-specific covering protects the body and mediates sensation:
 //! - **Fur** (Moluun) — insulating, soft, moderate protection
@@ -9,7 +9,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SkinLayer {
+pub struct SkinHealth {
     /// Type of skin covering.
     pub covering: SkinCovering,
     /// 0.0 = damaged, 1.0 = healthy.

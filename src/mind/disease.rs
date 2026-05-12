@@ -11,7 +11,7 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::config::disease as cfg;
-use crate::creature::anatomy::AnatomyState;
+use crate::creature::physiology::PhysiologyState;
 use crate::game::state::AppState;
 use crate::genome::Genome;
 use crate::mind::hygiene::HygieneState;
@@ -121,7 +121,7 @@ fn disease_trigger_system(
     mind: Res<Mind>,
     genome: Res<Genome>,
     hygiene: Option<Res<HygieneState>>,
-    anatomy: Option<Res<AnatomyState>>,
+    physiology: Option<Res<PhysiologyState>>,
     nutrient_q: Query<&NutrientState, With<CreatureRoot>>,
     mut disease: ResMut<DiseaseState>,
     mut reaction_events: EventWriter<crate::creature::behavior::reactions::CreatureReaction>,
@@ -153,8 +153,8 @@ fn disease_trigger_system(
     }
 
     // Infection: broken bone + dirty
-    if let (Some(ref anat), Some(ref hyg)) = (anatomy, hygiene) {
-        let has_break = anat.skeleton.bones.iter().any(|b| b.integrity < 0.1);
+    if let (Some(ref phys), Some(ref hyg)) = (physiology, hygiene) {
+        let has_break = phys.bone_health.bones.iter().any(|b| b.integrity < 0.1);
         if has_break && hyg.level < 40.0 && !disease.has(Condition::Infection) {
             disease.add(Condition::Infection, &genome);
         }

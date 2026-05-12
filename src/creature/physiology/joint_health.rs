@@ -1,18 +1,18 @@
-//! Joints — connections between bones (or flex points for boneless Nyxal).
+//! Joint health — slow-biology state of articulation surfaces.
 //!
-//! Flexibility determines range of motion and whether the creature can play.
-//! Lubrication determines movement smoothness — dry joints cost extra energy.
+//! Distinct from `kokoro_rig::Joint` (per-frame articulator): this struct
+//! tracks flexibility, lubrication, and integrity that decay over time.
 //! Elders lose flexibility irreversibly as joint tissue calcifies.
 
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct JointSystem {
-    pub joints: Vec<Joint>,
+pub struct JointHealth {
+    pub joints: Vec<JointRecord>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Joint {
+pub struct JointRecord {
     /// Joint name (e.g. "neck", "shoulder_left", "hip_right").
     pub name: String,
     /// First connected bone (or body segment for Nyxal).
@@ -27,9 +27,9 @@ pub struct Joint {
     pub integrity: f32,
 }
 
-/// Helper to create a joint at full lubrication and integrity.
-pub fn joint(name: &str, bone_a: &str, bone_b: &str, flexibility: f32) -> Joint {
-    Joint {
+/// Helper to create a joint record at full lubrication and integrity.
+pub fn joint_record(name: &str, bone_a: &str, bone_b: &str, flexibility: f32) -> JointRecord {
+    JointRecord {
         name: name.to_string(),
         bone_a: bone_a.to_string(),
         bone_b: bone_b.to_string(),

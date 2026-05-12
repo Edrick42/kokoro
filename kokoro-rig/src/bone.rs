@@ -99,26 +99,59 @@ impl Vec2 {
     }
 }
 
-/// Material composition of a bone — currently mass only. Held as a struct
-/// so future fields (density, fracture state, marrow_state) can be added
-/// without breaking the `Bone` API.
+/// Material composition wrapped around a bone, in real-anatomy order
+/// from inside out: bone (mass) → fat → skin → fur. Each non-mass field
+/// is the layer's perpendicular thickness in the same canvas-pixel
+/// units the renderer uses; they're zero on bones whose species has
+/// no such layer (e.g. Nyxal has membrane instead of skin, no fur).
+///
+/// Held as one struct so future per-bone fields (fracture state,
+/// marrow_state, damage maps) can land without parallel hierarchies —
+/// see `docs/biomechanics.md` §10.1.
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct BoneTissue {
+pub struct Tissue {
     /// Mass of the bone in kilograms. The default 1.0 is "one body unit"
     /// — gameplay parameters can stay dimensionless until a real physical
     /// reference is chosen.
     pub mass: f32,
+    /// Subcutaneous fat thickness perpendicular to the bone, in canvas
+    /// pixels. Anatomically sits between muscle and skin. Contributes
+    /// to the visible silhouette and (future) to segment inertia.
+    pub fat_thickness: f32,
+    /// Skin layer thickness perpendicular to the bone, in canvas pixels.
+    pub skin_thickness: f32,
+    /// Fur length perpendicular to the skin, in canvas pixels. Bell-curve
+    /// distribution along the body part is responsible for fusiform
+    /// silhouettes (bushy red-panda-style tails); zero on furless species.
+    pub fur_length: f32,
 }
 
-impl BoneTissue {
+impl Tissue {
+    /// Bone-only tissue: just mass, all soft-tissue layers at zero. Use
+    /// the `with_*` builders to add fat / skin / fur where present.
     pub const fn new(mass: f32) -> Self {
-        Self { mass }
+        Self { mass, fat_thickness: 0.0, skin_thickness: 0.0, fur_length: 0.0 }
+    }
+
+    pub fn with_fat(mut self, fat_thickness: f32) -> Self {
+        self.fat_thickness = fat_thickness;
+        self
+    }
+
+    pub fn with_skin(mut self, skin_thickness: f32) -> Self {
+        self.skin_thickness = skin_thickness;
+        self
+    }
+
+    pub fn with_fur(mut self, fur_length: f32) -> Self {
+        self.fur_length = fur_length;
+        self
     }
 }
 
-impl Default for BoneTissue {
+impl Default for Tissue {
     fn default() -> Self {
-        Self { mass: 1.0 }
+        Self { mass: 1.0, fat_thickness: 0.0, skin_thickness: 0.0, fur_length: 0.0 }
     }
 }
 
@@ -170,10 +203,11 @@ pub struct Bone {
     /// See `Stiffness` docs. Default is `Rigid`.
     pub stiffness: Stiffness,
 
-    /// Material composition of the bone. Defaults to mass = 1.0 (one body
-    /// unit). The physics integrator uses this to derive moment of
-    /// inertia for the joint that hangs this bone.
-    pub tissue: BoneTissue,
+    /// Material composition of the bone plus its surrounding soft-tissue
+    /// layers (fat, skin, fur). Defaults to mass = 1.0 with every soft
+    /// layer at zero. The physics integrator reads `mass`; the anatomical
+    /// renderer reads the thickness fields.
+    pub tissue: Tissue,
 }
 
 impl Bone {
@@ -192,7 +226,7 @@ impl Bone {
             genome_length_scale: 1.0,
             genome_width_scale: 1.0,
             stiffness: Stiffness::Rigid,
-            tissue: BoneTissue { mass: 1.0 },
+            tissue: Tissue::new(1.0),
         }
     }
 
@@ -218,11 +252,11 @@ impl Bone {
             genome_length_scale: 1.0,
             genome_width_scale: 1.0,
             stiffness: Stiffness::Rigid,
-            tissue: BoneTissue { mass: 1.0 },
+            tissue: Tissue::new(1.0),
         }
     }
 
-    pub const fn with_tissue(mut self, tissue: BoneTissue) -> Self {
+    pub const fn with_tissue(mut self, tissue: Tissue) -> Self {
         self.tissue = tissue;
         self
     }

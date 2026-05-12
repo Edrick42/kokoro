@@ -77,9 +77,12 @@ pub struct Muscle {
     /// 0 to full contraction instantly.
     pub contraction_rate: f32,
 
-    /// Resting cross-sectional thickness, in pixels (or whatever unit the
-    /// rendering layer uses). Genes-derived. The muscle bulges out from
-    /// this baseline when it contracts — see [`Self::current_thickness`].
+    /// Resting lateral cross-section, in canvas pixels. Real physical
+    /// state — the muscle's volume, distributed over its rest length,
+    /// translates to this perpendicular thickness at activation = 0.
+    /// Volume conservation (cf. [`MUSCLE_BULGE_FACTOR`]) then says the
+    /// muscle gets thicker when it contracts — see
+    /// [`Self::current_thickness`].
     pub rest_thickness: f32,
 }
 

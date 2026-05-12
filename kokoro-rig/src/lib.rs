@@ -40,7 +40,7 @@ pub mod skeleton;
 pub mod softbody;
 pub mod zorder;
 
-pub use bone::{Bone, BoneId, BoneTissue, Stiffness, Vec2};
+pub use bone::{Bone, BoneId, Stiffness, Tissue, Vec2};
 pub use fabrik::FabrikChain;
 pub use ik::{solve_two_bone, BendDirection, TwoBoneResult};
 pub use joint::{Joint, JointKind, JointState, JointSurface};

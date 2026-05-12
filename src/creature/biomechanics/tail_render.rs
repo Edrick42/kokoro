@@ -92,13 +92,18 @@ pub fn paint_anatomical_tail(
     }
     for seg in 0..STANDALONE_TAIL_SEGMENTS {
         let bone_id = BoneId((seg + 1) as u16);
+        let bone = skeleton.bone(bone_id);
         let base = skeleton.world_base(bone_id);
         let tip  = skeleton.world_tip(bone_id);
         let (flex_t, ext_t) = thicknesses_for(tail, bone_id);
 
-        let fat_th  = if vis.fat  { tail.fat_thicknesses.get(seg).copied().unwrap_or(0.0)  } else { 0.0 };
-        let skin_th = if vis.skin { tail.skin_thicknesses.get(seg).copied().unwrap_or(0.0) } else { 0.0 };
-        let fur_th  = if vis.fur  { tail.fur_lengths.get(seg).copied().unwrap_or(0.0)      } else { 0.0 };
+        // Read soft-tissue thicknesses straight off the bone — single
+        // source of truth. Toggling a layer off in dev sets its
+        // contribution to zero so the silhouette literally shrinks by
+        // that tissue's thickness.
+        let fat_th  = if vis.fat  { bone.tissue.fat_thickness  } else { 0.0 };
+        let skin_th = if vis.skin { bone.tissue.skin_thickness } else { 0.0 };
+        let fur_th  = if vis.fur  { bone.tissue.fur_length     } else { 0.0 };
 
         let is_ring = seg > 0 && seg % RING_STRIDE == 0;
         let fur_body_color = if is_ring { FUR_RING } else { FUR_BODY };
@@ -243,38 +248,34 @@ mod snapshot {
         let _ = up.save(dir.join(format!("{name}@4x.png")));
     }
 
+    /// Build a default MoluunCubTail for snapshot rendering — same code
+    /// path the runtime uses, just with median gene values.
+    fn test_tail() -> super::super::moluun_runtime::MoluunCubTail {
+        let genes = TailGenes::default();
+        let body = super::super::moluun::cub_tail_body_for_creature(
+            &genes,
+            0.5, // appetite
+            0.5, // resilience
+            32.0,
+            Vec2::new(48.0, 32.0),
+            std::f32::consts::PI,
+        );
+        super::super::moluun_runtime::MoluunCubTail {
+            body,
+            sim_time: 0.0,
+            last_intent: vec![kokoro_body::actuation::PairIntent::rest(); 16],
+        }
+    }
+
     /// Tail at rest — both muscles slack. Visualises the natural taper
     /// from base to tip without any wave deformation.
     #[test]
     #[ignore]
     fn snapshot_anatomical_tail_rest() {
-        let genes = TailGenes::default();
-        let body = super::super::moluun::cub_tail_body_for_creature(
-            &genes,
-            32.0,
-            Vec2::new(48.0, 32.0),
-            std::f32::consts::PI,
-        );
-        let fur_lengths = (0..STANDALONE_TAIL_SEGMENTS).map(|i| {
-            let t = (i as f32) / ((STANDALONE_TAIL_SEGMENTS - 1) as f32);
-            2.5 * (std::f32::consts::PI * t).sin()
-        }).collect();
-        let fat_thicknesses = (0..STANDALONE_TAIL_SEGMENTS).map(|i| {
-            let t = (i as f32) / ((STANDALONE_TAIL_SEGMENTS - 1) as f32);
-            0.6 * (1.0 - t) + 0.2 * t
-        }).collect();
-        let skin_thicknesses = vec![0.3_f32; STANDALONE_TAIL_SEGMENTS];
-        let mut tail = super::super::moluun_runtime::MoluunCubTail {
-            body,
-            sim_time: 0.0,
-            last_intent: vec![kokoro_body::actuation::PairIntent::rest(); 16],
-            fat_thicknesses,
-            skin_thicknesses,
-            fur_lengths,
-        };
+        let mut tail = test_tail();
+        tail.body.skeleton.forward();
         let mut img = RgbaImage::new(64, 64);
         for px in img.pixels_mut() { *px = Rgba([0, 0, 0, 0]); }
-        tail.body.skeleton.forward();
         paint_anatomical_tail(&mut img, &tail, LayerVisibility::ALL);
         upscale_save(&img, "anatomical_tail_rest");
     }
@@ -286,30 +287,7 @@ mod snapshot {
     #[test]
     #[ignore]
     fn snapshot_anatomical_tail_flexed() {
-        let genes = TailGenes::default();
-        let body = super::super::moluun::cub_tail_body_for_creature(
-            &genes,
-            32.0,
-            Vec2::new(48.0, 32.0),
-            std::f32::consts::PI,
-        );
-        let fur_lengths = (0..STANDALONE_TAIL_SEGMENTS).map(|i| {
-            let t = (i as f32) / ((STANDALONE_TAIL_SEGMENTS - 1) as f32);
-            2.5 * (std::f32::consts::PI * t).sin()
-        }).collect();
-        let fat_thicknesses = (0..STANDALONE_TAIL_SEGMENTS).map(|i| {
-            let t = (i as f32) / ((STANDALONE_TAIL_SEGMENTS - 1) as f32);
-            0.6 * (1.0 - t) + 0.2 * t
-        }).collect();
-        let skin_thicknesses = vec![0.3_f32; STANDALONE_TAIL_SEGMENTS];
-        let mut tail = super::super::moluun_runtime::MoluunCubTail {
-            body,
-            sim_time: 0.0,
-            last_intent: vec![kokoro_body::actuation::PairIntent::rest(); 16],
-            fat_thicknesses,
-            skin_thicknesses,
-            fur_lengths,
-        };
+        let mut tail = test_tail();
         tail.body.skeleton.forward();
         for a in tail.body.actuators.iter_mut() {
             a.muscles.flexor.activation = 1.0;

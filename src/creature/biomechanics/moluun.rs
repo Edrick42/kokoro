@@ -25,7 +25,7 @@
 //! - **Stiffness**: skull / spine / hips = Rigid (skeleton wins).
 //!   Tail beyond tail_2 + paws + ear tips = Soft (soft body wins).
 
-use kokoro_rig::{Bone, BoneId, BoneTissue, Joint, Skeleton, Stiffness, Vec2};
+use kokoro_rig::{Bone, BoneId, Joint, Skeleton, Stiffness, Tissue, Vec2};
 use std::f32::consts::PI;
 
 /// Build the Moluun cub skeleton in quadrupedal side-view pose.
@@ -221,7 +221,7 @@ pub fn cub_tail_skeleton_standalone() -> Skeleton {
         bones.push(
             Bone::child(name, parent, Vec2::ZERO, 0.0, seg_len, 1.0)
                 .with_stiffness(Stiffness::Soft)
-                .with_tissue(BoneTissue::new(TAIL_SEGMENT_MASS)),
+                .with_tissue(Tissue::new(TAIL_SEGMENT_MASS)),
         );
     }
 
@@ -302,10 +302,18 @@ pub fn cub_tail_skeleton_for_genes(genes: &crate::genome::TailGenes) -> Skeleton
     bones.push(Bone::root("tail_base", 0.0, 0.0));
     for (i, name) in STANDALONE_TAIL_BONE_NAMES.iter().enumerate() {
         let parent = BoneId(i as u16);
+        // Snapshot/test builder: use median gene values (0.5) for the
+        // soft-tissue layers so the skeleton-level helpers stay
+        // signature-clean. Gameplay uses `cub_tail_body_for_creature`
+        // with real per-creature genes.
+        let tissue = Tissue::new(phys.segment_mass)
+            .with_fat( cub_tail_fat_thickness(i, STANDALONE_TAIL_SEGMENTS, 0.5))
+            .with_skin(cub_tail_skin_thickness(i, STANDALONE_TAIL_SEGMENTS, 0.5))
+            .with_fur( cub_tail_fur_length(i, STANDALONE_TAIL_SEGMENTS, genes.strength));
         bones.push(
             Bone::child(name, parent, Vec2::ZERO, 0.0, seg_len, 1.0)
                 .with_stiffness(Stiffness::Soft)
-                .with_tissue(BoneTissue::new(phys.segment_mass)),
+                .with_tissue(tissue),
         );
     }
 
@@ -420,6 +428,8 @@ pub fn cub_tail_intent(
 #[allow(dead_code)]
 pub fn cub_tail_body_for_creature(
     genes: &crate::genome::TailGenes,
+    appetite: f32,
+    resilience: f32,
     total_length: f32,
     attach: Vec2,
     base_angle: f32,
@@ -429,18 +439,26 @@ pub fn cub_tail_body_for_creature(
 
     let phys = CubTailPhysiology::from_genes(genes);
     let seg_len = total_length / STANDALONE_TAIL_SEGMENTS as f32;
+    let segments = STANDALONE_TAIL_SEGMENTS;
 
-    let mut bones: Vec<Bone> = Vec::with_capacity(STANDALONE_TAIL_SEGMENTS + 1);
+    let mut bones: Vec<Bone> = Vec::with_capacity(segments + 1);
     bones.push(Bone::root("tail_base", 0.0, 0.0));
     for (i, name) in STANDALONE_TAIL_BONE_NAMES.iter().enumerate() {
         let parent = BoneId(i as u16);
         // First segment carries `base_angle` so the whole chain orients
         // the way the caller wants (e.g. PI = "tail faces left").
         let rest_angle = if i == 0 { base_angle } else { 0.0 };
+        // 0-based segment index for the tissue helpers — i=0 is the
+        // bone closest to the body (base of tail), i=segments-1 is the
+        // tip. Same convention the previous parallel Vecs used.
+        let tissue = Tissue::new(phys.segment_mass)
+            .with_fat( cub_tail_fat_thickness(i, segments, appetite))
+            .with_skin(cub_tail_skin_thickness(i, segments, resilience))
+            .with_fur( cub_tail_fur_length(i, segments, genes.strength));
         bones.push(
             Bone::child(name, parent, Vec2::ZERO, rest_angle, seg_len, 1.0)
                 .with_stiffness(Stiffness::Soft)
-                .with_tissue(BoneTissue::new(phys.segment_mass)),
+                .with_tissue(tissue),
         );
     }
 
@@ -485,6 +503,34 @@ pub fn cub_tail_body_for_creature(
 /// canvas pixels. Linear taper from `BASE_THICK_PX` at the body to
 /// `TIP_THICK_PX` at the last segment; the `strength` gene scales the
 /// whole curve so a strong cub has a chunkier tail.
+/// Subcutaneous fat distribution along the tail, in canvas pixels.
+/// Tapers base → tip; scales 0.5x..1.5x with the appetite gene.
+pub fn cub_tail_fat_thickness(seg: usize, segments: usize, appetite: f32) -> f32 {
+    const BASE_FAT_PX: f32 = 0.6;
+    const TIP_FAT_PX:  f32 = 0.2;
+    let t = (seg as f32) / ((segments - 1).max(1) as f32);
+    let interp = BASE_FAT_PX * (1.0 - t) + TIP_FAT_PX * t;
+    interp * (0.5 + appetite.clamp(0.0, 1.0))
+}
+
+/// Skin layer thickness along the tail. Roughly uniform; scales
+/// 0.75x..1.25x with the resilience gene.
+pub fn cub_tail_skin_thickness(_seg: usize, _segments: usize, resilience: f32) -> f32 {
+    const SKIN_PX: f32 = 0.3;
+    SKIN_PX * (0.75 + 0.5 * resilience.clamp(0.0, 1.0))
+}
+
+/// Bell-curve fur distribution along the tail, in canvas pixels.
+/// Zero at base and tip, peaks in the middle — produces the bushy
+/// fusiform silhouette of a red-panda-style tail. Scales 0.75x..1.25x
+/// with the strength gene (bushier cubs read bigger).
+pub fn cub_tail_fur_length(seg: usize, segments: usize, strength: f32) -> f32 {
+    const MAX_FUR_PX: f32 = 2.5;
+    let t = (seg as f32) / ((segments - 1).max(1) as f32);
+    let bell = (std::f32::consts::PI * t).sin();
+    MAX_FUR_PX * bell * (0.75 + 0.5 * strength.clamp(0.0, 1.0))
+}
+
 fn cub_tail_rest_thickness(seg: usize, segments: usize, strength: &f32) -> f32 {
     // Half-widths in canvas pixels for the *muscle/skin core* of the
     // tail. The bushy fusiform silhouette is produced by the fur layer

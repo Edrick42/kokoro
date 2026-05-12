@@ -68,6 +68,15 @@ pub fn dev_panels_system(
             ui.checkbox(&mut dev_state.biomech_bones,   "Bones (black lines)");
             ui.checkbox(&mut dev_state.biomech_joints,  "Joints (cyan → red)");
             ui.checkbox(&mut dev_state.biomech_muscles, "Muscles (pink shapes)");
+            // Placeholders: physical state does not exist per-segment yet.
+            // Disabled so the user sees the full 5-layer list and knows
+            // which laws still need to land.
+            ui.add_enabled_ui(false, |ui| {
+                let mut nerve = false; let mut fat = false; let mut skin = false;
+                ui.checkbox(&mut nerve, "Nerves — needs latency/health law");
+                ui.checkbox(&mut fat,   "Fat — needs composite-mass law");
+                ui.checkbox(&mut skin,  "Skin — needs per-segment skin law");
+            });
             ui.separator();
 
             egui::ScrollArea::vertical().show(ui, |ui| {

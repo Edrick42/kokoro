@@ -139,10 +139,14 @@ fn update_skin(
     }
     let buf = pixel_buf.as_mut().unwrap();
 
-    // Soft body changes every frame (physics) — always redraw when soft body exists
+    // Physics resources mutate every frame and must trigger a redraw.
+    // Soft body is per-creature; the Moluun cub tail simulation runs
+    // unconditionally for the active Moluun cub. Both bypass the
+    // change-detection short-circuit below.
     let has_soft_body = soft_body.is_some();
+    let tail_animating = moluun_tail.as_ref().map_or(false, |t| t.is_changed());
     let physiology_changed = physiology.as_ref().map_or(false, |p| p.is_changed());
-    if !has_soft_body && !mind.is_changed() && !genome.is_changed() && !growth.is_changed()
+    if !has_soft_body && !tail_animating && !mind.is_changed() && !genome.is_changed() && !growth.is_changed()
         && !physiology_changed && !expression.is_changed()
         && !involuntary.is_changed() {
         return;

@@ -458,6 +458,10 @@ pub fn cub_tail_body_for_creature(
     let mut body = Body::new(sk);
     for i in 1..=STANDALONE_TAIL_SEGMENTS {
         let bone_id = BoneId(i as u16);
+        // Real tails taper base → tip. Same rest_thickness for both sides
+        // of the antagonist pair: a healthy cub's tail is radially
+        // symmetric at rest. Strength gene scales the whole tube up/down.
+        let taper = cub_tail_rest_thickness(i, STANDALONE_TAIL_SEGMENTS, &genes.strength);
         let mk_muscle = |name: &'static str| {
             let mut m = Muscle::new(
                 name,
@@ -466,6 +470,7 @@ pub fn cub_tail_body_for_creature(
                 phys.muscle_max_force,
             );
             m.contraction_rate = phys.muscle_contraction_rate;
+            m.rest_thickness = taper;
             m
         };
         let muscles = MusclePair::new(mk_muscle("flexor"), mk_muscle("extensor"));
@@ -474,6 +479,19 @@ pub fn cub_tail_body_for_creature(
         body.attach_actuator(Actuator::new(bone_id, nerve_flexor, nerve_extensor, muscles));
     }
     body
+}
+
+/// Tapered rest cross-section for muscle pair `seg` of a cub tail, in
+/// canvas pixels. Linear taper from `BASE_THICK_PX` at the body to
+/// `TIP_THICK_PX` at the last segment; the `strength` gene scales the
+/// whole curve so a strong cub has a chunkier tail.
+fn cub_tail_rest_thickness(seg: usize, segments: usize, strength: &f32) -> f32 {
+    const BASE_THICK_PX: f32 = 1.7;
+    const TIP_THICK_PX:  f32 = 0.4;
+    let t = ((seg.saturating_sub(1)) as f32) / ((segments - 1).max(1) as f32);
+    let interp = BASE_THICK_PX * (1.0 - t) + TIP_THICK_PX * t;
+    // Strength gene 0..1 → 0.75x .. 1.25x scaling on the whole tube.
+    interp * (0.75 + 0.5 * strength.clamp(0.0, 1.0))
 }
 
 /// Build a full neuromuscular `Body` for the cub tail using a `TailGenes`.
@@ -490,6 +508,7 @@ pub fn cub_tail_body_for_genes(genes: &crate::genome::TailGenes) -> kokoro_body:
 
     for i in 1..=STANDALONE_TAIL_SEGMENTS {
         let bone_id = BoneId(i as u16);
+        let taper = cub_tail_rest_thickness(i, STANDALONE_TAIL_SEGMENTS, &genes.strength);
         let mk_muscle = |name: &'static str| {
             let mut m = Muscle::new(
                 name,
@@ -498,6 +517,7 @@ pub fn cub_tail_body_for_genes(genes: &crate::genome::TailGenes) -> kokoro_body:
                 phys.muscle_max_force,
             );
             m.contraction_rate = phys.muscle_contraction_rate;
+            m.rest_thickness = taper;
             m
         };
         let muscles = MusclePair::new(mk_muscle("flexor"), mk_muscle("extensor"));

@@ -17,7 +17,7 @@
 use bevy::prelude::*;
 use kokoro_body::Body;
 use kokoro_body::actuation::PairIntent;
-use kokoro_rig::{AppliedTorques, BoneId, Vec2};
+use kokoro_rig::{AppliedTorques, Vec2};
 
 use crate::game::state::AppState;
 use crate::genome::Genome;
@@ -119,21 +119,4 @@ fn step_tail_body(
     tail.last_intent = intents;
     tail.sim_time += dt;
     tail.body.skeleton.forward();
-}
-
-/// Extract the tail joint polyline in canvas coordinates, ready to feed
-/// into a `FusiformTail` brush. Returns `None` if forward kinematics
-/// hasn't been run yet (the dirty flag is set).
-pub fn joints_for_overlay(tail: &MoluunCubTail) -> Option<Vec<(i32, i32)>> {
-    if tail.body.skeleton.dirty() {
-        return None;
-    }
-    let mut joints: Vec<(i32, i32)> = Vec::with_capacity(STANDALONE_TAIL_SEGMENTS + 1);
-    let base = tail.body.skeleton.world_base(BoneId(0));
-    joints.push((base.x.round() as i32, base.y.round() as i32));
-    for i in 1..=STANDALONE_TAIL_SEGMENTS {
-        let tip = tail.body.skeleton.world_tip(BoneId(i as u16));
-        joints.push((tip.x.round() as i32, tip.y.round() as i32));
-    }
-    Some(joints)
 }

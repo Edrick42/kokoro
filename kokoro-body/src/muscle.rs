@@ -76,7 +76,18 @@ pub struct Muscle {
     /// signal. Models myosin cross-bridge cycling: muscles can't go from
     /// 0 to full contraction instantly.
     pub contraction_rate: f32,
+
+    /// Resting cross-sectional thickness, in pixels (or whatever unit the
+    /// rendering layer uses). Genes-derived. The muscle bulges out from
+    /// this baseline when it contracts — see [`Self::current_thickness`].
+    pub rest_thickness: f32,
 }
+
+/// Volume-conservation analog: a contracting muscle bulges laterally so
+/// its cross-section grows even though its longitudinal length doesn't
+/// change in this rigid-hinge model. Real muscles fatten roughly 30–50%
+/// at peak contraction; we pick 0.4 as the midpoint.
+pub const MUSCLE_BULGE_FACTOR: f32 = 0.4;
 
 impl Muscle {
     pub fn new(
@@ -95,6 +106,7 @@ impl Muscle {
             fatigue_rate: 0.10,
             recovery_rate: 0.20,
             contraction_rate: 8.0,
+            rest_thickness: 1.0,
         }
     }
 
@@ -104,6 +116,14 @@ impl Muscle {
         let max = self.composition.max_force();
         let eff = max * self.activation.clamp(0.0, 1.0) * (1.0 - self.fatigue).max(0.0);
         eff.max(0.0)
+    }
+
+    /// Current lateral thickness, in the same units as `rest_thickness`.
+    /// Approximates volume conservation: when the muscle activates, it
+    /// bulges out by `rest_thickness × MUSCLE_BULGE_FACTOR × activation`.
+    /// At full activation a muscle is ~40% thicker than at rest.
+    pub fn current_thickness(&self) -> f32 {
+        self.rest_thickness * (1.0 + MUSCLE_BULGE_FACTOR * self.activation.clamp(0.0, 1.0))
     }
 
     /// Advance fatigue and activation over `dt` seconds, given the nerve

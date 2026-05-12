@@ -56,29 +56,13 @@ pub fn draw_egg(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32) {
 // CUB — REBUILD-FROM-RIG MODE
 // ===================================================================
 // The cub is being rebuilt body-part by body-part on top of the
-// kokoro-rig + kokoro-body biomechanics. `draw_cub` paints nothing
-// today; `overlay_tail` paints the rendered skin (FusiformTail) and the
-// biomechanics debug overlay (bones, joints, muscles) is invoked from
-// `skin::mod.rs` via `creature::biomechanics::debug_overlay`. New body
-// parts will appear in both layers the moment their bones land on the
-// skeleton.
-
-/// Paint the physical tail of a `MoluunCubTail` over the current pixel
-/// buffer using the `FusiformTail` brush.
-pub fn overlay_tail(img: &mut RgbaImage, tail: &crate::creature::biomechanics::moluun_runtime::MoluunCubTail) {
-    use kokoro_art_palette::dsl::{Brush, FusiformTail};
-    let Some(joints) = crate::creature::biomechanics::moluun_runtime::joints_for_overlay(tail) else {
-        return;
-    };
-    FusiformTail::new(joints, 3, Palette::Orange, Palette::OffWhite)
-        .with_rings(2, 1)
-        .paint(img);
-}
+// kokoro-rig + kokoro-body biomechanics. `draw_cub` paints nothing —
+// the tail is drawn by `creature::biomechanics::tail_render` whose
+// silhouette is derived from live muscle thickness. New body parts
+// appear here automatically as their renderers come online.
 
 pub fn draw_cub(_img: &mut RgbaImage, _p: &SpeciesSkin, _cx: i32, _mood: &MoodState, _sb: &Option<Res<SoftBody>>) {
-    // Intentionally empty — see header comment above. The cub is drawn
-    // entirely from the rig via `overlay_tail` + `overlay_skeleton_wireframe`
-    // dispatched from `skin::mod.rs`.
+    // Intentionally empty — see header comment above.
 }
 
 // ===================================================================

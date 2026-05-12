@@ -87,7 +87,7 @@ fn attach_skin(
             draw_creature(&mut buf, &genome.species, &mind.mood, &growth.stage, &sp, &soft_body, &expression, &involuntary, debug_overlay);
             if matches!(genome.species, Species::Moluun) && matches!(growth.stage, GrowthStage::Cub) {
                 if let Some(tail) = moluun_tail.as_ref() {
-                    moluun::overlay_tail(&mut buf, tail);
+                    crate::creature::biomechanics::tail_render::paint_anatomical_tail(&mut buf, tail);
                     #[cfg(feature = "dev")]
                     paint_biomech_layers(&mut buf, tail, dev_state.as_deref());
                 }
@@ -163,7 +163,7 @@ fn update_skin(
     // toggleable per layer via DevModeState.
     if matches!(genome.species, Species::Moluun) && matches!(growth.stage, GrowthStage::Cub) {
         if let Some(tail) = moluun_tail.as_ref() {
-            moluun::overlay_tail(buf, tail);
+            crate::creature::biomechanics::tail_render::paint_anatomical_tail(buf, tail);
             #[cfg(feature = "dev")]
             paint_biomech_layers(buf, tail, dev_state.as_deref());
         }

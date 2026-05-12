@@ -16,4 +16,5 @@
 pub mod debug_overlay;
 pub mod moluun;
 pub mod moluun_runtime;
+pub mod spine_render;
 pub mod tail_render;

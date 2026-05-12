@@ -578,6 +578,142 @@ pub fn cub_tail_body_for_genes(genes: &crate::genome::TailGenes) -> kokoro_body:
     body
 }
 
+// =====================================================================
+// MOLUUN CUB SPINE — 5-vertebra trunk that anchors head + tail + limbs
+// =====================================================================
+//
+// Anatomy choices that distinguish the spine from the tail:
+//
+// - **Rigid joints**: small ROM (±10°), high ligament_k. Vertebras
+//   barely flex — the spine protects the cord and holds posture.
+// - **Uniform fur**: body fur, no bell curve. Banding-style coat
+//   patterns live on the tail only.
+// - **Uniform fat**: constant moderate padding around organs.
+// - **Heavier mass per segment**: trunk segments carry the ribcage
+//   and viscera.
+//
+// The spine is laid out with its first segment at `attach` and the
+// chain running in `base_angle` direction (typically PI for a
+// right-facing cub: spine goes from neck-end at the right to
+// sacral-end at the left). The tail then attaches at the sacral tip
+// — see `bridge_spine_to_tail` in moluun_runtime.rs.
+
+pub const STANDALONE_SPINE_SEGMENTS: usize = 5;
+const SPINE_BONE_NAMES: [&str; STANDALONE_SPINE_SEGMENTS] = [
+    "cervical", "thoracic_a", "thoracic_b", "lumbar", "sacral",
+];
+
+/// Species-average spine parameters. Tuned to feel like a real cub
+/// trunk: heavy, rigid, with subtle breathing flex.
+pub const SPINE_SEGMENT_MASS:   f32 = 0.4;                              // kg — heavier than tail (carries trunk)
+pub const SPINE_LIGAMENT_K:     f32 = 30.0;                             // N·px/rad — stiff, holds posture
+pub const SPINE_FRICTION:       f32 = 4.0;                              // N·px·s/rad
+pub const SPINE_ROM:            f32 = std::f32::consts::PI / 18.0;      // ±10° per joint
+pub const SPINE_MUSCLE_MAX_FORCE:        f32 = 6.0;                     // stronger paraspinal muscles
+pub const SPINE_MUSCLE_CONTRACTION_RATE: f32 = 4.0;                     // slow, postural
+
+/// Uniform muscle thickness along the spine (the paraspinal muscles
+/// run pretty consistently from cervical to sacral). Scales 0.75x..1.25x
+/// with the resilience gene.
+pub fn cub_spine_rest_thickness(_seg: usize, _segments: usize, resilience: f32) -> f32 {
+    const SPINE_MUSCLE_PX: f32 = 1.8;
+    SPINE_MUSCLE_PX * (0.75 + 0.5 * resilience.clamp(0.0, 1.0))
+}
+
+/// Uniform body-fat padding around the trunk. Scales 0.5x..1.5x with
+/// appetite (a chubby cub has more padding everywhere, not just tail).
+pub fn cub_spine_fat_thickness(_seg: usize, _segments: usize, appetite: f32) -> f32 {
+    const SPINE_FAT_PX: f32 = 0.7;
+    SPINE_FAT_PX * (0.5 + appetite.clamp(0.0, 1.0))
+}
+
+/// Skin thickness on the trunk. Slightly tougher than tail skin
+/// (the back is exposed to more abrasion).
+pub fn cub_spine_skin_thickness(_seg: usize, _segments: usize, resilience: f32) -> f32 {
+    const SPINE_SKIN_PX: f32 = 0.4;
+    SPINE_SKIN_PX * (0.75 + 0.5 * resilience.clamp(0.0, 1.0))
+}
+
+/// Uniform body fur — no bell-curve. Length scaled by tail-strength
+/// gene since fluffiness is a whole-coat trait, not tail-specific.
+pub fn cub_spine_fur_length(_seg: usize, _segments: usize, coat_fluffiness: f32) -> f32 {
+    const SPINE_FUR_PX: f32 = 1.6;
+    SPINE_FUR_PX * (0.75 + 0.5 * coat_fluffiness.clamp(0.0, 1.0))
+}
+
+/// Build the cub spine as a `kokoro_body::Body`. Five vertebra-like
+/// segments hung off a length-0 root, all `Stiffness::Rigid` (the
+/// trunk doesn't slosh like a tail does), each carrying a flex/extend
+/// muscle pair for future postural drives (breathing, arching).
+#[allow(dead_code)]
+pub fn cub_spine_body_for_creature(
+    appetite: f32,
+    resilience: f32,
+    coat_fluffiness: f32,
+    total_length: f32,
+    attach: Vec2,
+    base_angle: f32,
+) -> kokoro_body::Body {
+    use kokoro_body::body::Actuator;
+    use kokoro_body::{Body, Muscle, MuscleAttachment, MusclePair, Nerve};
+
+    let seg_len = total_length / STANDALONE_SPINE_SEGMENTS as f32;
+    let segments = STANDALONE_SPINE_SEGMENTS;
+
+    let mut bones: Vec<Bone> = Vec::with_capacity(segments + 1);
+    bones.push(Bone::root("spine_base", 0.0, 0.0));
+    for (i, name) in SPINE_BONE_NAMES.iter().enumerate() {
+        let parent = BoneId(i as u16);
+        let rest_angle = if i == 0 { base_angle } else { 0.0 };
+        let tissue = Tissue::new(SPINE_SEGMENT_MASS)
+            .with_fat( cub_spine_fat_thickness(i, segments, appetite))
+            .with_skin(cub_spine_skin_thickness(i, segments, resilience))
+            .with_fur( cub_spine_fur_length(i, segments, coat_fluffiness));
+        bones.push(
+            Bone::child(name, parent, Vec2::ZERO, rest_angle, seg_len, 1.0)
+                .with_stiffness(Stiffness::Rigid)
+                .with_tissue(tissue),
+        );
+    }
+
+    let mut sk = Skeleton::new(bones);
+    sk.set_root(attach);
+    for i in 1..=segments {
+        let bone_id = BoneId(i as u16);
+        let rest_angle = if i == 1 { base_angle } else { 0.0 };
+        sk.install_joint(
+            bone_id,
+            Joint::hinge(
+                bone_id, rest_angle,
+                -SPINE_ROM, SPINE_ROM,
+                SPINE_LIGAMENT_K, SPINE_FRICTION,
+            ),
+        );
+    }
+
+    let mut body = Body::new(sk);
+    for i in 1..=segments {
+        let bone_id = BoneId(i as u16);
+        let taper = cub_spine_rest_thickness(i - 1, segments, resilience);
+        let mk_muscle = |name: &'static str| {
+            let mut m = Muscle::new(
+                name,
+                MuscleAttachment::new(BoneId((i - 1) as u16), 1.0),
+                MuscleAttachment::new(bone_id, 1.0),
+                SPINE_MUSCLE_MAX_FORCE,
+            );
+            m.contraction_rate = SPINE_MUSCLE_CONTRACTION_RATE;
+            m.rest_thickness = taper;
+            m
+        };
+        let muscles = MusclePair::new(mk_muscle("paraspinal_flexor"), mk_muscle("paraspinal_extensor"));
+        let nerve_flexor   = Nerve::new("nerve_flexor",   20.0, 1.0);
+        let nerve_extensor = Nerve::new("nerve_extensor", 20.0, 1.0);
+        body.attach_actuator(Actuator::new(bone_id, nerve_flexor, nerve_extensor, muscles));
+    }
+    body
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

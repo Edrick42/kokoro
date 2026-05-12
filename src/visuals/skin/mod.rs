@@ -69,6 +69,7 @@ fn attach_skin(
     soft_body: Option<Res<SoftBody>>,
     expression: Res<ExpressionOverride>,
     moluun_tail: Option<Res<crate::creature::biomechanics::moluun_runtime::MoluunCubTail>>,
+    moluun_spine: Option<Res<crate::creature::biomechanics::moluun_runtime::MoluunCubSpine>>,
     #[cfg(feature = "dev")] dev_state: Option<Res<crate::dev::DevModeState>>,
 ) {
     #[cfg(feature = "dev")]
@@ -86,13 +87,22 @@ fn attach_skin(
                 .unwrap_or_else(SkinParams::healthy_default);
             draw_creature(&mut buf, &genome.species, &mind.mood, &growth.stage, &sp, &soft_body, &expression, &involuntary, debug_overlay);
             if matches!(genome.species, Species::Moluun) && matches!(growth.stage, GrowthStage::Cub) {
+                let vis = layer_visibility(
+                    #[cfg(feature = "dev")] dev_state.as_deref(),
+                );
+                // Spine renders first — it's the trunk that the tail
+                // (and eventually head, legs) hangs off of.
+                if let Some(spine) = moluun_spine.as_ref() {
+                    crate::creature::biomechanics::spine_render::paint_anatomical_spine(&mut buf, spine, vis);
+                }
                 if let Some(tail) = moluun_tail.as_ref() {
-                    let vis = layer_visibility(
-                        #[cfg(feature = "dev")] dev_state.as_deref(),
-                    );
                     crate::creature::biomechanics::tail_render::paint_anatomical_tail(&mut buf, tail, vis);
                     #[cfg(feature = "dev")]
                     paint_biomech_layers(&mut buf, tail, dev_state.as_deref());
+                }
+                #[cfg(feature = "dev")]
+                if let Some(spine) = moluun_spine.as_ref() {
+                    paint_biomech_layers_spine(&mut buf, spine, dev_state.as_deref());
                 }
             }
             if let Some(ref mut data) = image.data {
@@ -127,6 +137,7 @@ fn update_skin(
     soft_body: Option<Res<SoftBody>>,
     expression: Res<ExpressionOverride>,
     moluun_tail: Option<Res<crate::creature::biomechanics::moluun_runtime::MoluunCubTail>>,
+    moluun_spine: Option<Res<crate::creature::biomechanics::moluun_runtime::MoluunCubSpine>>,
     mut images: ResMut<Assets<BevyImage>>,
     creature_q: Query<&Sprite, With<CreatureSkin>>,
     mut pixel_buf: Local<Option<RgbaImage>>,
@@ -147,9 +158,11 @@ fn update_skin(
     // unconditionally for the active Moluun cub. Both bypass the
     // change-detection short-circuit below.
     let has_soft_body = soft_body.is_some();
-    let tail_animating = moluun_tail.as_ref().map_or(false, |t| t.is_changed());
+    let tail_animating  = moluun_tail.as_ref().map_or(false, |t| t.is_changed());
+    let spine_animating = moluun_spine.as_ref().map_or(false, |s| s.is_changed());
     let physiology_changed = physiology.as_ref().map_or(false, |p| p.is_changed());
-    if !has_soft_body && !tail_animating && !mind.is_changed() && !genome.is_changed() && !growth.is_changed()
+    if !has_soft_body && !tail_animating && !spine_animating
+        && !mind.is_changed() && !genome.is_changed() && !growth.is_changed()
         && !physiology_changed && !expression.is_changed()
         && !involuntary.is_changed() {
         return;
@@ -165,13 +178,20 @@ fn update_skin(
     // biomechanics overlay paints the physically-real layers on top,
     // toggleable per layer via DevModeState.
     if matches!(genome.species, Species::Moluun) && matches!(growth.stage, GrowthStage::Cub) {
+        let vis = layer_visibility(
+            #[cfg(feature = "dev")] dev_state.as_deref(),
+        );
+        if let Some(spine) = moluun_spine.as_ref() {
+            crate::creature::biomechanics::spine_render::paint_anatomical_spine(buf, spine, vis);
+        }
         if let Some(tail) = moluun_tail.as_ref() {
-            let vis = layer_visibility(
-                #[cfg(feature = "dev")] dev_state.as_deref(),
-            );
             crate::creature::biomechanics::tail_render::paint_anatomical_tail(buf, tail, vis);
             #[cfg(feature = "dev")]
             paint_biomech_layers(buf, tail, dev_state.as_deref());
+        }
+        #[cfg(feature = "dev")]
+        if let Some(spine) = moluun_spine.as_ref() {
+            paint_biomech_layers_spine(buf, spine, dev_state.as_deref());
         }
     }
 
@@ -209,6 +229,24 @@ fn paint_biomech_layers(
     if dev.biomech_nerves  { debug_overlay::paint_nerves(buf, tail); }
     if dev.biomech_bones   { debug_overlay::paint_bones(buf, skeleton); }
     if dev.biomech_joints  { debug_overlay::paint_joints(buf, skeleton); }
+}
+
+/// Same overlays as the tail version, but for the spine. Muscles +
+/// nerves overlays are skipped today because the spine has no
+/// postural drive yet (every muscle activation = 0). Bones and
+/// joints still paint so the wireframe is visible in dev.
+#[cfg(feature = "dev")]
+fn paint_biomech_layers_spine(
+    buf: &mut RgbaImage,
+    spine: &crate::creature::biomechanics::moluun_runtime::MoluunCubSpine,
+    dev: Option<&crate::dev::DevModeState>,
+) {
+    use crate::creature::biomechanics::debug_overlay;
+    let Some(dev) = dev else { return };
+    if !dev.active { return; }
+    let skeleton = &spine.body.skeleton;
+    if dev.biomech_bones  { debug_overlay::paint_bones(buf, skeleton); }
+    if dev.biomech_joints { debug_overlay::paint_joints(buf, skeleton); }
 }
 
 /// Resolve which anatomical layers should contribute to the rendered

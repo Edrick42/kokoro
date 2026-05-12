@@ -29,6 +29,13 @@ pub struct DevModeState {
     pub biomech_bones: bool,
     pub biomech_joints: bool,
     pub biomech_muscles: bool,
+    /// Rendering layer visibility — when off, that anatomical layer
+    /// contributes zero thickness to the silhouette, so the dev viewer
+    /// literally sees the cub minus that tissue. Useful for "what does
+    /// fur add?", "what does fat add?", etc.
+    pub render_fat:  bool,
+    pub render_skin: bool,
+    pub render_fur:  bool,
     /// Tick speed multiplier (1.0 = normal, 5.0 = 5x faster)
     pub tick_speed: f32,
 }
@@ -46,6 +53,9 @@ impl Default for DevModeState {
             biomech_bones: true,
             biomech_joints: true,
             biomech_muscles: true,
+            render_fat: true,
+            render_skin: true,
+            render_fur: true,
             tick_speed: 1.0,
         }
     }

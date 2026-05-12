@@ -43,10 +43,31 @@ const RING_STRIDE: usize = 4;
 /// Outline halo thickness (pixels) added around every body disc.
 const OUTLINE_PAD: f32 = 0.5;
 
-/// Paint the cub's tail anatomically: each segment widens or narrows
-/// with the matching muscle's current thickness. The shape literally
-/// IS the muscle state.
-pub fn paint_anatomical_tail(img: &mut RgbaImage, tail: &MoluunCubTail) {
+/// Bit flags for which anatomical layers contribute to the rendered
+/// silhouette. The five-layer stack from inside to outside is bone,
+/// muscle, fat, skin, fur — the muscle layer is always on (it's the
+/// envelope's core), but fat / skin / fur are independently
+/// toggleable so the dev panel can visualise what each contributes.
+#[derive(Copy, Clone, Debug)]
+pub struct LayerVisibility {
+    pub fat:  bool,
+    pub skin: bool,
+    pub fur:  bool,
+}
+
+impl LayerVisibility {
+    pub const ALL: Self = Self { fat: true, skin: true, fur: true };
+}
+
+/// Paint the cub's tail anatomically. The visible silhouette stacks
+/// `muscle + fat + skin + fur` perpendicular to the bone; each non-muscle
+/// layer can be stripped by clearing its flag in `vis` so the dev
+/// inspector can see what each tissue contributes.
+pub fn paint_anatomical_tail(
+    img: &mut RgbaImage,
+    tail: &MoluunCubTail,
+    vis: LayerVisibility,
+) {
     let skeleton = &tail.body.skeleton;
     if skeleton.dirty() {
         return;
@@ -56,13 +77,17 @@ pub fn paint_anatomical_tail(img: &mut RgbaImage, tail: &MoluunCubTail) {
         let base = skeleton.world_base(bone_id);
         let tip  = skeleton.world_tip(bone_id);
         let (flex_t, ext_t) = thicknesses_for(tail, bone_id);
-        // Fur halo around the anatomy — see `cub_tail_fur_length`.
-        // Adds the same amount to both perp sides so the fur is
-        // symmetric even when the underlying muscle pair is asymmetric.
-        let fur = tail.fur_lengths.get(seg).copied().unwrap_or(0.0);
+        // Halo layers are symmetric (same on both perp sides). Muscle
+        // already carries the asymmetric flex/ext difference. Toggling
+        // a layer to off sets its contribution to zero — i.e. the dev
+        // viewer literally sees the cub minus that tissue.
+        let fat  = if vis.fat  { tail.fat_thicknesses.get(seg).copied().unwrap_or(0.0)  } else { 0.0 };
+        let skin = if vis.skin { tail.skin_thicknesses.get(seg).copied().unwrap_or(0.0) } else { 0.0 };
+        let fur  = if vis.fur  { tail.fur_lengths.get(seg).copied().unwrap_or(0.0)      } else { 0.0 };
+        let halo = fat + skin + fur;
         let is_ring = seg > 0 && seg % RING_STRIDE == 0;
         let body_color = if is_ring { RING } else { BODY };
-        stamp_tube(img, base, tip, flex_t + fur, ext_t + fur, body_color);
+        stamp_tube(img, base, tip, flex_t + halo, ext_t + halo, body_color);
     }
 }
 
@@ -200,16 +225,23 @@ mod snapshot {
             let t = (i as f32) / ((STANDALONE_TAIL_SEGMENTS - 1) as f32);
             2.5 * (std::f32::consts::PI * t).sin()
         }).collect();
+        let fat_thicknesses = (0..STANDALONE_TAIL_SEGMENTS).map(|i| {
+            let t = (i as f32) / ((STANDALONE_TAIL_SEGMENTS - 1) as f32);
+            0.6 * (1.0 - t) + 0.2 * t
+        }).collect();
+        let skin_thicknesses = vec![0.3_f32; STANDALONE_TAIL_SEGMENTS];
         let mut tail = super::super::moluun_runtime::MoluunCubTail {
             body,
             sim_time: 0.0,
             last_intent: vec![kokoro_body::actuation::PairIntent::rest(); 16],
+            fat_thicknesses,
+            skin_thicknesses,
             fur_lengths,
         };
         let mut img = RgbaImage::new(64, 64);
         for px in img.pixels_mut() { *px = Rgba([0, 0, 0, 0]); }
         tail.body.skeleton.forward();
-        paint_anatomical_tail(&mut img, &tail);
+        paint_anatomical_tail(&mut img, &tail, LayerVisibility::ALL);
         upscale_save(&img, "anatomical_tail_rest");
     }
 
@@ -231,10 +263,17 @@ mod snapshot {
             let t = (i as f32) / ((STANDALONE_TAIL_SEGMENTS - 1) as f32);
             2.5 * (std::f32::consts::PI * t).sin()
         }).collect();
+        let fat_thicknesses = (0..STANDALONE_TAIL_SEGMENTS).map(|i| {
+            let t = (i as f32) / ((STANDALONE_TAIL_SEGMENTS - 1) as f32);
+            0.6 * (1.0 - t) + 0.2 * t
+        }).collect();
+        let skin_thicknesses = vec![0.3_f32; STANDALONE_TAIL_SEGMENTS];
         let mut tail = super::super::moluun_runtime::MoluunCubTail {
             body,
             sim_time: 0.0,
             last_intent: vec![kokoro_body::actuation::PairIntent::rest(); 16],
+            fat_thicknesses,
+            skin_thicknesses,
             fur_lengths,
         };
         tail.body.skeleton.forward();
@@ -244,7 +283,7 @@ mod snapshot {
         }
         let mut img = RgbaImage::new(64, 64);
         for px in img.pixels_mut() { *px = Rgba([0, 0, 0, 0]); }
-        paint_anatomical_tail(&mut img, &tail);
+        paint_anatomical_tail(&mut img, &tail, LayerVisibility::ALL);
         upscale_save(&img, "anatomical_tail_flexed");
     }
 }

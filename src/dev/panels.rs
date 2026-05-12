@@ -63,20 +63,21 @@ pub fn dev_panels_system(
             ui.checkbox(&mut dev_state.show_cheats, "Cheats");
             ui.separator();
 
-            // --- Biomechanics layers (per-physical-layer overlay) ---
-            ui.label(egui::RichText::new("Biomechanics overlay").strong());
+            // --- Biomechanics debug overlays (annotations on top of tail) ---
+            ui.label(egui::RichText::new("Debug overlays").strong());
             ui.checkbox(&mut dev_state.biomech_bones,   "Bones (black lines)");
             ui.checkbox(&mut dev_state.biomech_joints,  "Joints (cyan → red)");
             ui.checkbox(&mut dev_state.biomech_muscles, "Muscles (pink bellies, brighter when firing)");
-            // Placeholders: physical state does not exist per-segment yet.
-            // Disabled so the user sees the full 5-layer list and knows
-            // which laws still need to land.
             ui.add_enabled_ui(false, |ui| {
-                let mut nerve = false; let mut fat = false; let mut skin = false;
+                let mut nerve = false;
                 ui.checkbox(&mut nerve, "Nerves — needs latency/health law");
-                ui.checkbox(&mut fat,   "Fat — needs composite-mass law");
-                ui.checkbox(&mut skin,  "Skin — needs per-segment skin law");
             });
+            ui.separator();
+            // --- Render-layer visibility (strip a tissue from the silhouette) ---
+            ui.label(egui::RichText::new("Anatomical layers (strip to inspect)").strong());
+            ui.checkbox(&mut dev_state.render_fat,  "Fat layer");
+            ui.checkbox(&mut dev_state.render_skin, "Skin layer");
+            ui.checkbox(&mut dev_state.render_fur,  "Fur layer");
             ui.separator();
 
             egui::ScrollArea::vertical().show(ui, |ui| {

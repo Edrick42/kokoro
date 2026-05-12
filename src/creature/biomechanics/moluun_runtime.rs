@@ -46,17 +46,26 @@ const CUB_TAIL_BASE_ANGLE: f32 = std::f32::consts::PI;
 /// without re-deriving it. Index `i` corresponds to segment bone `i+1`
 /// (bone 0 is the anchor root).
 ///
-/// `fur_lengths` is the per-segment fur length, in canvas pixels,
-/// perpendicular to the skin. Treated as quasi-static (genome-derived)
-/// today; promoted to a real `kokoro_body::Fur` struct on `Body` once
-/// other body parts also grow fur and the layer needs cross-body
-/// state. Distribution follows a bell curve (zero at base + tip, peak
-/// in the middle) so the cub's tail reads as fusiform.
+/// The three Vec<f32> below stack on top of the muscle in real
+/// anatomical order, each in canvas pixels perpendicular to the bone:
+/// bone → muscle → **fat** → **skin** → **fur**.
+/// Treated as quasi-static (genome-derived) today; promoted to real
+/// `kokoro_body::{Fat, Skin, Fur}` structs on `Body` when other body
+/// parts also grow these layers and they need cross-body state.
 #[derive(Resource)]
 pub struct MoluunCubTail {
     pub body: Body,
     pub sim_time: f32,
     pub last_intent: Vec<PairIntent>,
+    /// Subcutaneous fat thickness per segment. Tapers base → tip
+    /// (animals carry more padding near the body); scales with the
+    /// appetite gene (fatter cubs carry more).
+    pub fat_thicknesses: Vec<f32>,
+    /// Skin layer thickness per segment. Approximately uniform along
+    /// the tail; scales with the resilience gene.
+    pub skin_thicknesses: Vec<f32>,
+    /// Fur length per segment. Bell-curve distribution (zero at ends,
+    /// peak in middle) produces the bushy fusiform silhouette.
     pub fur_lengths: Vec<f32>,
 }
 
@@ -79,15 +88,49 @@ fn init_tail_body(mut commands: Commands, genome: Res<Genome>) {
         Vec2::new(CUB_TAIL_ATTACH_X, CUB_TAIL_ATTACH_Y),
         CUB_TAIL_BASE_ANGLE,
     );
-    let fur_lengths = (0..STANDALONE_TAIL_SEGMENTS)
-        .map(|seg| cub_tail_fur_length(seg, STANDALONE_TAIL_SEGMENTS, genome.tail.strength))
+    let appetite = genome.appetite;
+    let resilience = genome.resilience;
+    let strength = genome.tail.strength;
+    let segments = STANDALONE_TAIL_SEGMENTS;
+
+    let fat_thicknesses = (0..segments)
+        .map(|seg| cub_tail_fat_thickness(seg, segments, appetite))
         .collect();
+    let skin_thicknesses = (0..segments)
+        .map(|seg| cub_tail_skin_thickness(seg, segments, resilience))
+        .collect();
+    let fur_lengths = (0..segments)
+        .map(|seg| cub_tail_fur_length(seg, segments, strength))
+        .collect();
+
     commands.insert_resource(MoluunCubTail {
         body,
         sim_time: 0.0,
-        last_intent: vec![PairIntent::rest(); STANDALONE_TAIL_SEGMENTS],
+        last_intent: vec![PairIntent::rest(); segments],
+        fat_thicknesses,
+        skin_thicknesses,
         fur_lengths,
     });
+}
+
+/// Subcutaneous fat distribution along the tail, in canvas pixels.
+/// Tapers from `BASE` near the body to `TIP` at the end — real animals
+/// carry more padding closer to the trunk. `appetite` scales the whole
+/// layer 0.5x..1.5x so a chunky cub reads as chunky.
+fn cub_tail_fat_thickness(seg: usize, segments: usize, appetite: f32) -> f32 {
+    const BASE_FAT_PX: f32 = 0.6;
+    const TIP_FAT_PX:  f32 = 0.2;
+    let t = (seg as f32) / ((segments - 1).max(1) as f32);
+    let interp = BASE_FAT_PX * (1.0 - t) + TIP_FAT_PX * t;
+    interp * (0.5 + appetite.clamp(0.0, 1.0))
+}
+
+/// Skin layer thickness along the tail. Approximately uniform; scales
+/// 0.75x..1.25x with the resilience gene (hardier cubs have tougher
+/// skin).
+fn cub_tail_skin_thickness(_seg: usize, _segments: usize, resilience: f32) -> f32 {
+    const SKIN_PX: f32 = 0.3;
+    SKIN_PX * (0.75 + 0.5 * resilience.clamp(0.0, 1.0))
 }
 
 /// Bell-curve fur distribution along the tail, in canvas pixels.

@@ -87,7 +87,10 @@ fn attach_skin(
             draw_creature(&mut buf, &genome.species, &mind.mood, &growth.stage, &sp, &soft_body, &expression, &involuntary, debug_overlay);
             if matches!(genome.species, Species::Moluun) && matches!(growth.stage, GrowthStage::Cub) {
                 if let Some(tail) = moluun_tail.as_ref() {
-                    crate::creature::biomechanics::tail_render::paint_anatomical_tail(&mut buf, tail);
+                    let vis = layer_visibility(
+                        #[cfg(feature = "dev")] dev_state.as_deref(),
+                    );
+                    crate::creature::biomechanics::tail_render::paint_anatomical_tail(&mut buf, tail, vis);
                     #[cfg(feature = "dev")]
                     paint_biomech_layers(&mut buf, tail, dev_state.as_deref());
                 }
@@ -163,7 +166,10 @@ fn update_skin(
     // toggleable per layer via DevModeState.
     if matches!(genome.species, Species::Moluun) && matches!(growth.stage, GrowthStage::Cub) {
         if let Some(tail) = moluun_tail.as_ref() {
-            crate::creature::biomechanics::tail_render::paint_anatomical_tail(buf, tail);
+            let vis = layer_visibility(
+                #[cfg(feature = "dev")] dev_state.as_deref(),
+            );
+            crate::creature::biomechanics::tail_render::paint_anatomical_tail(buf, tail, vis);
             #[cfg(feature = "dev")]
             paint_biomech_layers(buf, tail, dev_state.as_deref());
         }
@@ -202,6 +208,28 @@ fn paint_biomech_layers(
     if dev.biomech_muscles { debug_overlay::paint_muscles(buf, tail); }
     if dev.biomech_bones   { debug_overlay::paint_bones(buf, skeleton); }
     if dev.biomech_joints  { debug_overlay::paint_joints(buf, skeleton); }
+}
+
+/// Resolve which anatomical layers should contribute to the rendered
+/// silhouette. In dev mode each layer is independently toggleable;
+/// non-dev always renders all of them.
+fn layer_visibility(
+    #[cfg(feature = "dev")] dev: Option<&crate::dev::DevModeState>,
+) -> crate::creature::biomechanics::tail_render::LayerVisibility {
+    use crate::creature::biomechanics::tail_render::LayerVisibility;
+    #[cfg(feature = "dev")]
+    {
+        if let Some(dev) = dev {
+            if dev.active {
+                return LayerVisibility {
+                    fat:  dev.render_fat,
+                    skin: dev.render_skin,
+                    fur:  dev.render_fur,
+                };
+            }
+        }
+    }
+    LayerVisibility::ALL
 }
 
 // ===================================================================

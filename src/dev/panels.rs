@@ -569,6 +569,23 @@ fn draw_cheats_panel(
     }
 
     if let Some(mind) = mind {
+        // --- Force mood (overrides the FSM until natural stat shift) ---
+        // Useful for previewing biomech overlays at active patterns (e.g.,
+        // Playful drives the strongest wave through the tail muscles).
+        ui.label(format!("Mood: {:?}", mind.mood));
+        ui.horizontal_wrapped(|ui| {
+            for m in [
+                MoodState::Happy, MoodState::Playful, MoodState::Hungry,
+                MoodState::Tired, MoodState::Sleeping, MoodState::Sick,
+                MoodState::Lonely, MoodState::Thirsty,
+            ] {
+                if ui.small_button(format!("{m:?}")).clicked() {
+                    mind.mood = m;
+                }
+            }
+        });
+        ui.add_space(4.0);
+
         // --- Skip time ---
         ui.horizontal(|ui| {
             if ui.button("Skip 1h").clicked() {

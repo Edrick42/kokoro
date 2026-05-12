@@ -12,5 +12,6 @@
 //! Renderers (`src/visuals/skin/<species>.rs`) never invent motion —
 //! they only paint the post-FK state of bodies built here.
 
+pub mod debug_overlay;
 pub mod moluun;
 pub mod moluun_runtime;

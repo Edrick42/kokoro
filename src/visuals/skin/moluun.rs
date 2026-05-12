@@ -53,18 +53,15 @@ pub fn draw_egg(img: &mut RgbaImage, p: &SpeciesSkin, cx: i32) {
 }
 
 // ===================================================================
-// CUB — SKELETAL WIREFRAME (rebuild-from-bones mode)
+// CUB — REBUILD-FROM-RIG MODE
 // ===================================================================
 // The cub is being rebuilt body-part by body-part on top of the
-// kokoro-rig + kokoro-body biomechanics. Currently only the tail is
-// physically simulated, so `draw_cub` paints nothing — `overlay_tail`
-// draws the rendered tail and `overlay_skeleton_wireframe` draws the
-// rig as bone segments + joint dots over the empty canvas. New body
-// parts (head, spine, legs, …) will appear in the wireframe the moment
-// their bones are installed on the skeleton.
-
-const BONE_COLOR:  Rgba<u8> = Rgba(Palette::NearBlack.rgba(255));
-const JOINT_COLOR: Rgba<u8> = Rgba(Palette::CyanBright.rgba(220));
+// kokoro-rig + kokoro-body biomechanics. `draw_cub` paints nothing
+// today; `overlay_tail` paints the rendered skin (FusiformTail) and the
+// biomechanics debug overlay (bones, joints, muscles) is invoked from
+// `skin::mod.rs` via `creature::biomechanics::debug_overlay`. New body
+// parts will appear in both layers the moment their bones land on the
+// skeleton.
 
 /// Paint the physical tail of a `MoluunCubTail` over the current pixel
 /// buffer using the `FusiformTail` brush.
@@ -76,54 +73,6 @@ pub fn overlay_tail(img: &mut RgbaImage, tail: &crate::creature::biomechanics::m
     FusiformTail::new(joints, 3, Palette::Orange, Palette::OffWhite)
         .with_rings(2, 1)
         .paint(img);
-}
-
-/// Wireframe view of the cub's rig: each bone as a black segment, each
-/// joint (bone base + tip) as a cyan dot. Reads bone positions straight
-/// from the post-FK `Skeleton`, so any bone added to the rig shows up
-/// automatically with no extra draw code.
-pub fn overlay_skeleton_wireframe(img: &mut RgbaImage, tail: &crate::creature::biomechanics::moluun_runtime::MoluunCubTail) {
-    use kokoro_rig::BoneId;
-    let skeleton = &tail.body.skeleton;
-    if skeleton.dirty() {
-        return;
-    }
-    for (i, _bone) in skeleton.bones().iter().enumerate() {
-        let id = BoneId(i as u16);
-        let base = skeleton.world_base(id);
-        let tip  = skeleton.world_tip(id);
-        let (x0, y0) = (base.x.round() as i32, base.y.round() as i32);
-        let (x1, y1) = (tip.x.round() as i32, tip.y.round() as i32);
-        draw_line(img, x0, y0, x1, y1, BONE_COLOR);
-        draw_joint_dot(img, x0, y0, JOINT_COLOR);
-        draw_joint_dot(img, x1, y1, JOINT_COLOR);
-    }
-}
-
-/// Bresenham line over the pixel buffer. Inlined here since no other
-/// caller in the project needs lines yet.
-fn draw_line(img: &mut RgbaImage, x0: i32, y0: i32, x1: i32, y1: i32, color: Rgba<u8>) {
-    let (mut x, mut y) = (x0, y0);
-    let dx =  (x1 - x0).abs();
-    let dy = -(y1 - y0).abs();
-    let sx = if x0 < x1 { 1 } else { -1 };
-    let sy = if y0 < y1 { 1 } else { -1 };
-    let mut err = dx + dy;
-    loop {
-        put(img, x, y, color);
-        if x == x1 && y == y1 { break; }
-        let e2 = 2 * err;
-        if e2 >= dy { err += dy; x += sx; }
-        if e2 <= dx { err += dx; y += sy; }
-    }
-}
-
-fn draw_joint_dot(img: &mut RgbaImage, cx: i32, cy: i32, color: Rgba<u8>) {
-    put(img, cx, cy, color);
-    put(img, cx - 1, cy, color);
-    put(img, cx + 1, cy, color);
-    put(img, cx, cy - 1, color);
-    put(img, cx, cy + 1, color);
 }
 
 pub fn draw_cub(_img: &mut RgbaImage, _p: &SpeciesSkin, _cx: i32, _mood: &MoodState, _sb: &Option<Res<SoftBody>>) {

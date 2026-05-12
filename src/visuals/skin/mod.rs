@@ -88,7 +88,7 @@ fn attach_skin(
             if matches!(genome.species, Species::Moluun) && matches!(growth.stage, GrowthStage::Cub) {
                 if let Some(tail) = moluun_tail.as_ref() {
                     moluun::overlay_tail(&mut buf, tail);
-                    moluun::overlay_skeleton_wireframe(&mut buf, tail);
+                    paint_biomech_layers(&mut buf, tail);
                 }
             }
             if let Some(ref mut data) = image.data {
@@ -153,13 +153,13 @@ fn update_skin(
     draw_creature(buf, &genome.species, &mind.mood, &growth.stage, &sp, &soft_body, &expression, &involuntary, debug_overlay);
 
     // Moluun cub: the rig is the only authoritative source. `overlay_tail`
-    // paints the simulated tail, `overlay_skeleton_wireframe` overlays
-    // the bones+joints so every new body part shows up as soon as it is
-    // added to the rig.
+    // paints the simulated skin (FusiformTail); `paint_biomech_layers`
+    // overlays the physically-real layers (bones, joints, muscles) so
+    // every new body part shows up as soon as it is added to the rig.
     if matches!(genome.species, Species::Moluun) && matches!(growth.stage, GrowthStage::Cub) {
         if let Some(tail) = moluun_tail.as_ref() {
             moluun::overlay_tail(buf, tail);
-            moluun::overlay_skeleton_wireframe(buf, tail);
+            paint_biomech_layers(buf, tail);
         }
     }
 
@@ -170,6 +170,26 @@ fn update_skin(
             }
         }
     }
+}
+
+// ===================================================================
+// BIOMECHANICS DEBUG OVERLAY
+// ===================================================================
+// Paints the physically-real layers of a Moluun cub tail over the
+// canvas: bones, joint stress, muscle activation. The renderer never
+// invents motion — every pixel here mirrors state already living in the
+// kokoro-rig / kokoro-body sim. Layers backed by per-segment physical
+// state will be added as they come online (nerves, fat, skin).
+
+fn paint_biomech_layers(
+    buf: &mut RgbaImage,
+    tail: &crate::creature::biomechanics::moluun_runtime::MoluunCubTail,
+) {
+    use crate::creature::biomechanics::debug_overlay;
+    let skeleton = &tail.body.skeleton;
+    debug_overlay::paint_muscles(buf, skeleton, &tail.last_intent);
+    debug_overlay::paint_bones(buf, skeleton);
+    debug_overlay::paint_joints(buf, skeleton);
 }
 
 // ===================================================================

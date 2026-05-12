@@ -40,10 +40,16 @@ const CUB_TAIL_BASE_ANGLE: f32 = std::f32::consts::PI;
 /// Per-creature physical tail body. Lives in this resource so the
 /// integration runs once globally for the active creature; multi-creature
 /// support comes when the collection becomes a Component-per-entity.
+///
+/// `last_intent` stores the per-segment `PairIntent` from the most recent
+/// step so debug overlays can read what the mind asked of each muscle
+/// without re-deriving it. Index `i` corresponds to segment bone `i+1`
+/// (bone 0 is the anchor root).
 #[derive(Resource)]
 pub struct MoluunCubTail {
     pub body: Body,
     pub sim_time: f32,
+    pub last_intent: Vec<PairIntent>,
 }
 
 pub struct MoluunCubTailPlugin;
@@ -65,7 +71,11 @@ fn init_tail_body(mut commands: Commands, genome: Res<Genome>) {
         Vec2::new(CUB_TAIL_ATTACH_X, CUB_TAIL_ATTACH_Y),
         CUB_TAIL_BASE_ANGLE,
     );
-    commands.insert_resource(MoluunCubTail { body, sim_time: 0.0 });
+    commands.insert_resource(MoluunCubTail {
+        body,
+        sim_time: 0.0,
+        last_intent: vec![PairIntent::rest(); STANDALONE_TAIL_SEGMENTS],
+    });
 }
 
 fn step_tail_body(
@@ -87,18 +97,26 @@ fn step_tail_body(
     // Cap dt to avoid explosions if the frame stalls (lag spike on load).
     let dt = time.delta_secs().min(0.05);
     let t_snapshot = tail.sim_time;
+
+    // Pre-compute intent for every active segment so we can both feed it
+    // to the integrator and keep a copy on the resource for debug overlays.
+    let intents: Vec<PairIntent> = (1..=STANDALONE_TAIL_SEGMENTS)
+        .map(|seg| cub_tail_intent(&pattern, t_snapshot, seg, STANDALONE_TAIL_SEGMENTS))
+        .collect();
+
     tail.body.step(
         dt,
         |bone_id| {
             let seg = bone_id.0 as usize;
             if (1..=STANDALONE_TAIL_SEGMENTS).contains(&seg) {
-                cub_tail_intent(&pattern, t_snapshot, seg, STANDALONE_TAIL_SEGMENTS)
+                intents[seg - 1]
             } else {
                 PairIntent::rest()
             }
         },
         |_| AppliedTorques::default(),
     );
+    tail.last_intent = intents;
     tail.sim_time += dt;
     tail.body.skeleton.forward();
 }

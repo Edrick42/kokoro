@@ -34,21 +34,24 @@ use super::moluun::{
     cub_tail_body_for_creature, cub_tail_intent, cub_tail_pattern_for_mood,
 };
 
-/// In-game scaling for the cub spine on the 64×64 canvas. Cervical end
-/// sits forward at the right; chain extends leftward (PI) so the
-/// sacral end falls where the tail used to anchor.
-const CUB_SPINE_LENGTH_PX: f32 = 20.0;
-const CUB_SPINE_ATTACH_X:  f32 = 48.0;
-const CUB_SPINE_ATTACH_Y:  f32 = 32.0;
-const CUB_SPINE_BASE_ANGLE: f32 = std::f32::consts::PI;
+/// In-game scaling for the cub spine on the 64×64 canvas — **sitting
+/// pose**. Cervical end sits high (where the head will attach),
+/// the chain runs straight DOWN (angle = π/2 in image coords where
+/// +y points down), and the sacral end rests on the floor where the
+/// cub sits on its rear. The tail then trails left from the sacrum.
+const CUB_SPINE_LENGTH_PX: f32 = 22.0;
+const CUB_SPINE_ATTACH_X:  f32 = 35.0;
+const CUB_SPINE_ATTACH_Y:  f32 = 24.0;
+const CUB_SPINE_BASE_ANGLE: f32 = std::f32::consts::FRAC_PI_2; // π/2 — down
 
 /// In-game scaling for the cub tail. Length is a constant; the actual
 /// attach position is overwritten every frame by `bridge_spine_to_tail`
 /// from the spine's sacral tip, so the values below are just the
-/// pre-bridge defaults used until the spine has stepped once.
+/// pre-bridge defaults used until the spine has stepped once. The
+/// sitting cub's tail trails left, hugging the floor.
 const CUB_TAIL_LENGTH_PX: f32 = 32.0;
-const CUB_TAIL_ATTACH_X: f32 = 28.0;
-const CUB_TAIL_ATTACH_Y: f32 = 32.0;
+const CUB_TAIL_ATTACH_X: f32 = 35.0;
+const CUB_TAIL_ATTACH_Y: f32 = 46.0;
 const CUB_TAIL_BASE_ANGLE: f32 = std::f32::consts::PI;
 
 /// Per-creature physical tail body. Lives in this resource so the

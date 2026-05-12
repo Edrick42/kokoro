@@ -2,6 +2,14 @@
 
 > Métricas quantitativas extraídas de referências curadas. Cada número aqui vira constante no código.
 
+> **2026-05-11 — Anatomy is now simulated, not authored.** Bones, joints,
+> muscles, and nerves obey the universal physical laws documented in
+> [`biomechanics.md`](biomechanics.md). The visual targets in this file
+> define *species averages*; per-creature variation emerges from genome
+> modulation of mass, ligament stiffness, muscle force, and nerve health
+> — not from authored sprite variants. Poses are no longer drawn — they
+> are what physics produces.
+
 ## Status
 
 **Parte 1 — Egg & Cub stage (este documento, 2026-05-08)**

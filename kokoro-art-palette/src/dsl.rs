@@ -721,6 +721,139 @@ impl Brush for RingedTail {
 }
 
 // =====================================================================
+// FusiformTail — banded tail with a thin → thick → thin profile
+// =====================================================================
+
+/// A cat-tail-style ringed tail painted along a polyline of joints. Width
+/// follows a fusiform (spindle) profile: zero at the base, peaks near the
+/// middle, tapers to zero at the tip. This is what distinguishes it from
+/// `RingedTail`, which tapers monotonically thick-base → thin-tip.
+///
+/// Rings are anchored at specific joints of the polyline (every Nth joint)
+/// so they ride the curvature naturally when the tail bends — the rings
+/// stay parked on articulation points instead of drifting along arc-length
+/// as the pose changes.
+#[derive(Debug, Clone)]
+pub struct FusiformTail {
+    /// Spine joints in order, base → tip. Caller must supply at least 3
+    /// (a fusiform profile needs an interior midpoint between endpoints).
+    pub joints: Vec<(i32, i32)>,
+    /// Half-width at the peak of the fusiform profile (~50% along arc).
+    /// The profile reaches 0 at the base (joint 0) and tip (last joint).
+    pub peak_half_width: u32,
+    pub body: Palette,
+    pub ring: Palette,
+    /// Place a ring centred on every Nth joint starting from joint index
+    /// `ring_joint_stride` — so the base (joint 0) and intermediate joints
+    /// inside the stride never get a ring.
+    pub ring_joint_stride: u32,
+    /// Half-thickness of each ring band, in arc-length pixels. 1 means
+    /// each ring covers ~3px of arc (centre ± 1).
+    pub ring_half_thickness: u32,
+}
+
+impl FusiformTail {
+    pub fn new(joints: Vec<(i32, i32)>, peak_half_width: u32, body: Palette, ring: Palette) -> Self {
+        Self {
+            joints,
+            peak_half_width,
+            body,
+            ring,
+            ring_joint_stride: 2,
+            ring_half_thickness: 1,
+        }
+    }
+
+    pub fn with_rings(mut self, joint_stride: u32, half_thickness: u32) -> Self {
+        self.ring_joint_stride = joint_stride;
+        self.ring_half_thickness = half_thickness;
+        self
+    }
+
+    pub fn paint_with(&self, img: &mut RgbaImage, body: Rgba<u8>, ring: Rgba<u8>) {
+        if self.joints.len() < 3 {
+            return;
+        }
+        let n_joints = self.joints.len();
+
+        // Per-segment lengths and per-joint cumulative arc-length so the
+        // bell-curve width and ring centres both work in true arc units
+        // (consistent under curved poses).
+        let mut seg_lens = Vec::with_capacity(n_joints - 1);
+        let mut joint_arc = Vec::with_capacity(n_joints);
+        joint_arc.push(0.0_f32);
+        let mut total = 0.0_f32;
+        for w in self.joints.windows(2) {
+            let dx = (w[1].0 - w[0].0) as f32;
+            let dy = (w[1].1 - w[0].1) as f32;
+            let l = (dx * dx + dy * dy).sqrt();
+            seg_lens.push(l);
+            total += l;
+            joint_arc.push(total);
+        }
+        if total < 0.5 {
+            return;
+        }
+
+        let stride = self.ring_joint_stride.max(1) as usize;
+        let mut ring_centres: Vec<f32> = Vec::new();
+        let mut j = stride;
+        while j < n_joints {
+            ring_centres.push(joint_arc[j]);
+            j += stride;
+        }
+
+        let max_w = self.peak_half_width.max(1) as f32;
+        let ring_half = self.ring_half_thickness.max(1) as f32;
+        let w_img = img.width() as i32;
+        let h_img = img.height() as i32;
+
+        let mut traveled = 0.0_f32;
+        for (i, w) in self.joints.windows(2).enumerate() {
+            let (sx, sy) = w[0];
+            let (ex, ey) = w[1];
+            let dx = (ex - sx) as f32;
+            let dy = (ey - sy) as f32;
+            let l = seg_lens[i].max(1e-3);
+            let perp_x = -dy / l;
+            let perp_y = dx / l;
+            let steps = (l * 2.0) as i32 + 1;
+
+            for s in 0..=steps {
+                let t = s as f32 / steps as f32;
+                let cur = traveled + l * t;
+                let frac = (cur / total).clamp(0.0, 1.0);
+                // Parabolic bell — 1.0 at frac=0.5, 0.0 at the endpoints.
+                let bell = 1.0 - (2.0 * frac - 1.0).powi(2);
+                let half_w = (max_w * bell + 0.5).round() as i32;
+                if half_w < 1 {
+                    continue;
+                }
+                let is_ring = ring_centres.iter().any(|&rp| (cur - rp).abs() <= ring_half);
+                let color = if is_ring { ring } else { body };
+
+                let cx = sx as f32 + dx * t;
+                let cy = sy as f32 + dy * t;
+                for off in -half_w..=half_w {
+                    let px = (cx + perp_x * off as f32).round() as i32;
+                    let py = (cy + perp_y * off as f32).round() as i32;
+                    if px >= 0 && py >= 0 && px < w_img && py < h_img {
+                        img.put_pixel(px as u32, py as u32, color);
+                    }
+                }
+            }
+            traveled += l;
+        }
+    }
+}
+
+impl Brush for FusiformTail {
+    fn paint(&self, img: &mut RgbaImage) {
+        self.paint_with(img, self.body.into(), self.ring.into());
+    }
+}
+
+// =====================================================================
 // FurFluff — seventh primitive: speckle cluster suggesting volumetric fur
 // =====================================================================
 
@@ -1287,6 +1420,89 @@ mod tests {
         // No pixels of either color should be set.
         let brown: Rgba<u8> = Palette::Brown.into();
         assert!(img.pixels().all(|p| p != &brown));
+    }
+
+    // -----------------------------------------------------------------
+    // FusiformTail
+    // -----------------------------------------------------------------
+
+    /// Helper: count pixels of `color` in a vertical column at `x`. Used
+    /// to measure tail thickness at different points along its arc.
+    fn column_color_count(img: &RgbaImage, x: u32, color: Rgba<u8>) -> u32 {
+        (0..img.height())
+            .filter(|&y| *img.get_pixel(x, y) == color)
+            .count() as u32
+    }
+
+    #[test]
+    fn fusiform_tail_is_thicker_in_middle_than_at_endpoints() {
+        // 30-px straight horizontal tail; 16 joints (15 segments × 2px each).
+        let joints: Vec<(i32, i32)> =
+            (0..=15).map(|i| (10 + i * 2, 30)).collect();
+        let mut img = RgbaImage::new(64, 64);
+        FusiformTail::new(joints, 6, Palette::Orange, Palette::OffWhite)
+            .with_rings(99, 1) // stride 99 → effectively no rings, so we measure body only
+            .paint(&mut img);
+
+        let orange: Rgba<u8> = Palette::Orange.into();
+        // Body extends from x=10 to x=40. Sample near the base, middle,
+        // and tip; middle column must be the tallest (fusiform peak).
+        let base = column_color_count(&img, 12, orange);
+        let mid = column_color_count(&img, 25, orange);
+        let tip = column_color_count(&img, 38, orange);
+        assert!(
+            mid > base && mid > tip,
+            "expected fusiform peak (base={base}, mid={mid}, tip={tip})"
+        );
+        // And both endpoints should be thinner than the peak by a meaningful margin.
+        assert!(mid >= base + 2, "middle should be clearly thicker than base");
+        assert!(mid >= tip + 2,  "middle should be clearly thicker than tip");
+        save_swatch(&img, "fusiform_tail_profile.png");
+    }
+
+    #[test]
+    fn fusiform_tail_paints_rings_at_strided_joints() {
+        // Straight horizontal tail with joints every 4px. Stride 2 →
+        // rings at joints 2, 4, 6, 8 — arc-length 8, 16, 24, 32.
+        let joints: Vec<(i32, i32)> =
+            (0..=8).map(|i| (10 + i * 4, 30)).collect();
+        let mut img = RgbaImage::new(64, 64);
+        FusiformTail::new(joints, 5, Palette::Orange, Palette::OffWhite)
+            .with_rings(2, 1)
+            .paint(&mut img);
+
+        let orange: Rgba<u8> = Palette::Orange.into();
+        let off_white: Rgba<u8> = Palette::OffWhite.into();
+        // Sample a column at each expected ring centre (joints 2/4/6/8 →
+        // world x = 18, 26, 34, 42). Each must show off-white pixels.
+        for x in [18, 26, 34, 42] {
+            let ring_pixels = column_color_count(&img, x, off_white);
+            assert!(
+                ring_pixels >= 2,
+                "expected ring at x={x}, found {ring_pixels} off-white pixels"
+            );
+        }
+        // And between rings (joints 1/3/5/7 → x = 14, 22, 30, 38) the
+        // dominant colour must be orange, not off-white.
+        for x in [14, 22, 30, 38] {
+            let body = column_color_count(&img, x, orange);
+            let ring = column_color_count(&img, x, off_white);
+            assert!(
+                body > ring,
+                "expected body-dominant at x={x}, got body={body} ring={ring}"
+            );
+        }
+        save_swatch(&img, "fusiform_tail_rings.png");
+    }
+
+    #[test]
+    fn fusiform_tail_too_short_input_is_a_noop() {
+        // Fewer than 3 joints → no fusiform profile possible.
+        let mut img = RgbaImage::new(16, 16);
+        FusiformTail::new(vec![(2, 8), (12, 8)], 4, Palette::Orange, Palette::OffWhite)
+            .paint(&mut img);
+        let orange: Rgba<u8> = Palette::Orange.into();
+        assert!(img.pixels().all(|p| p != &orange));
     }
 
     #[test]

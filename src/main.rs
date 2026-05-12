@@ -60,6 +60,7 @@ use visuals::{
     genome_visuals::apply_genome_visuals,
     mood_sync::sync_mood_sprites,
     skin::SkinPlugin,
+    skin::moluun_tail_sim::MoluunCubTailPlugin,
     resonance_glow::ResonanceGlowPlugin,
     species_behavior::SpeciesBehaviorPlugin,
 };
@@ -108,7 +109,7 @@ fn main() {
         .add_plugins((PhysicsPlugin, SoftBodyPlugin, ImpulsePlugin, WobblePlugin))
         // Visual plugins — effects, animation, evolution, accessories, organic behavior
         .add_plugins((EffectsPlugin, AnimationPlugin, EvolutionPlugin, AccessoriesPlugin, BackgroundPlugin))
-        .add_plugins((BreathingPlugin, SpeciesBehaviorPlugin, ResonanceGlowPlugin, SkinPlugin))
+        .add_plugins((BreathingPlugin, SpeciesBehaviorPlugin, ResonanceGlowPlugin, SkinPlugin, MoluunCubTailPlugin))
         // Visual update systems
         .add_systems(Update, (sync_mood_sprites, apply_genome_visuals).run_if(in_state(AppState::Gameplay)));
 

@@ -11,8 +11,10 @@
 mod color;
 mod crossover;
 mod species;
+mod tail;
 
 pub use species::Species;
+pub use tail::TailGenes;
 
 use bevy::prelude::Resource;
 use rand::Rng;
@@ -49,6 +51,12 @@ pub struct Genome {
 
     /// Base body color as HSL hue (0.0–360.0)
     pub hue: f32,
+
+    /// Heritable tail anatomy factors (length, flexibility, strength).
+    /// Legacy saves missing this field default to mid-range values via
+    /// `#[serde(default)]`.
+    #[serde(default)]
+    pub tail: TailGenes,
 }
 
 impl Genome {
@@ -73,6 +81,7 @@ impl Genome {
             resilience:             rng.random_range(resilience_range),
             learning_rate:          rng.random_range(0.1..=0.6),
             hue:                    rng.random_range(0.0..360.0),
+            tail:                   TailGenes::random(&mut rng),
         }
     }
 

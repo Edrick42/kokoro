@@ -1,6 +1,6 @@
 use rand::Rng;
 
-use super::{Genome, Species};
+use super::{Genome, Species, TailGenes};
 
 impl Genome {
     /// Creates a child genome by crossing two parent genomes with mutation.
@@ -36,6 +36,8 @@ impl Genome {
         let h = pick(&mut rng, parent_a.hue, parent_b.hue);
         let hue = mutate(&mut rng, h / 360.0, 0.0, 1.0) * 360.0;
 
+        let tail = TailGenes::crossover(parent_a.tail, parent_b.tail, &mut rng);
+
         Self {
             species: child_species,
             curiosity,
@@ -45,6 +47,7 @@ impl Genome {
             resilience,
             learning_rate,
             hue,
+            tail,
         }
     }
 }

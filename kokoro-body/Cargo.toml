@@ -1,0 +1,8 @@
+[package]
+name = "kokoro-body"
+version = "0.1.0"
+edition = "2024"
+description = "Neuromuscular layer above kokoro-rig: muscles, nerves, antagonist pairs, and the actuation pipeline that turns intention into joint torque."
+
+[dependencies]
+kokoro-rig = { path = "../kokoro-rig" }

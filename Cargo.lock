@@ -3179,6 +3179,7 @@ dependencies = [
  "bincode",
  "image",
  "kokoro-art-palette",
+ "kokoro-body",
  "kokoro-rig",
  "libc",
  "rand 0.9.2",
@@ -3197,8 +3198,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "kokoro-body"
+version = "0.1.0"
+dependencies = [
+ "kokoro-rig",
+]
+
+[[package]]
 name = "kokoro-rig"
 version = "0.1.0"
+dependencies = [
+ "image",
+]
 
 [[package]]
 name = "ktx2"

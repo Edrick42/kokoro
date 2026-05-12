@@ -35,6 +35,10 @@ kokoro-art-palette = { path = "kokoro-art-palette" }
 # `image` feature on so debug skeleton overlays can render to PNGs in tests.
 kokoro-rig = { path = "kokoro-rig", features = ["image"] }
 
+# Neuromuscular layer: muscles, nerves, antagonist pairs, actuation pipeline.
+# Lives above kokoro-rig; no Bevy dep — usable in tests and headless tools.
+kokoro-body = { path = "kokoro-body" }
+
 # Small optimization in dev builds for your own code
 [profile.dev]
 opt-level = 1

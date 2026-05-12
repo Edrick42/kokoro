@@ -7,6 +7,8 @@
 //! builds via `debug_assert!`.
 
 use crate::bone::{Bone, BoneId, Vec2};
+use crate::joint::{Joint, JointState};
+use crate::physics::{self, AppliedTorques};
 
 /// A skeleton is a tree of bones plus the per-frame state derived from
 /// applying a pose to those bones (world positions and angles).
@@ -23,6 +25,19 @@ pub struct Skeleton {
     /// replaces (does NOT add to) the rest angle. Pose layers (next module)
     /// are responsible for deciding what value to write here.
     pose_angles: Vec<Option<f32>>,
+
+    /// Optional joint installed on each bone. When `Some`, the bone is
+    /// considered physics-driven: its effective angle comes from the
+    /// matching [`JointState`] after `step_physics`. The root bone has
+    /// no joint by definition; for any non-root bone you can either
+    /// install a joint (physics-driven) or leave it `None` and drive the
+    /// angle via [`set_angle`] (kinematic).
+    joints: Vec<Option<Joint>>,
+
+    /// Per-bone physical state aligned with `joints`. Always `Some` when
+    /// `joints[i]` is `Some` — installed at the same time, integrator
+    /// writes into it.
+    joint_states: Vec<Option<JointState>>,
 
     /// World-space base position of each bone, populated by `forward()`.
     world_positions: Vec<Vec2>,
@@ -65,6 +80,8 @@ impl Skeleton {
         Self {
             bones,
             pose_angles: vec![None; n],
+            joints: vec![None; n],
+            joint_states: vec![None; n],
             world_positions: vec![Vec2::ZERO; n],
             world_angles: vec![0.0; n],
             root_position: Vec2::ZERO,
@@ -116,9 +133,75 @@ impl Skeleton {
         self.dirty = true;
     }
 
-    /// Returns whichever angle is "in effect" for this bone (override or rest).
+    /// Returns whichever angle is "in effect" for this bone. Precedence:
+    /// physics-driven joint state (if a joint is installed and has state)
+    /// > pose override > rest angle.
     pub fn effective_angle(&self, id: BoneId) -> f32 {
-        self.pose_angles[id.index()].unwrap_or(self.bones[id.index()].rest_angle)
+        let i = id.index();
+        if let Some(state) = self.joint_states[i] {
+            return state.angle;
+        }
+        self.pose_angles[i].unwrap_or(self.bones[i].rest_angle)
+    }
+
+    /// Install a joint on a bone. The joint's `bone` field is rewritten
+    /// to match `id` so callers can build a joint without knowing the
+    /// final bone index. Initial state is parked at `joint.rest_angle`.
+    ///
+    /// Panics in debug if `id` is the root bone — the root has no parent
+    /// and therefore no joint.
+    pub fn install_joint(&mut self, id: BoneId, joint: Joint) {
+        let i = id.index();
+        debug_assert!(
+            self.bones[i].parent.is_some(),
+            "cannot install a joint on the root bone (no parent to articulate against)"
+        );
+        let mut j = joint;
+        j.bone = id;
+        self.joint_states[i] = Some(JointState::at_rest(j.rest_angle));
+        self.joints[i] = Some(j);
+        self.dirty = true;
+    }
+
+    pub fn joint(&self, id: BoneId) -> Option<&Joint> {
+        self.joints[id.index()].as_ref()
+    }
+
+    pub fn joint_state(&self, id: BoneId) -> Option<JointState> {
+        self.joint_states[id.index()]
+    }
+
+    /// Overwrite a joint's state. Mostly used by the physics integrator;
+    /// gameplay code should prefer applying torques and letting physics
+    /// step the angle naturally.
+    pub fn set_joint_state(&mut self, id: BoneId, state: JointState) {
+        debug_assert!(
+            self.joints[id.index()].is_some(),
+            "set_joint_state on a bone with no installed joint"
+        );
+        self.joint_states[id.index()] = Some(state);
+        self.dirty = true;
+    }
+
+    /// Step physics for every installed joint by `dt` seconds.
+    ///
+    /// `torques(id)` is called once per joint-bearing bone and returns
+    /// the external torques (muscle, contact, gravity) the higher layers
+    /// want applied this frame. The integrator adds the passive ligament
+    /// spring and surface friction internally.
+    ///
+    /// After this call the world cache is dirty — call `forward()`
+    /// before reading world positions.
+    pub fn step_physics(&mut self, dt: f32, mut torques: impl FnMut(BoneId) -> AppliedTorques) {
+        for i in 0..self.bones.len() {
+            let Some(joint) = self.joints[i].clone() else { continue };
+            let state = self.joint_states[i].unwrap_or_else(|| JointState::at_rest(joint.rest_angle));
+            let inertia = physics::bone_inertia(&self.bones[i]);
+            let applied = torques(BoneId(i as u16));
+            let new_state = physics::integrate_joint(&joint, state, applied, inertia, dt);
+            self.joint_states[i] = Some(new_state);
+        }
+        self.dirty = true;
     }
 
     /// Forward kinematics. Single linear pass over bones (no recursion)
@@ -131,7 +214,12 @@ impl Skeleton {
     pub fn forward(&mut self) {
         for i in 0..self.bones.len() {
             let bone = &self.bones[i];
-            let local_angle = self.pose_angles[i].unwrap_or(bone.rest_angle);
+            // Precedence: physics-driven joint state > pose override > rest angle.
+            let local_angle = if let Some(state) = self.joint_states[i] {
+                state.angle
+            } else {
+                self.pose_angles[i].unwrap_or(bone.rest_angle)
+            };
 
             let (parent_tip, parent_angle) = match bone.parent {
                 None => (self.root_position, 0.0),

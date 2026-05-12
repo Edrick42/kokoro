@@ -99,6 +99,29 @@ impl Vec2 {
     }
 }
 
+/// Material composition of a bone — currently mass only. Held as a struct
+/// so future fields (density, fracture state, marrow_state) can be added
+/// without breaking the `Bone` API.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct BoneTissue {
+    /// Mass of the bone in kilograms. The default 1.0 is "one body unit"
+    /// — gameplay parameters can stay dimensionless until a real physical
+    /// reference is chosen.
+    pub mass: f32,
+}
+
+impl BoneTissue {
+    pub const fn new(mass: f32) -> Self {
+        Self { mass }
+    }
+}
+
+impl Default for BoneTissue {
+    fn default() -> Self {
+        Self { mass: 1.0 }
+    }
+}
+
 /// A single bone in a skeleton.
 ///
 /// Position model: a bone has a **base** (origin) and a **tip** (where its
@@ -146,6 +169,11 @@ pub struct Bone {
     /// How this bone interacts with an external soft-body simulation.
     /// See `Stiffness` docs. Default is `Rigid`.
     pub stiffness: Stiffness,
+
+    /// Material composition of the bone. Defaults to mass = 1.0 (one body
+    /// unit). The physics integrator uses this to derive moment of
+    /// inertia for the joint that hangs this bone.
+    pub tissue: BoneTissue,
 }
 
 impl Bone {
@@ -164,6 +192,7 @@ impl Bone {
             genome_length_scale: 1.0,
             genome_width_scale: 1.0,
             stiffness: Stiffness::Rigid,
+            tissue: BoneTissue { mass: 1.0 },
         }
     }
 
@@ -189,7 +218,13 @@ impl Bone {
             genome_length_scale: 1.0,
             genome_width_scale: 1.0,
             stiffness: Stiffness::Rigid,
+            tissue: BoneTissue { mass: 1.0 },
         }
+    }
+
+    pub const fn with_tissue(mut self, tissue: BoneTissue) -> Self {
+        self.tissue = tissue;
+        self
     }
 
     pub const fn with_z(mut self, z: i8) -> Self {

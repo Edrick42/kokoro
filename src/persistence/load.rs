@@ -60,6 +60,10 @@ fn load_genome(conn: &Connection) -> Result<Option<Genome>> {
             resilience:             row.get(5)?,
             learning_rate:          row.get(6)?,
             hue:                    row.get(7)?,
+            // Tail genes aren't persisted in the legacy schema yet; use
+            // mid-range defaults so saved creatures still load. Will be
+            // added to the schema when persistence migrates.
+            tail:                   crate::genome::TailGenes::default(),
         })
     });
 
@@ -132,6 +136,7 @@ pub fn load_collection(conn: &Connection) -> Result<Option<Vec<crate::creature::
                 resilience: row.get(7)?,
                 learning_rate: row.get(8)?,
                 hue: row.get(9)?,
+                tail: crate::genome::TailGenes::default(),
             };
             let anatomy = AnatomyState::new_for(&species, &genome);
             Ok(crate::creature::lifecycle::collection::StoredCreature {

@@ -1,17 +1,19 @@
-//! Spine renderer — wireframe phase.
+//! Anatomical spine renderer — sitting-cub torso.
 //!
-//! The cub is being rebuilt body-part by body-part. Step 1 is "get the
-//! whole skeleton sitting correctly"; soft tissues (fat, skin, fur,
-//! muscle bellies) come back once the bone layout reads right at every
-//! body part. The tail is already in its finished anatomical render
-//! (see `tail_render`); everything else paints as a stick figure for
-//! now.
+//! Same disc-stamped-tube approach as `tail_render`, but with two
+//! differences that match real torso anatomy in a side view:
 //!
-//! This function is intentionally cheap and uniform: a thin NearBlack
-//! line along every bone in the spine, with CyanBright joint dots at
-//! the endpoints. Same primitives the debug overlay uses, but called
-//! unconditionally from `skin::mod.rs` so the skeleton is visible in
-//! production builds while we keep working on layout.
+//! 1. **No ring banding.** Body fur on a Moluun is a continuous coat;
+//!    cream rings are a tail-only trait.
+//! 2. **Strongly asymmetric muscle.** The flexor (dorsal/back-side
+//!    paraspinal) is much thinner than the extensor (ventral/belly-side
+//!    abdominal). That's what gives the cub its characteristic
+//!    potbelly bulge to the front rather than a symmetric cylinder.
+//!
+//! Soft-tissue thicknesses come straight off each bone's `Tissue` plus
+//! the muscle pair's `rest_thickness`, so toggling the dev panel's
+//! Fat/Skin/Fur flags strips the corresponding layer from the
+//! silhouette exactly the way it does for the tail.
 
 use image::{Rgba, RgbaImage};
 use kokoro_art_palette::Palette;
@@ -21,16 +23,18 @@ use super::moluun::STANDALONE_SPINE_SEGMENTS;
 use super::moluun_runtime::MoluunCubSpine;
 use super::tail_render::LayerVisibility;
 
-const BONE_COLOR:  Rgba<u8> = Rgba(Palette::NearBlack.rgba(255));
-const JOINT_COLOR: Rgba<u8> = Rgba(Palette::CyanBright.rgba(220));
+const FUR_BODY:  Rgba<u8> = Rgba(Palette::Orange.rgba(255));
+const FUR_EDGE:  Rgba<u8> = Rgba(Palette::OrangeDark.rgba(255));
+const SKIN_BODY: Rgba<u8> = Rgba(Palette::Tan.rgba(255));
+const SKIN_EDGE: Rgba<u8> = Rgba(Palette::DeepBrown.rgba(255));
+const FAT_BODY:  Rgba<u8> = Rgba(Palette::Gold.rgba(255));
+const FAT_EDGE:  Rgba<u8> = Rgba(Palette::GoldDark.rgba(255));
+const OUTLINE_PAD: f32 = 0.5;
 
-/// Paint the spine as a wireframe: bone lines + joint dots, no soft
-/// tissue. `vis` is accepted for signature symmetry with the tail
-/// renderer but ignored — there's no tissue to strip yet.
 pub fn paint_anatomical_spine(
     img: &mut RgbaImage,
     spine: &MoluunCubSpine,
-    _vis: LayerVisibility,
+    vis: LayerVisibility,
 ) {
     let skeleton = &spine.body.skeleton;
     if skeleton.dirty() {
@@ -38,38 +42,97 @@ pub fn paint_anatomical_spine(
     }
     for seg in 0..STANDALONE_SPINE_SEGMENTS {
         let bone_id = BoneId((seg + 1) as u16);
+        let bone = skeleton.bone(bone_id);
         let base = skeleton.world_base(bone_id);
         let tip  = skeleton.world_tip(bone_id);
-        let (x0, y0) = (base.x.round() as i32, base.y.round() as i32);
-        let (x1, y1) = (tip.x.round()  as i32, tip.y.round()  as i32);
-        draw_line(img, x0, y0, x1, y1, BONE_COLOR);
-        draw_joint_dot(img, x0, y0, JOINT_COLOR);
-        draw_joint_dot(img, x1, y1, JOINT_COLOR);
+        let (flex_t, ext_t) = muscle_thickness_for(spine, bone_id);
+
+        let fat_th  = if vis.fat  { bone.tissue.fat_thickness  } else { 0.0 };
+        let skin_th = if vis.skin { bone.tissue.skin_thickness } else { 0.0 };
+        let fur_th  = if vis.fur  { bone.tissue.fur_length     } else { 0.0 };
+
+        if fur_th > 0.0 {
+            stamp_tube(img, base, tip,
+                       flex_t + fat_th + skin_th + fur_th,
+                       ext_t + fat_th + skin_th + fur_th,
+                       FUR_BODY, FUR_EDGE);
+        }
+        if skin_th > 0.0 {
+            stamp_tube(img, base, tip,
+                       flex_t + fat_th + skin_th,
+                       ext_t + fat_th + skin_th,
+                       SKIN_BODY, SKIN_EDGE);
+        } else if fat_th > 0.0 {
+            stamp_tube(img, base, tip,
+                       flex_t + fat_th, ext_t + fat_th,
+                       FAT_BODY, FAT_EDGE);
+        }
     }
 }
 
-fn draw_line(img: &mut RgbaImage, x0: i32, y0: i32, x1: i32, y1: i32, color: Rgba<u8>) {
-    let (mut x, mut y) = (x0, y0);
-    let dx = (x1 - x0).abs();
-    let dy = -(y1 - y0).abs();
-    let sx = if x0 < x1 { 1 } else { -1 };
-    let sy = if y0 < y1 { 1 } else { -1 };
-    let mut err = dx + dy;
-    loop {
-        put(img, x, y, color);
-        if x == x1 && y == y1 { break; }
-        let e2 = 2 * err;
-        if e2 >= dy { err += dy; x += sx; }
-        if e2 <= dx { err += dx; y += sy; }
+fn muscle_thickness_for(spine: &MoluunCubSpine, bone: BoneId) -> (f32, f32) {
+    if let Some(a) = spine.body.actuators.iter().find(|a| a.bone == bone) {
+        (a.muscles.flexor.current_thickness(), a.muscles.extensor.current_thickness())
+    } else {
+        (1.0, 1.0)
     }
 }
 
-fn draw_joint_dot(img: &mut RgbaImage, cx: i32, cy: i32, color: Rgba<u8>) {
-    put(img, cx,     cy,     color);
-    put(img, cx - 1, cy,     color);
-    put(img, cx + 1, cy,     color);
-    put(img, cx,     cy - 1, color);
-    put(img, cx,     cy + 1, color);
+fn stamp_tube(
+    img: &mut RgbaImage,
+    base: kokoro_rig::Vec2,
+    tip: kokoro_rig::Vec2,
+    flex_t: f32,
+    ext_t: f32,
+    body_color: Rgba<u8>,
+    edge_color: Rgba<u8>,
+) {
+    let dx = tip.x - base.x;
+    let dy = tip.y - base.y;
+    let len = (dx * dx + dy * dy).sqrt();
+    if len < 0.5 {
+        return;
+    }
+    let nx = -dy / len;
+    let ny = dx / len;
+    let perp_offset = (flex_t - ext_t) * 0.5;
+    let radius = (flex_t + ext_t) * 0.5;
+    if radius < 0.3 {
+        return;
+    }
+    let samples = (len.ceil() as i32).max(2);
+    for k in 0..=samples {
+        let s = k as f32 / samples as f32;
+        let cx = base.x + dx * s + nx * perp_offset;
+        let cy = base.y + dy * s + ny * perp_offset;
+        fill_disc(img, cx, cy, radius + OUTLINE_PAD, edge_color);
+    }
+    for k in 0..=samples {
+        let s = k as f32 / samples as f32;
+        let cx = base.x + dx * s + nx * perp_offset;
+        let cy = base.y + dy * s + ny * perp_offset;
+        fill_disc(img, cx, cy, radius, body_color);
+    }
+}
+
+fn fill_disc(img: &mut RgbaImage, cx: f32, cy: f32, radius: f32, color: Rgba<u8>) {
+    if radius <= 0.0 {
+        return;
+    }
+    let r_sq = radius * radius;
+    let x0 = (cx - radius - 0.5).floor() as i32;
+    let x1 = (cx + radius + 0.5).ceil() as i32;
+    let y0 = (cy - radius - 0.5).floor() as i32;
+    let y1 = (cy + radius + 0.5).ceil() as i32;
+    for y in y0..=y1 {
+        for x in x0..=x1 {
+            let dx = x as f32 + 0.5 - cx;
+            let dy = y as f32 + 0.5 - cy;
+            if dx * dx + dy * dy <= r_sq {
+                put(img, x, y, color);
+            }
+        }
+    }
 }
 
 fn put(img: &mut RgbaImage, x: i32, y: i32, color: Rgba<u8>) {
@@ -104,12 +167,11 @@ mod snapshot {
         let _ = up.save(dir.join(format!("{name}@4x.png")));
     }
 
-    /// Sitting-cub composition: spine wireframe goes top→bottom from
-    /// (35, 24) to (35, 46); the tail's anatomical render then trails
-    /// left from the sacral tip.
+    /// Full sitting-cub anatomical render: vertical spine with belly
+    /// bulge to the right, fusiform tail trailing left.
     #[test]
     #[ignore]
-    fn snapshot_sitting_cub_skeleton() {
+    fn snapshot_sitting_cub_torso() {
         use super::super::moluun::{
             cub_spine_body_for_creature, cub_tail_body_for_creature,
             STANDALONE_SPINE_SEGMENTS,
@@ -141,6 +203,6 @@ mod snapshot {
         for px in img.pixels_mut() { *px = Rgba([0, 0, 0, 0]); }
         paint_anatomical_spine(&mut img, &spine, LayerVisibility::ALL);
         super::super::tail_render::paint_anatomical_tail(&mut img, &tail, LayerVisibility::ALL);
-        upscale_save(&img, "sitting_cub_skeleton");
+        upscale_save(&img, "sitting_cub_torso");
     }
 }

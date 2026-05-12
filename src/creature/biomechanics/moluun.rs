@@ -612,33 +612,71 @@ pub const SPINE_ROM:            f32 = std::f32::consts::PI / 18.0;      // ±10�
 pub const SPINE_MUSCLE_MAX_FORCE:        f32 = 6.0;                     // stronger paraspinal muscles
 pub const SPINE_MUSCLE_CONTRACTION_RATE: f32 = 4.0;                     // slow, postural
 
-/// Uniform muscle thickness along the spine (the paraspinal muscles
-/// run pretty consistently from cervical to sacral). Scales 0.75x..1.25x
-/// with the resilience gene.
-pub fn cub_spine_rest_thickness(_seg: usize, _segments: usize, resilience: f32) -> f32 {
-    const SPINE_MUSCLE_PX: f32 = 1.8;
-    SPINE_MUSCLE_PX * (0.75 + 0.5 * resilience.clamp(0.0, 1.0))
+/// Dorsal (back-side, paraspinal) muscle cross-section per spine
+/// segment, in canvas pixels. Real animals have thin paraspinal
+/// muscles flanking the vertebrae — the back side of the silhouette
+/// stays relatively narrow. Index `seg` is 0-based: 0 = cervical,
+/// 4 = sacral.
+pub fn cub_spine_dorsal_thickness(seg: usize, _segments: usize, resilience: f32) -> f32 {
+    // Cervical narrow, thoracic medium (ribcage attaches here), sacral
+    // medium (broad pelvis). The dorsal side never gets really fat —
+    // belly is where padding accumulates in a cub.
+    let base = match seg {
+        0 => 0.8, // cervical (neck)
+        1 => 1.4, // thoracic_a (chest)
+        2 => 1.4, // thoracic_b (mid-back)
+        3 => 1.2, // lumbar (waist)
+        _ => 1.5, // sacral (hip)
+    };
+    base * (0.75 + 0.5 * resilience.clamp(0.0, 1.0))
 }
 
-/// Uniform body-fat padding around the trunk. Scales 0.5x..1.5x with
-/// appetite (a chubby cub has more padding everywhere, not just tail).
-pub fn cub_spine_fat_thickness(_seg: usize, _segments: usize, appetite: f32) -> f32 {
-    const SPINE_FAT_PX: f32 = 0.7;
-    SPINE_FAT_PX * (0.5 + appetite.clamp(0.0, 1.0))
+/// Ventral (belly-side, abdominal) muscle cross-section. Much chunkier
+/// than dorsal in a cub — they have the classic potbelly. Lumbar is the
+/// widest (the belly proper); thoracic still gets some chest depth.
+pub fn cub_spine_ventral_thickness(seg: usize, _segments: usize, appetite: f32) -> f32 {
+    let base = match seg {
+        0 => 1.0, // cervical (throat)
+        1 => 2.4, // thoracic_a (chest, biggest forward bulge)
+        2 => 2.6, // thoracic_b (belly upper)
+        3 => 2.8, // lumbar (potbelly maximum)
+        _ => 2.4, // sacral (lower belly tucked under)
+    };
+    base * (0.6 + 0.6 * appetite.clamp(0.0, 1.0))
 }
 
-/// Skin thickness on the trunk. Slightly tougher than tail skin
-/// (the back is exposed to more abrasion).
+/// Subcutaneous fat padding around the trunk, in canvas pixels. Cubs
+/// carry most of their fat on the abdomen — same shape curve as
+/// ventral muscle but smaller magnitude. Scales 0.5x..1.5x with
+/// appetite.
+pub fn cub_spine_fat_thickness(seg: usize, _segments: usize, appetite: f32) -> f32 {
+    let base = match seg {
+        0 => 0.2, // cervical (lean)
+        1 => 0.5, // thoracic
+        2 => 0.7,
+        3 => 0.9, // lumbar (belly bulge)
+        _ => 0.6, // sacral
+    };
+    base * (0.5 + appetite.clamp(0.0, 1.0))
+}
+
+/// Skin thickness on the trunk. Roughly uniform; scales with resilience.
 pub fn cub_spine_skin_thickness(_seg: usize, _segments: usize, resilience: f32) -> f32 {
     const SPINE_SKIN_PX: f32 = 0.4;
     SPINE_SKIN_PX * (0.75 + 0.5 * resilience.clamp(0.0, 1.0))
 }
 
-/// Uniform body fur — no bell-curve. Length scaled by tail-strength
-/// gene since fluffiness is a whole-coat trait, not tail-specific.
-pub fn cub_spine_fur_length(_seg: usize, _segments: usize, coat_fluffiness: f32) -> f32 {
-    const SPINE_FUR_PX: f32 = 1.6;
-    SPINE_FUR_PX * (0.75 + 0.5 * coat_fluffiness.clamp(0.0, 1.0))
+/// Body fur length per segment. Slightly more on shoulders/chest
+/// (where cubs have the natural fluff peak) and less around the waist.
+pub fn cub_spine_fur_length(seg: usize, _segments: usize, coat_fluffiness: f32) -> f32 {
+    let base = match seg {
+        0 => 1.6, // cervical (neck ruff)
+        1 => 2.0, // thoracic_a (chest fluff)
+        2 => 1.8,
+        3 => 1.4, // lumbar (slimmer body fur)
+        _ => 1.8, // sacral (rear fluff)
+    };
+    base * (0.75 + 0.5 * coat_fluffiness.clamp(0.0, 1.0))
 }
 
 /// Build the cub spine as a `kokoro_body::Body`. Five vertebra-like
@@ -694,8 +732,12 @@ pub fn cub_spine_body_for_creature(
     let mut body = Body::new(sk);
     for i in 1..=segments {
         let bone_id = BoneId(i as u16);
-        let taper = cub_spine_rest_thickness(i - 1, segments, resilience);
-        let mk_muscle = |name: &'static str| {
+        // Asymmetric body shape: flexor sits on +perp (dorsal/back),
+        // extensor on -perp (ventral/belly). The cub's potbelly comes
+        // from the larger ventral cross-section.
+        let dorsal_thick  = cub_spine_dorsal_thickness(i - 1, segments, resilience);
+        let ventral_thick = cub_spine_ventral_thickness(i - 1, segments, appetite);
+        let mk_muscle = |name: &'static str, thickness: f32| {
             let mut m = Muscle::new(
                 name,
                 MuscleAttachment::new(BoneId((i - 1) as u16), 1.0),
@@ -703,10 +745,13 @@ pub fn cub_spine_body_for_creature(
                 SPINE_MUSCLE_MAX_FORCE,
             );
             m.contraction_rate = SPINE_MUSCLE_CONTRACTION_RATE;
-            m.rest_thickness = taper;
+            m.rest_thickness = thickness;
             m
         };
-        let muscles = MusclePair::new(mk_muscle("paraspinal_flexor"), mk_muscle("paraspinal_extensor"));
+        let muscles = MusclePair::new(
+            mk_muscle("paraspinal", dorsal_thick),
+            mk_muscle("abdominal",  ventral_thick),
+        );
         let nerve_flexor   = Nerve::new("nerve_flexor",   20.0, 1.0);
         let nerve_extensor = Nerve::new("nerve_extensor", 20.0, 1.0);
         body.attach_actuator(Actuator::new(bone_id, nerve_flexor, nerve_extensor, muscles));

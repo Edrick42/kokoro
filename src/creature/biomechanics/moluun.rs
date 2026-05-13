@@ -525,7 +525,11 @@ pub fn cub_tail_skin_thickness(_seg: usize, _segments: usize, resilience: f32) -
 /// fusiform silhouette of a red-panda-style tail. Scales 0.75x..1.25x
 /// with the strength gene (bushier cubs read bigger).
 pub fn cub_tail_fur_length(seg: usize, segments: usize, strength: f32) -> f32 {
-    const MAX_FUR_PX: f32 = 2.5;
+    // Peak fur sized so the bushy halo at the middle of the tail
+    // reads at roughly the same scale as the torso silhouette
+    // (front-view cub aesthetic). Bell curve keeps fur = 0 at the
+    // base and tip → fusiform taper preserved (thin → thick → thin).
+    const MAX_FUR_PX: f32 = 8.0;
     let t = (seg as f32) / ((segments - 1).max(1) as f32);
     let bell = (std::f32::consts::PI * t).sin();
     MAX_FUR_PX * bell * (0.75 + 0.5 * strength.clamp(0.0, 1.0))

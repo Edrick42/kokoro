@@ -260,4 +260,49 @@ mod snapshot {
         paint_anatomical_spine(&mut img, &spine, LayerVisibility::ALL);
         upscale_save(&img, "sitting_cub_torso");
     }
+
+    /// Front-view torso + fluffy tail. Tail paints FIRST so the torso
+    /// overpaints the parts behind it — the visible tail is just the
+    /// fur halo that extends beyond the torso silhouette to one side.
+    #[test]
+    #[ignore]
+    fn snapshot_sitting_cub_with_tail() {
+        use super::super::moluun::{cub_spine_body_for_creature, cub_tail_body_for_creature};
+        use super::super::moluun_runtime::{MoluunCubSpine, MoluunCubTail};
+        let genes = crate::genome::TailGenes::default();
+
+        let mut spine_body = cub_spine_body_for_creature(
+            0.5, 0.5, 0.5,
+            22.0,
+            Vec2::new(32.0, 24.0),
+            std::f32::consts::FRAC_PI_2,
+        );
+        spine_body.skeleton.forward();
+        let spine = MoluunCubSpine { body: spine_body, sim_time: 0.0 };
+
+        // Tail anchored at the right edge of the torso's hip area so
+        // the fluffy fur-peak sits just outside the body silhouette.
+        // First couple of segments are still hidden behind the torso
+        // (gives the "tail emerges from behind" read).
+        let tail_anchor = Vec2::new(35.0, 34.0);
+        let mut tail_body = cub_tail_body_for_creature(
+            &genes, 0.5, 0.5,
+            20.0,
+            tail_anchor,
+            0.0,                       // base_angle 0 = rightward (cub's left)
+        );
+        tail_body.skeleton.forward();
+        let tail = MoluunCubTail {
+            body: tail_body,
+            sim_time: 0.0,
+            last_intent: vec![kokoro_body::actuation::PairIntent::rest(); 16],
+        };
+
+        let mut img = RgbaImage::new(64, 64);
+        for px in img.pixels_mut() { *px = Rgba([0, 0, 0, 0]); }
+        // Tail first → torso on top.
+        super::super::tail_render::paint_anatomical_tail(&mut img, &tail, LayerVisibility::ALL);
+        paint_anatomical_spine(&mut img, &spine, LayerVisibility::ALL);
+        upscale_save(&img, "sitting_cub_with_tail");
+    }
 }
